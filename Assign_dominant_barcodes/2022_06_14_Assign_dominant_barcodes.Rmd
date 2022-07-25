@@ -1,0 +1,153 @@
+---
+title: "2022_06_14_assign_dominant_barcodes"
+output: html_notebook
+---
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes is additional path for outputs
+
+```
+
+# Assign the dominant lineage (if there) to each cell
+# Will be using the count cutoff that gives the largest delta between the number of cells with a single barcode vs multiple barcodes
+```{r include = FALSE}
+# Initialize ----
+rm(list = ls())
+gc()
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(kit)
+`%nin%` = Negate(`%in%`)
+```
+
+# Assign directory and load files
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/all_data_merged.RData') #for merged object
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/Objects_premerged.RData') #for individual objects
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/dabtram_both_times.RData')
+
+reference <- read.delim('2022_05_19_Barcode_outputs/CellRanger_inputs/FeatureReference_filtered.csv')
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/lineage_count_cutoffs.RData') #lineage count cutoffs from test_barcode_assignment
+
+rm(cistocis, cistococl2, cistodabtram, cocl2tocis, cocl2tococl2, cocl2todabtram, dabtramtocis, dabtramtococl2, dabtramtodabtram) # only need the first drug objects
+```
+
+# Build counts object
+```{r include = FALSE}
+counts <- GetAssayData(all_data, assay = 'lineage')
+num_lin_orig <- nrow(counts)
+```
+
+# Remove all lineages with only one count across all cells
+```{r include = FALSE}
+counts_filt <- counts[which(rowSums(counts) > 1),] # Only care about lineages that have greater than one total count
+num_lin_filt <- nrow(counts_filt)
+percent_lin_filt <- num_lin_filt/num_lin_orig*100
+
+df_counts <- as.data.frame(counts_filt)
+```
+
+# Find number of barcodes per cell with nonzero counts
+```{r}
+barcodes_per_cell <- apply(counts_filt,2, function(x) sum(x>0))
+barcodes_per_cell_table <- table(barcodes_per_cell)
+barcodes_per_cell_table
+```
+
+# filter based on the maximum number of cells with one lineage
+```{r}
+filter_max_single <- cutoffs$Max_single
+names(filter_max_single) <- rownames(cutoffs)
+
+fam_max_single <- list()
+for (k in names(filter_max_single)){
+  for (i in grep(k,colnames(df_counts))){
+    fam_max_single[[i]] <- rownames(df_counts)[which(df_counts[,i] > filter_max_single[k])]
+  }
+}
+```
+
+# Look through cells that still have multiple barcodes and see if any have one with much higher expression than the rest ----
+```{r}
+# Build a boolean of the cells that still have multiple barcodes
+boolean_multi_lin <- lengths(fam_max_single)>1
+
+# Assign dominant barcode if the number of counts in the highest expressed barcodes is >triple that of second highest barcode
+fixed_multi<- list()
+for (i in (1:ncol(df_counts))){ 
+  if ( boolean_multi_lin[i] == T) {
+    if(df_counts[topn(as.numeric(df_counts[,i]),2),i][1] >= 3*df_counts[topn(as.numeric(df_counts[,i]),2),i][2]){
+      fixed_multi[[i]] <- rownames(df_counts)[topn(as.numeric(df_counts[,i]),2)][1]
+    }else{
+      fixed_multi[[i]] <- "Still multiple"
+    }
+  } else{ fixed_multi[[i]] <- "Single"
+  }
+}
+
+# Replace the values in fam that had 2+ barcodes with with either the dominant barcode if found or say that its still multiple
+fam_multi_collapse <- fam_max_single
+fam_multi_collapse[boolean_multi_lin] <- fixed_multi[boolean_multi_lin]
+
+fam_multi_collapse[lengths(fam_multi_collapse) == 0] <- 'No Barcode'
+```
+
+# Write this to metadata
+```{r}
+lin_meta <- t(as.data.frame(fam_multi_collapse))
+colnames(lin_meta) <- 'Lineage'
+rownames(lin_meta) <- colnames(df_counts)
+all_data$Lineage <- lin_meta
+```
+
+# Save the updated all_data object
+```{r}
+save(all_data, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+```
+
+
+# Load in the first drug only objects and add the lineage information pulled from all_data
+```{r}
+
+condition_indices <- list()
+for (i in unique(all_data$OG_condition)){
+  condition_indices[[paste0(i, '_inds')]] <- grep(i, names(all_data$Lineage))
+}
+
+# now need to remove indices from the first lists that are incorrectly assigned based on a shared name
+
+#dabtram first, minus other things that have dabtram in name
+condition_indices$dabtram_both_times_inds <- condition_indices$dabtram_inds[condition_indices$dabtram_inds %nin% c(condition_indices$dabtramtococl2_inds, condition_indices$dabtramtocis_inds, condition_indices$cocl2todabtram_inds, condition_indices$cistodabtram_inds)]
+dabtram_both_times$Lineage <- all_data$Lineage[condition_indices$dabtram_both_times_inds]
+save(dabtram_both_times, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_both_times_final_lineages.RData')
+
+condition_indices$dabtram_inds <- condition_indices$dabtram_inds[condition_indices$dabtram_inds %nin% c(condition_indices$dabtramtodabtram_inds, condition_indices$dabtramtococl2_inds, condition_indices$dabtramtocis_inds, condition_indices$cocl2todabtram_inds, condition_indices$cistodabtram_inds)]
+dabtram$Lineage <- all_data$Lineage[condition_indices$dabtram_inds]
+save(dabtram, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_final_lineages.RData")
+
+# cocl2 first, minus other things that have cocl2 in name
+condition_indices$cocl2_inds <- condition_indices$cocl2_inds[condition_indices$cocl2_inds %nin% c(condition_indices$dabtramtococl2_inds, condition_indices$cocl2todabtram_inds, condition_indices$cocl2tococl2_inds, condition_indices$cocl2tocis_inds, condition_indices$cistococl2_inds)]
+cocl2$Lineage <- all_data$Lineage[condition_indices$cocl2_inds]
+save(cocl2, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cocl2_final_lineages.RData")
+
+# cis first, minus other things that have cis in name
+condition_indices$cis_inds <- condition_indices$cis_inds[condition_indices$cis_inds %nin% c(condition_indices$dabtramtocis_inds, condition_indices$cocl2tocis_inds, condition_indices$cistodabtram_inds, condition_indices$cistococl2_inds, condition_indices$cistocis_inds)]
+cis$Lineage <- all_data$Lineage[condition_indices$cis_inds]
+save(cis, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cis_final_lineages.RData")
+
+#can check that above worked using below chunk
+
+#test <- data.frame (cell = names(dabtram_both_times$orig.ident), lineage_dt = dabtram_both_times$Lineage[names(dabtram_both_times$orig.ident)], lineage_alldata = all_data$Lineage[names(dabtram_both_times$orig.ident)])
+
+#this confirms that above indexing results in the same lineage assignments for dabtram_both_times as in all_data object
+
+```
+

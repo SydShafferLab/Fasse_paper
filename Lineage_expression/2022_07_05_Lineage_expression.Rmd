@@ -1,0 +1,223 @@
+---
+title: "Cell Cycle plotting"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+
+`%nin%` = Negate(`%in%`)
+```
+
+# Load data
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cis_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cocl2_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_both_times_final_lineages.RData')
+
+```
+
+#Plot cell cycle
+```{r}
+
+# view cell cycle scores and phase assignments
+DimPlot(all_data, group.by = "Phase")
+DimPlot(all_data)
+FeaturePlot(object = all_data, reduction = 'umap', features = ("nFeature_RNA"), pt.size = 1, combine = T, order = TRUE)
+DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))
+
+```
+
+# Markers within each first drug object to find subgroups (ie analogous to NGFR/EGFR)
+```{r}
+#load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/all_data_markers.RData')
+cis_markers <- FindAllMarkers(cis, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+cocl2_markers <- FindAllMarkers(cocl2, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+dabtram_markers <- FindAllMarkers(dabtram, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+all_data.markers <- FindAllMarkers(all_data, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25) 
+save(all_data.markers, cis_markers, cocl2_markers, dabtram_markers, file = 'all_data_markers.RData')
+```
+
+# need to make Idents metadata object which says if the cells are included in the combined lins list, or if they were filtered
+```{r}
+
+fivecell_cDNA$DabTramMaintained <- Reduce(intersect, list(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram))
+
+filtered_meta <- rep(0, length(names(all_data$Lineage)))
+
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% combined_lins_list$DabTram)] <- 'Resistant to DabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% combined_lins_list$DabTramtoDabTram)] <- 'Resistant to DabTramtoDabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %in% combined_lins_list$DabTramtoCoCl2)] <- 'Resistant to DabTramtoCoCl2'
+filtered_meta[which(all_data$OG_condition == "dabtramtocis" & all_data$Lineage %in% combined_lins_list$DabTramtoCis)] <- 'Resistant to DabTramtoCis'
+filtered_meta[which(all_data$OG_condition == "cocl2" & all_data$Lineage %in% combined_lins_list$CoCl2)] <- 'Resistant to CoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2todabtram" & all_data$Lineage %in% combined_lins_list$CoCl2toDabTram)] <- 'Resistant to CoCl2toDabTram'
+filtered_meta[which(all_data$OG_condition == "cocl2tococl2" & all_data$Lineage %in% combined_lins_list$CoCl2toCoCl2)] <- 'Resistant to CoCl2toCoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2tocis" & all_data$Lineage %in% combined_lins_list$CoCl2toCis)] <- 'Resistant to CoCl2toCis'
+filtered_meta[which(all_data$OG_condition == "cis" & all_data$Lineage %in% combined_lins_list$Cis)] <- 'Resistant to Cis'
+filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %in% combined_lins_list$CistoDabTram)] <- 'Resistant to CistoDabTram'
+filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %in% combined_lins_list$CistoCoCl2)] <- 'Resistant to CistoCoCl2'
+filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %in% combined_lins_list$CistoCis)] <- 'Resistant to CistoCis'
+
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTram)] <- 'Large Resistant to DabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramtoDabTram)] <- 'Large Resistant to DabTramtoDabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %in% fivecell_cDNA$DabTramtoCoCl2)] <- 'Large Resistant to DabTramtoCoCl2'
+filtered_meta[which(all_data$OG_condition == "dabtramtocis" & all_data$Lineage %in% fivecell_cDNA$DabTramtoCis)] <- 'Large Resistant to DabTramtoCis'
+filtered_meta[which(all_data$OG_condition == "cocl2" & all_data$Lineage %in% fivecell_cDNA$CoCl2)] <- 'Large Resistant to CoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2todabtram" & all_data$Lineage %in% fivecell_cDNA$CoCl2toDabTram)] <- 'Large Resistant to CoCl2toDabTram'
+filtered_meta[which(all_data$OG_condition == "cocl2tococl2" & all_data$Lineage %in% fivecell_cDNA$CoCl2toCoCl2)] <- 'Large Resistant to CoCl2toCoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2tocis" & all_data$Lineage %in% fivecell_cDNA$CoCl2toCis)] <- 'Large Resistant to CoCl2toCis'
+filtered_meta[which(all_data$OG_condition == "cis" & all_data$Lineage %in% fivecell_cDNA$Cis)] <- 'Large Resistant to Cis'
+filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %in% fivecell_cDNA$CistoDabTram)] <- 'Large Resistant to CistoDabTram'
+filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %in% fivecell_cDNA$CistoCoCl2)] <- 'Large Resistant to CistoCoCl2'
+filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %in% fivecell_cDNA$CistoCis)] <- 'Large Resistant to CistoCis'
+
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTramtoDabTram'
+
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %nin% combined_lins_list$DabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %nin% combined_lins_list$DabTramtoDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %nin% combined_lins_list$DabTramtoCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "dabtramtocis" & all_data$Lineage %nin% combined_lins_list$DabTramtoCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2" & all_data$Lineage %nin% combined_lins_list$CoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2todabtram" & all_data$Lineage %nin% combined_lins_list$CoCl2toDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2tococl2" & all_data$Lineage %nin% combined_lins_list$CoCl2toCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2tocis" & all_data$Lineage %nin% combined_lins_list$CoCl2toCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cis" & all_data$Lineage %nin% combined_lins_list$Cis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %nin% combined_lins_list$CistoDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %nin% combined_lins_list$CistoCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %nin% combined_lins_list$CistoCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+
+filtered_meta[which(all_data$Lineage %in% c("No Barcode", "Still multiple"))] <- 'No Barcode'
+
+print(table(filtered_meta))
+
+```
+
+```{r}
+all_data$Resistant_filtered <- filtered_meta
+Idents(all_data) <- all_data$Resistant_filtered
+```
+
+```{r}
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/test_plot.pdf', height = 10, width = 20)
+DimPlot(all_data, group.by = 'ident', cols = )
+DimPlot(all_data, group.by = "Lineage") + theme(legend.position = 'none')
+dev.off()
+
+```
+
+```{r}
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/test_violin.pdf', height = 10, width = 30)
+
+VlnPlot(all_data, features = 'NGFR', idents = 'Maintained Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+VlnPlot(all_data, features = 'EGFR', idents = 'Maintained Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+VlnPlot(all_data, features = 'NGFR', idents = 'Maintained Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+VlnPlot(all_data, features = 'EGFR', idents = 'Maintained Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+
+VlnPlot(all_data, features = 'NGFR', idents = 'Large Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+VlnPlot(all_data, features = 'NGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
+
+dev.off()
+#VlnPlot(all_data, features = 'NGFR', idents = all_data$OG_condition == 'dabtram', group.by = "lineage")
+```
+
+#Looking into the one lineage that switches ngfr -> egfr
+```{r}
+
+switch_lin <- names(all_data$orig.ident[all_data$Lineage == "Lin171516"])
+DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))
+DimPlot(all_data, cells.highlight = list(switch_lin))
+
+switch_lin <- names(dabtram$orig.ident[dabtram$Lineage == "Lin171516"])
+DimPlot(dabtram)
+DimPlot(dabtram, cells.highlight = list(switch_lin))
+
+#need to integrate lineages into just dabtram object and then plot off of this isntead?
+#vlnplot(all_data, features = ngfr, idents = just the cells resistant to dabtram, group.by = lineage but i only want those included in combined_lins_list$dabtram ?
+
+```
+
+#from dabtram_both_times, force 2 clusters in umap, plot vs ngfr egfr, find markers of these 2
+```{r}
+
+dabtram_both_times_markers <- FindAllMarkers(dabtram_both_times, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+DimPlot(dabtram_both_times)
+DimPlot(dabtram_both_times, group.by = 'OG_condition')
+FeaturePlot(dabtram_both_times, features = c('NGFR', 'EGFR', 'nFeature_RNA'))
+```
+
+#Assign cluster assignments per lineage, find average score per lineage
+```{r}
+#average cell assignments per lineage in dabtram_maintained
+
+#want to do a stacked barplot here-- copy paste code from condition clustering
+
+#get lineage and cluster data from seurat object, switch cluster identifiers from 0,1 to -1,1 (egfr, ngfr)
+clusters_per_lin <- data.frame (Cluster = as.numeric(as.character(dabtram_both_times$seurat_clusters)), Lineage = dabtram_both_times$Lineage, condition = dabtram_both_times$OG_condition)
+clusters_per_lin$Cluster[clusters_per_lin$Cluster == 0] <- -1
+clusters_per_lin_list <- list()
+
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/clusters_per_lin_dabtram.pdf')
+for (i in fivecell_cDNA$DabTramMaintained){
+  currentlin <- filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtram')
+  clusters_per_lin_list[[i]] <- data.frame(table(currentlin$Cluster))
+  clusters_per_lin_list[[i]]$Score <- weighted.mean(as.numeric(as.character(clusters_per_lin_list[[i]]$Var1)), clusters_per_lin_list[[i]]$Freq)
+  print(ggplot(clusters_per_lin_list[[i]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(position = 'fill', stat = 'identity') 
+        + labs(title = paste('cluster of cells in lineage', i, 'num cells', sum(clusters_per_lin_list[[i]]$Freq), 'score', clusters_per_lin_list[[i]]$Score[1])) 
+        + scale_fill_manual(values = c('-1' = 'white', '1' = 'black')))
+}
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/clusters_per_lin_dabtramtodabtram.pdf')
+for (i in fivecell_cDNA$DabTramMaintained){
+  currentlin <- filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtramtodabtram')
+  clusters_per_lin_list[[paste(i, 'second')]] <- data.frame(table(currentlin$Cluster))
+  clusters_per_lin_list[[paste(i, 'second')]]$Score <- weighted.mean(as.numeric(as.character(clusters_per_lin_list[[paste(i, 'second')]]$Var1)), clusters_per_lin_list[[paste(i, 'second')]]$Freq)
+  print(ggplot(clusters_per_lin_list[[paste(i, 'second')]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(position = 'fill', stat = 'identity') 
+        + labs(title = paste('cluster of cells in lineage', i, 'num cells', sum(clusters_per_lin_list[[paste(i, 'second')]]$Freq), 'score', clusters_per_lin_list[[paste(i, 'second')]]$Score[1])) 
+        + scale_fill_manual(values = c('-1' = 'white', '1' = 'black')))
+}
+dev.off()
+```
+
+#Plot scores as heatmap
+```{r}
+score_matrix <- matrix(ncol = 2, nrow = length(fivecell_cDNA$DabTramMaintained))
+colnames(score_matrix) <- c('time 1', 'time 2')
+rownames(score_matrix) <- unlist(fivecell_cDNA$DabTramMaintained)
+
+for (i in rownames(score_matrix)){
+  score_matrix[i, 'time 1'] <- clusters_per_lin_list[[i]]$Score[1]
+  score_matrix[i, 'time 2'] <- clusters_per_lin_list[[paste(i, 'second')]]$Score[1]
+}
+
+score_matrix <- score_matrix[order(score_matrix[,1], decreasing = TRUE),]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/heatmap_test.pdf', width = 10, height = 12)
+heatmap(score_matrix, scale = "none", Colv = NA, Rowv = NA, col = brewer.pal(n = 9, name = 'Greys'))
+dev.off()
+
+```
