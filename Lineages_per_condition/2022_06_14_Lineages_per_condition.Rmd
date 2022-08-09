@@ -32,7 +32,7 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/a
 
 ```
 
-# Find which lineages are present in each condition
+# Find which lineages are present in each condition, # cells, # lins in each condition
 ```{r}
 dabtramtodabtram_inds <- grep('dabtramtodabtram', names(all_data$Lineage))
 dabtramtodabtram_table <- table(all_data$Lineage[dabtramtodabtram_inds])

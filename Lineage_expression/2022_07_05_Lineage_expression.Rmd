@@ -1,5 +1,5 @@
 ---
-title: "Cell Cycle plotting"
+title: "Lineage expression over time"
 output: html_notebook
 ---
 
@@ -48,7 +48,7 @@ DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'co
 ```
 
 # Markers within each first drug object to find subgroups (ie analogous to NGFR/EGFR)
-```{r}
+```{r include = FALSE}
 #load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/all_data_markers.RData')
 cis_markers <- FindAllMarkers(cis, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 cocl2_markers <- FindAllMarkers(cocl2, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
@@ -60,11 +60,12 @@ save(all_data.markers, cis_markers, cocl2_markers, dabtram_markers, file = 'all_
 
 # need to make Idents metadata object which says if the cells are included in the combined lins list, or if they were filtered
 ```{r}
-
+#find lineages that are maintained at both dabtram timepoints
 fivecell_cDNA$DabTramMaintained <- Reduce(intersect, list(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram))
 
 filtered_meta <- rep(0, length(names(all_data$Lineage)))
 
+#specify which cells are in lineages that pass filtering for that condition
 filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% combined_lins_list$DabTram)] <- 'Resistant to DabTram'
 filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% combined_lins_list$DabTramtoDabTram)] <- 'Resistant to DabTramtoDabTram'
 filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %in% combined_lins_list$DabTramtoCoCl2)] <- 'Resistant to DabTramtoCoCl2'
@@ -78,6 +79,7 @@ filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %
 filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %in% combined_lins_list$CistoCoCl2)] <- 'Resistant to CistoCoCl2'
 filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %in% combined_lins_list$CistoCis)] <- 'Resistant to CistoCis'
 
+#specify which cells are in lineages of more than 5 cells
 filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTram)] <- 'Large Resistant to DabTram'
 filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramtoDabTram)] <- 'Large Resistant to DabTramtoDabTram'
 filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %in% fivecell_cDNA$DabTramtoCoCl2)] <- 'Large Resistant to DabTramtoCoCl2'
@@ -91,9 +93,10 @@ filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %
 filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %in% fivecell_cDNA$CistoCoCl2)] <- 'Large Resistant to CistoCoCl2'
 filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %in% fivecell_cDNA$CistoCis)] <- 'Large Resistant to CistoCis'
 
-filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTram'
-filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTramtoDabTram'
+# filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTram'
+# filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTramtoDabTram'
 
+#specify which cells are in lineages that did not pass filtering
 filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %nin% combined_lins_list$DabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
 filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %nin% combined_lins_list$DabTramtoDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
 filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %nin% combined_lins_list$DabTramtoCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
@@ -107,6 +110,7 @@ filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %
 filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %nin% combined_lins_list$CistoCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
 filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %nin% combined_lins_list$CistoCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
 
+#specify which cells had zero or multiple barcodes
 filtered_meta[which(all_data$Lineage %in% c("No Barcode", "Still multiple"))] <- 'No Barcode'
 
 print(table(filtered_meta))
@@ -146,9 +150,12 @@ dev.off()
 #Looking into the one lineage that switches ngfr -> egfr
 ```{r}
 
-switch_lin <- names(all_data$orig.ident[all_data$Lineage == "Lin171516"])
+switch_lin_dabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtram'])
+switch_lin_dabtramtodabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtramtodabtram'])
+
 DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))
-DimPlot(all_data, cells.highlight = list(switch_lin))
+DimPlot(all_data, cells.highlight = list(switch_lin_dabtram), cols.highlight = c('red'))
+DimPlot(all_data, cells.highlight = list(switch_lin_dabtram, switch_lin_dabtramtodabtram), cols.highlight = c('blue', 'red'))
 
 switch_lin <- names(dabtram$orig.ident[dabtram$Lineage == "Lin171516"])
 DimPlot(dabtram)

@@ -81,7 +81,7 @@ for (k in unique(all_data$OG_condition)){
 
 ```
 
-# Build plot list and plot to pdf
+# Build plot list of count cutoffs which give # of cells with either no, 1, many barcodes and plot to pdf
 ```{r}
 plot_df_list2 <- list()
 for (i in names(plot_df_list)){
@@ -116,7 +116,7 @@ save(cutoffs, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barco
 
 ```
 
-# Filter based on max single
+# Filter based on reads cutoff that results in max # of cells with single barcode assignment
 ```{r}
 # filter based on the Max_single
 filter_max_single <- cutoffs$Max_single
@@ -133,7 +133,7 @@ for (k in names(filter_max_single)){
 table_fam_max_single <- table(lengths(fam_max_single))
 ```
 
-# Filter based on max difference
+# Filter based on max difference in # cells assigned one and multiple barcodes
 ```{r}
 # filter based on the Max_difference
 filter_max_difference <- cutoffs$Max_difference

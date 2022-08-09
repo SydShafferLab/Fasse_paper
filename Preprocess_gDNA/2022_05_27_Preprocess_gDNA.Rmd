@@ -71,7 +71,8 @@ for (i in names(gDNA_files)){
 # Assign correct lineage and condition to each fastq
 ```{r}
 gDNA_anno <- list()
-names(gDNA_files)[names(gDNA_files) == 'sc_output_counts_AJF009_FirstSample1_gDNA_S13.txt'] <- 'sc_output_counts_AJF009_FirstSample_1_gDNA_S13.txt'
+names(gDNA_files)[names(gDNA_files) == 'sc_output_counts_AJF009_FirstSample1_gDNA_S13.txt'] <- 'sc_output_counts_AJF009_FirstSample_1_gDNA_S13.txt' #this is just fixing one file that had different _ for strsplit
+
 for (j in names(gDNA_files)){
   temp <- gDNA_files[[j]]
   temp$sequence <- substr(temp$sample, 17, nchar(temp$sample))
@@ -86,11 +87,12 @@ rm(temp, temp2, temp3)
 #Collapse dataframes containing reads from same conditions
 ```{r}
 
-# now have the condition appended
+# now have the conditions appended so can loop over them
 
 t <- data.table::rbindlist(gDNA_anno)
 gDNA_collapsed <- list()
 
+#combining all the reads from each lineage shared between multiple fastqs of the same condition
 for (i in unique(t$Condition)) {
   t2 <- aggregate(t$Reads[t$Condition == i], by = list(Lineage = t$Lineage[t$Condition == i]), FUN = sum)
   colnames(t2) <- c('Lineage', 'Reads')

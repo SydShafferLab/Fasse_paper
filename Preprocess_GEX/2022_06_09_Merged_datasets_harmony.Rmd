@@ -183,7 +183,7 @@ FeatureScatter(object = cistocis, feature1 = "nCount_RNA", feature2 = "nFeature_
 
 ```
 
-# filter based on above parameters and replot
+# filter based on above parameters to remove low quality cells and outliers and replot, note percentage of cells kept after filtering
 ```{r}
 dabtram_onc <- dabtram@assays$lineage@counts@Dim[2]
 dabtram <- subset(x = dabtram, subset = nFeature_RNA > 1000 & nCount_RNA < 50000 & percent.mt < 15)
@@ -270,7 +270,7 @@ cistocis_f1 <- cistocis@assays$lineage@counts@Dim[2]/cistocis_onc
 print(cistocis_f1*100)
 ```
 
-# Find number of cells post filter
+# Find number of cells per condition post filter
 ```{r}
 
 postfilt_num_cells <- c(dabtram = ncol(dabtram),
@@ -556,12 +556,12 @@ dev.off()
 save(dabtram, cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/Objects_premerged.RData')
 ```
 
-# Merge the data!!
+# Merge the data!! merge.data = T to maintain normalization of each object
 ```{r include = FALSE}
 all_data <- merge(dabtram, y = c(cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis), add.cell.ids = c("dabtram", "cocl2", "cis", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis"), project = "All_Data", merge.data = T)
 ```
 
-# Merge for smaller UMAPS
+# Merge for smaller UMAPS, all first timepoint, all second timepoint, dabtram at each time point
 ```{r include = FALSE}
 first_timepoint <- merge(dabtram, y = c(cocl2, cis), add.cell.ids = c("dabtram", "cocl2", "cis"), project = "first_timepoint", merge.data = T)
 

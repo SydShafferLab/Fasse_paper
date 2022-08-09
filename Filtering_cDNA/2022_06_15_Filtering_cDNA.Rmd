@@ -27,6 +27,7 @@ library(venn)
 `%nin%` = Negate(`%in%`)
 ```
 
+
 # Assign directory and load files
 ```{r include = FALSE}
 
@@ -112,6 +113,11 @@ colnames(cistocis_lineages) <- c('Lineage','Num_Cells')
 CistoCis_df <- merge(cistocis_lineages, gDNA_collapsed$CistoCis, by = 'Lineage' )
 ggplot(CistoCis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis to Cis gDNA RPM vs cDNA # cells")
 
+```
+
+
+#Combine cDNA and gDNA for each condition into a single object
+```{r}
 # this object is unfiltered for both datasets
 gDNA_cDNA_collapsed <- list(Cis = Cis_df, CistoCis = CistoCis_df, CistoCoCl2 = CistoCoCl2_df, CistoDabTram = CistoDabTram_df, CoCl2 = CoCl2_df, CoCl2toCis = CoCl2toCis_df, CoCl2toCoCl2 = CoCl2toCoCl2_df, 
                        CoCl2toDabTram = CoCl2toDabTram_df, DabTram = DabTram_df, DabTramtoCis = DabTramtoCis_df, DabTramtoCoCl2 = DabTramtoCoCl2_df, DabTramtoDabTram = DabTramtoDabTram_df)
@@ -121,11 +127,10 @@ for (i in names(gDNA_cDNA_collapsed)){
 
 rm(dabtram_lineages, cocl2_lineages, cis_lineages, dabtramtodabtram_lineages, dabtramtococl2_lineages, dabtramtocis_lineages, cocl2todabtram_lineages, cocl2tococl2_lineages, cocl2tocis_lineages, cistodabtram_lineages, cistococl2_lineages, cistocis_lineages)
 
-
 ```
 
 
-# Export CSV with # reads for 1, 2 cells per condition, want to compare this to the RPM cutoffs previously decided upon for 50 cell
+# Export CSV with # reads for 1, 2 cells per condition
 ```{r include = FALSE}
 
 output_df <- data.frame( Condition = c('dabtram', 'cocl2', 'cis', 'dabtramtodabtram', 'dabtramtococl2', 'dabtramtocis', 'cocl2todabtram', 'cocl2tococl2', 'cocl2tocis', 'cistodabtram', 'cistococl2', 'cistocis'),
@@ -161,6 +166,7 @@ write.csv(output_df, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Fil
 rm(output_df)
 ```
 
+
 # Venn of cDNA vs gDNA, both filtered from filtered_lins_list and unfiltered from gDNA_collapsed -- how many of these are same vs different lineages
 ```{r}
 
@@ -184,6 +190,7 @@ dev.off()
 rm(gDNA_cDNA_unfilt, gDNA_unfilt_cDNA_filt, gDNA_cDNA_filt, gDNA_cDNA_unfilt_venn, gDNA_unfilt_cDNA_filt_venn, gDNA_filt_cDNA_unfilt_venn, gDNA_cDNA_filt_venn)
 
 ```
+
 
 # Finding the size num_cells of cDNA lineages that are excluded based on the gDNA filtered lins list
 ```{r include = FALSE}
@@ -215,6 +222,7 @@ dev.off()
 
 ```
 
+
 # Making lists of all cDNA lins that are more than 50 cells
 ```{r}
 # in the filtered_lins_list we have lists of all the lineages passing filtering for each gDNA sample
@@ -239,6 +247,7 @@ dabtram_condition_lins <- unique(c(gDNA_cDNA_collapsed$DabTram$Lineage[gDNA_cDNA
                                 gDNA_cDNA_collapsed$DabTramtoDabTram$Lineage[gDNA_cDNA_collapsed$DabTramtoDabTram$Num_Cells > 50]))
 ```
 
+
 #Now combining those cDNA-passing lineages with gDNA-passing lineages to make a final, combined list of resistant lineages
 ```{r}
 # filter to condition lins list where reads are greater than 0 to exclude cDNA lins that don't any gDNA representation
@@ -260,6 +269,7 @@ for (i in names(filtered_lins_list_cDNA)){
   combined_lins_list[[i]] <- unique(c(filtered_lins_list[[i]], filtered_lins_list_cDNA[[i]]))}
 ```
 
+
 # now making a different list with only lineages that pass above filters and also have more than 5 cells in the cDNA for lineage gene expression analyses
 ```{r}
 fivecell_cDNA <- list()
@@ -272,6 +282,7 @@ for (i in names(combined_lins_list)){
 }
   
 ```
+
 
 # Find induced resistant lineages in merged list
 ```{r}
@@ -307,6 +318,7 @@ induced_resistant_lins[['Cis_Inducedto_CoCl2']] = attr(cocl2_cis_venn, "intersec
 
 ```
 
+
 # looking for lineages that survive everything/many drugs
 ```{r}
 overlapping_lins <- list()
@@ -323,9 +335,10 @@ super <- venn(list(all_cis = overlapping_lins$all_cis, all_cocl2 = overlapping_l
 overlapping_lins[['super']] <- attr(super, "intersections")$'all_cis:all_cocl2:all_dabtram'
 ```
 
+
 # save relevant stuff
 ```{r}
-
 save(gDNA_cDNA_collapsed, filtered_lins_list_cDNA, firstcondition50_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/filtered_cDNA.RData')
 save(combined_lins_list, induced_resistant_lins, overlapping_lins, fivecell_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
 ```
+
