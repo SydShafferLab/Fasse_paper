@@ -173,10 +173,10 @@ rm(output_df)
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/cDNA_versus_gDNA_lineages.pdf')
 for (i in names(filtered_lins_list)){
   if ( i != 'FirstSample'){
-  gDNA_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Reads > 0])
+  gDNA_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = gDNA_collapsed[[i]]$Lineage[gDNA_collapsed[[i]]$Reads > 0])
   print(gDNA_cDNA_unfilt_venn <- venn(gDNA_cDNA_unfilt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "both unfiltered")))
   
-  gDNA_unfilt_cDNA_filt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Num_Cells > 1], gDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Reads > 0])
+  gDNA_unfilt_cDNA_filt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Num_Cells > 1], gDNA = gDNA_collapsed[[i]]$Lineage[gDNA_collapsed[[i]]$Reads > 0])
   print(gDNA_unfilt_cDNA_filt_venn <- venn(gDNA_unfilt_cDNA_filt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "cDNA filtered, gDNA unfiltered")))
   
   gDNA_filt_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = filtered_lins_list[[i]])
