@@ -176,41 +176,6 @@ DimPlot(dabtram_both_times, group.by = 'OG_condition')
 FeaturePlot(dabtram_both_times, features = c('NGFR', 'EGFR', 'nFeature_RNA'))
 ```
 
-#Assign cluster assignments per lineage, find average score per lineage
-```{r}
-#average cell assignments per lineage in dabtram_maintained
-
-#want to do a stacked barplot here-- copy paste code from condition clustering
-
-#get lineage and cluster data from seurat object, switch cluster identifiers from 0,1 to -1,1 (egfr, ngfr)
-clusters_per_lin <- data.frame (Cluster = as.numeric(as.character(dabtram_both_times$seurat_clusters)), Lineage = dabtram_both_times$Lineage, condition = dabtram_both_times$OG_condition)
-clusters_per_lin$Cluster[clusters_per_lin$Cluster == 0] <- -1
-clusters_per_lin_list <- list()
-
-
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/clusters_per_lin_dabtram.pdf')
-for (i in fivecell_cDNA$DabTramMaintained){
-  currentlin <- filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtram')
-  clusters_per_lin_list[[i]] <- data.frame(table(currentlin$Cluster))
-  clusters_per_lin_list[[i]]$Score <- weighted.mean(as.numeric(as.character(clusters_per_lin_list[[i]]$Var1)), clusters_per_lin_list[[i]]$Freq)
-  print(ggplot(clusters_per_lin_list[[i]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(position = 'fill', stat = 'identity') 
-        + labs(title = paste('cluster of cells in lineage', i, 'num cells', sum(clusters_per_lin_list[[i]]$Freq), 'score', clusters_per_lin_list[[i]]$Score[1])) 
-        + scale_fill_manual(values = c('-1' = 'white', '1' = 'black')))
-}
-dev.off()
-
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/clusters_per_lin_dabtramtodabtram.pdf')
-for (i in fivecell_cDNA$DabTramMaintained){
-  currentlin <- filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtramtodabtram')
-  clusters_per_lin_list[[paste(i, 'second')]] <- data.frame(table(currentlin$Cluster))
-  clusters_per_lin_list[[paste(i, 'second')]]$Score <- weighted.mean(as.numeric(as.character(clusters_per_lin_list[[paste(i, 'second')]]$Var1)), clusters_per_lin_list[[paste(i, 'second')]]$Freq)
-  print(ggplot(clusters_per_lin_list[[paste(i, 'second')]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(position = 'fill', stat = 'identity') 
-        + labs(title = paste('cluster of cells in lineage', i, 'num cells', sum(clusters_per_lin_list[[paste(i, 'second')]]$Freq), 'score', clusters_per_lin_list[[paste(i, 'second')]]$Score[1])) 
-        + scale_fill_manual(values = c('-1' = 'white', '1' = 'black')))
-}
-dev.off()
-```
-
 #Assign cluster assignments per lineage, find average score per lineage - make plots in order
 ```{r}
 #average cell assignments per lineage in dabtram_maintained
@@ -241,7 +206,7 @@ for (i in names(clusters_per_lin_list)){
 }
 
 # Reorder so that EGFR dominant lineages are plot first
-clusters_per_lin_df <- clusters_per_lin_df[with(clusters_per_lin_df, order(-Score )),]
+clusters_per_lin_df <- clusters_per_lin_df[with(clusters_per_lin_df, order(-Score,Num_cells )),]
 clusters_per_lin_df$Lineage <- factor(clusters_per_lin_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
 
 # make list object for after second treatment
@@ -263,11 +228,11 @@ colnames(clusters_per_lin_df_sec) <- c('Lineage', 'Percent_cells', 'Num_cells', 
 for (i in names(clusters_per_lin_list)){
 
   if (sum(clusters_per_lin_list_sec[[i]]$Freq) < 5){
-    clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 1, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'Lineage Died')) # Add Lineage died row
+    clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 1, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'Died')) # Add Lineage died row
     clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'NGFR')) # Add NGFR row
     clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'EGFR')) # Add EGFR row
   }else{ # Actually calculate percentages since the lineage survived/is more than 5 cells
-      clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'Lineage Died')) # Add Lineage died row
+      clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'Died')) # Add Lineage died row
       clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == 1]/sum(clusters_per_lin_list_sec[[i]]$Freq), 'Num_cells' = sum(clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == 1]), 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'NGFR')) # Add NGFR row
       clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == -1]/sum(clusters_per_lin_list_sec[[i]]$Freq), 'Num_cells' = sum(clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == -1]), 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'EGFR')) # Add EGFR row
     }
@@ -278,10 +243,11 @@ clusters_per_lin_df_sec$Lineage <- factor(clusters_per_lin_df_sec$Lineage, level
 
 # Plot
 p1 <- ggplot(clusters_per_lin_df, aes(y = Percent_cells, x = Lineage, fill = Cluster)) + geom_bar(stat = 'identity', position = position_fill(reverse = T), color = '#D3D3D3') + scale_fill_manual(values = c("#000000","#FFFFFF")) + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-p2 <- ggplot(clusters_per_lin_df_sec, aes(y = Percent_cells, x = Lineage, fill = Cluster)) + geom_bar(stat = 'identity', position = position_fill(reverse = T), color = '#D3D3D3') + scale_fill_manual(values = c("#000000","#FF0000", '#FFFFFF')) + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+p2 <- ggplot(clusters_per_lin_df_sec, aes(y = Percent_cells, x = Lineage, fill = Cluster)) + geom_bar(stat = 'identity', position = position_fill(reverse = T), color = '#D3D3D3') + scale_fill_manual(values = c("#FF0000","#000000", '#FFFFFF')) + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/stacked_bar_EGFR_NGFR_Died.pdf')
 ggarrange(p1,p2, nrow = 2)
-
+dev.off()
 ```
 
 #Plot scores as heatmap
