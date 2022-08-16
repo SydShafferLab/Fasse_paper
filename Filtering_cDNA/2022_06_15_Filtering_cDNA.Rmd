@@ -119,8 +119,8 @@ ggplot(CistoCis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis t
 #Combine cDNA and gDNA for each condition into a single object
 ```{r}
 # this object is unfiltered for both datasets
-gDNA_cDNA_collapsed <- list(Cis = Cis_df, CistoCis = CistoCis_df, CistoCoCl2 = CistoCoCl2_df, CistoDabTram = CistoDabTram_df, CoCl2 = CoCl2_df, CoCl2toCis = CoCl2toCis_df, CoCl2toCoCl2 = CoCl2toCoCl2_df, 
-                       CoCl2toDabTram = CoCl2toDabTram_df, DabTram = DabTram_df, DabTramtoCis = DabTramtoCis_df, DabTramtoCoCl2 = DabTramtoCoCl2_df, DabTramtoDabTram = DabTramtoDabTram_df)
+gDNA_cDNA_collapsed <- list(Cis = Cis_df, CistoCis = CistoCis_df, CistoCoCl2 = CistoCoCl2_df, CistoDabTram = CistoDabTram_df, CoCl2 = CoCl2_df, CoCl2toCis = CoCl2toCis_df, CoCl2toCoCl2 = CoCl2toCoCl2_df, CoCl2toDabTram = CoCl2toDabTram_df, DabTram = DabTram_df, DabTramtoCis = DabTramtoCis_df, DabTramtoCoCl2 = DabTramtoCoCl2_df, DabTramtoDabTram = DabTramtoDabTram_df)
+
 for (i in names(gDNA_cDNA_collapsed)){
   gDNA_cDNA_collapsed[[i]]$Lineage <- as.character(gDNA_cDNA_collapsed[[i]]$Lineage)
 }
@@ -172,7 +172,7 @@ rm(output_df)
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/cDNA_versus_gDNA_lineages.pdf')
 for (i in names(filtered_lins_list)){
-  
+  if ( i != 'FirstSample'){
   gDNA_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Reads > 0])
   print(gDNA_cDNA_unfilt_venn <- venn(gDNA_cDNA_unfilt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "both unfiltered")))
   
@@ -184,6 +184,7 @@ for (i in names(filtered_lins_list)){
   
   gDNA_cDNA_filt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Num_Cells > 1], gDNA = filtered_lins_list[[i]])
   print(gDNA_cDNA_filt_venn <- venn(gDNA_cDNA_filt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "gDNA and cDNA filtered")))
+  }
 }
 dev.off()  
 
@@ -284,41 +285,6 @@ for (i in names(combined_lins_list)){
 ```
 
 
-# Find induced resistant lineages in merged list
-```{r}
-
-dabtram_cocl2 <- list(dabtram = unique(c(combined_lins_list$DabTram, combined_lins_list$DabTramtoCis, combined_lins_list$DabTramtoCoCl2, combined_lins_list$DabTramtoDabTram)), 
-                           cocl2 = unique(c(combined_lins_list$CoCl2, combined_lins_list$CoCl2toCis, combined_lins_list$CoCl2toCoCl2, combined_lins_list$CoCl2toDabTram)),
-                           dabtramtococl2 = combined_lins_list$DabTramtoCoCl2,
-                           cocl2todabtram = combined_lins_list$CoCl2toDabTram)
-dabtram_cocl2_venn <- venn(dabtram_cocl2, intersections = T)
-
-dabtram_cis <- list(dabtram = unique(c(combined_lins_list$DabTram, combined_lins_list$DabTramtoCis, combined_lins_list$DabTramtoCoCl2, combined_lins_list$DabTramtoDabTram)), 
-                         cis = unique(c(combined_lins_list$Cis, combined_lins_list$CistoCis, combined_lins_list$CistoCoCl2, combined_lins_list$CistoDabTram)),
-                         dabtramtocis = combined_lins_list$DabTramtoCis,
-                         cistodabtram = combined_lins_list$CistoDabTram)
-dabtram_cis_venn <- venn(dabtram_cis, intersections = T)
-
-cocl2_cis <- list(cocl2 = unique(c(combined_lins_list$CoCl2, combined_lins_list$CoCl2toCis, combined_lins_list$CoCl2toCoCl2, combined_lins_list$CoCl2toDabTram)),
-                       cis = (c(combined_lins_list$Cis, combined_lins_list$CistoCis, combined_lins_list$CistoCoCl2, combined_lins_list$CistoDabTram)),
-                       cocl2tocis = combined_lins_list$CoCl2toCis,
-                       cistococl2 = combined_lins_list$CistoCoCl2)
-cocl2_cis_venn <- venn(cocl2_cis, intersections = T)
-
-induced_resistant_lins <- list()
-
-induced_resistant_lins[['Dabtram_Inducedto_CoCl2']] = attr(dabtram_cocl2_venn, "intersections")$'dabtram:dabtramtococl2'
-induced_resistant_lins[['CoCl2_Inducedto_Dabtram']] = attr(dabtram_cocl2_venn, "intersections")$'cocl2:cocl2todabtram'
-
-induced_resistant_lins[['Dabtram_Inducedto_Cis']] = attr(dabtram_cis_venn, "intersections")$'dabtram:dabtramtocis'
-induced_resistant_lins[['Cis_Inducedto_Dabtram']] = attr(dabtram_cis_venn, "intersections")$'cis:cistodabtram'
-
-induced_resistant_lins[['CoCl2_Inducedto_Cis']] = attr(cocl2_cis_venn, "intersections")$'cocl2:cocl2tocis'
-induced_resistant_lins[['Cis_Inducedto_CoCl2']] = attr(cocl2_cis_venn, "intersections")$'cis:cistococl2'
-
-```
-
-
 # looking for lineages that survive everything/many drugs
 ```{r}
 overlapping_lins <- list()
@@ -339,6 +305,6 @@ overlapping_lins[['super']] <- attr(super, "intersections")$'all_cis:all_cocl2:a
 # save relevant stuff
 ```{r}
 save(gDNA_cDNA_collapsed, filtered_lins_list_cDNA, firstcondition50_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/filtered_cDNA.RData')
-save(combined_lins_list, induced_resistant_lins, overlapping_lins, fivecell_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
+save(combined_lins_list, overlapping_lins, fivecell_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
 ```
 
