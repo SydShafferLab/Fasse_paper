@@ -44,7 +44,7 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/filtered_gD
 dabtram_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'dabtram']))
 dabtram_lineages <- dabtram_lineages[dabtram_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
 colnames(dabtram_lineages) <- c('Lineage','Num_Cells')
-DabTram_df <- merge(dabtram_lineages, gDNA_collapsed$DabTram, by = 'Lineage' )
+DabTram_df <- merge(dabtram_lineages, gDNA_collapsed$DabTram, by = 'Lineage' ) #pull in gDNA data for any lineage with cDNA representation (at least 1 cell)
 ggplot(DabTram_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Dabtram gDNA RPM vs cDNA # cells")
 
 cocl2_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cocl2']))
@@ -118,7 +118,7 @@ ggplot(CistoCis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis t
 
 #Combine cDNA and gDNA for each condition into a single object
 ```{r}
-# this object is unfiltered for both datasets
+# this object includes any lineage with more than 1 cell in the cDNA
 gDNA_cDNA_collapsed <- list(Cis = Cis_df, CistoCis = CistoCis_df, CistoCoCl2 = CistoCoCl2_df, CistoDabTram = CistoDabTram_df, CoCl2 = CoCl2_df, CoCl2toCis = CoCl2toCis_df, CoCl2toCoCl2 = CoCl2toCoCl2_df, CoCl2toDabTram = CoCl2toDabTram_df, DabTram = DabTram_df, DabTramtoCis = DabTramtoCis_df, DabTramtoCoCl2 = DabTramtoCoCl2_df, DabTramtoDabTram = DabTramtoDabTram_df)
 
 for (i in names(gDNA_cDNA_collapsed)){
