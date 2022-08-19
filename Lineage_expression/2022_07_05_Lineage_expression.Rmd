@@ -19,7 +19,7 @@ library(dplyr)
 library(Seurat)
 library(ggplot2)
 library(RColorBrewer)
-library(ggpub)
+library(ggpubr)
 
 `%nin%` = Negate(`%in%`)
 ```
@@ -250,21 +250,847 @@ ggarrange(p1,p2, nrow = 2)
 dev.off()
 ```
 
-#Plot scores as heatmap
+# Look at whether lineages cluster together in each individual condition - Starting with DabTram
 ```{r}
-score_matrix <- matrix(ncol = 2, nrow = length(fivecell_cDNA$DabTramMaintained))
-colnames(score_matrix) <- c('time 1', 'time 2')
-rownames(score_matrix) <- unlist(fivecell_cDNA$DabTramMaintained)
+rm(dabtram, cis, cocl2) # Remove old seurat objects that are no longer needed
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the dabtram object
 
-for (i in rownames(score_matrix)){
-  score_matrix[i, 'time 1'] <- clusters_per_lin_list[[i]]$Score[1]
-  score_matrix[i, 'time 2'] <- clusters_per_lin_list[[paste(i, 'second')]]$Score[1]
+ElbowPlot(dabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindClusters(dabtram, resolution = 0.5)
+dabtram <- RunUMAP(dabtram, dims = 1:10)
+DimPlot(dabtram, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+dabtram_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$DabTram){
+  temp_df <- as.data.frame(table(Idents(dabtram)[dabtram$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  dabtram_lin_clust_list[[i]] <- temp_df
 }
 
-score_matrix <- score_matrix[order(score_matrix[,1], decreasing = TRUE),]
-
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/heatmap_test.pdf', width = 10, height = 12)
-heatmap(score_matrix, scale = "none", Colv = NA, Rowv = NA, col = brewer.pal(n = 9, name = 'Greys'))
-dev.off()
-
+# Need to do a random sampling of the same thing 
+dabtram_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  dabtram_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$DabTram){
+    num_cells <- length(dabtram$Lineage[dabtram$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(dabtram), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    dabtram_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
 ```
+# Significance testing of the dabtram simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_dabtram <- mean(unlist(lapply(dabtram_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_dabtram_sim <- sapply(1:length(dabtram_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_dabtram <- (mean_dabtram-mean(means_dabtram_sim))/sd(means_dabtram_sim)
+pval_mean_dabtram <- pnorm(z_mean_dabtram, mean(means_dabtram_sim), sd(means_dabtram_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_dabtram <- weighted.mean(unlist(lapply(dabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_dabtram_sim <- sapply(1:length(dabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_dabtram <- (weighted_mean_dabtram-mean(weighted_means_dabtram_sim))/sd(weighted_means_dabtram_sim)
+pval_wmean_dabtram <- pnorm(z_wmean_dabtram, mean(weighted_means_dabtram_sim), sd(weighted_means_dabtram_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_dabtram <- c()
+for (i in 1:length(means_dabtram_sim)){
+  sim_maxes <- unlist(lapply(dabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_dabtram <- cbind(ttest_pval_dabtram,t.test(x = unlist(lapply(dabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(dabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtram_lin_clust_list, dabtram_lin_clust_rand_list,z_mean_dabtram,pval_mean_dabtram, z_wmean_dabtram, ttest_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_sim_results.RData')
+rm(dabtram)
+```
+
+# Look at whether lineages cluster together in each individual condition -  DabTramtoDabTram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtodabtram
+dabtramtodabtram <- subset(all_data, idents = 'dabtramtodabtram') # Subset down to the dabtramtodabtram object
+
+ElbowPlot(dabtramtodabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtramtodabtram <- FindNeighbors(dabtramtodabtram, dims = 1:10)
+dabtramtodabtram <- FindClusters(dabtramtodabtram, resolution = 0.5)
+dabtramtodabtram <- RunUMAP(dabtramtodabtram, dims = 1:10)
+DimPlot(dabtramtodabtram, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+dabtramtodabtram_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$DabTramtoDabTram){
+  temp_df <- as.data.frame(table(Idents(dabtramtodabtram)[dabtramtodabtram$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  dabtramtodabtram_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+dabtramtodabtram_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  dabtramtodabtram_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$DabTramtoDabTram){
+    num_cells <- length(dabtramtodabtram$Lineage[dabtramtodabtram$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(dabtramtodabtram), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    dabtramtodabtram_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+
+# Significance testing of the dabtramtodabtram simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_dabtramtodabtram <- mean(unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_dabtramtodabtram_sim <- sapply(1:length(dabtramtodabtram_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_dabtramtodabtram <- (mean_dabtramtodabtram-mean(means_dabtramtodabtram_sim))/sd(means_dabtramtodabtram_sim)
+pval_mean_dabtramtodabtram <- pnorm(z_mean_dabtramtodabtram, mean(means_dabtramtodabtram_sim), sd(means_dabtramtodabtram_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_dabtramtodabtram <- weighted.mean(unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_dabtramtodabtram_sim <- sapply(1:length(dabtramtodabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_dabtramtodabtram <- (weighted_mean_dabtramtodabtram-mean(weighted_means_dabtramtodabtram_sim))/sd(weighted_means_dabtramtodabtram_sim)
+pval_wmean_dabtramtodabtram <- pnorm(z_wmean_dabtramtodabtram, mean(weighted_means_dabtramtodabtram_sim), sd(weighted_means_dabtramtodabtram_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_dabtramtodabtram <- c()
+for (i in 1:length(means_dabtramtodabtram_sim)){
+  sim_maxes <- unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_dabtramtodabtram <- cbind(ttest_pval_dabtramtodabtram,t.test(x = unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtramtodabtram_lin_clust_list, dabtramtodabtram_lin_clust_rand_list,z_mean_dabtramtodabtram,pval_mean_dabtramtodabtram, z_wmean_dabtramtodabtram, ttest_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_sim_results.RData')
+rm(dabtramtodabtram)
+```
+
+# Look at whether lineages cluster together in each individual condition -  DabTramtoCis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtocis
+dabtramtocis <- subset(all_data, idents = 'dabtramtocis') # Subset down to the dabtramtocis object
+
+ElbowPlot(dabtramtocis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtramtocis <- FindNeighbors(dabtramtocis, dims = 1:10)
+dabtramtocis <- FindClusters(dabtramtocis, resolution = 0.5)
+dabtramtocis <- RunUMAP(dabtramtocis, dims = 1:10)
+DimPlot(dabtramtocis, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+dabtramtocis_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$DabTramtoCis){
+  temp_df <- as.data.frame(table(Idents(dabtramtocis)[dabtramtocis$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  dabtramtocis_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+dabtramtocis_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  dabtramtocis_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$DabTramtoCis){
+    num_cells <- length(dabtramtocis$Lineage[dabtramtocis$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(dabtramtocis), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    dabtramtocis_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+
+# Significance testing of the dabtramtocis simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_dabtramtocis <- mean(unlist(lapply(dabtramtocis_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_dabtramtocis_sim <- sapply(1:length(dabtramtocis_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_dabtramtocis <- (mean_dabtramtocis-mean(means_dabtramtocis_sim))/sd(means_dabtramtocis_sim)
+pval_mean_dabtramtocis <- pnorm(z_mean_dabtramtocis, mean(means_dabtramtocis_sim), sd(means_dabtramtocis_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_dabtramtocis <- weighted.mean(unlist(lapply(dabtramtocis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_dabtramtocis_sim <- sapply(1:length(dabtramtocis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_dabtramtocis <- (weighted_mean_dabtramtocis-mean(weighted_means_dabtramtocis_sim))/sd(weighted_means_dabtramtocis_sim)
+pval_wmean_dabtramtocis <- pnorm(z_wmean_dabtramtocis, mean(weighted_means_dabtramtocis_sim), sd(weighted_means_dabtramtocis_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_dabtramtocis <- c()
+for (i in 1:length(means_dabtramtocis_sim)){
+  sim_maxes <- unlist(lapply(dabtramtocis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_dabtramtocis <- cbind(ttest_pval_dabtramtocis,t.test(x = unlist(lapply(dabtramtocis_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(dabtramtocis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtramtocis_lin_clust_list, dabtramtocis_lin_clust_rand_list,z_mean_dabtramtocis,pval_mean_dabtramtocis, z_wmean_dabtramtocis, ttest_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_sim_results.RData')
+rm(dabtramtocis)
+```
+
+# Look at whether lineages cluster together in each individual condition -  DabTramtoCis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtococl2
+dabtramtococl2 <- subset(all_data, idents = 'dabtramtococl2') # Subset down to the dabtramtococl2 object
+
+ElbowPlot(dabtramtococl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtramtococl2 <- FindNeighbors(dabtramtococl2, dims = 1:10)
+dabtramtococl2 <- FindClusters(dabtramtococl2, resolution = 0.5)
+dabtramtococl2 <- RunUMAP(dabtramtococl2, dims = 1:10)
+DimPlot(dabtramtococl2, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+dabtramtococl2_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$DabTramtoCoCl2){
+  temp_df <- as.data.frame(table(Idents(dabtramtococl2)[dabtramtococl2$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  dabtramtococl2_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+dabtramtococl2_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  dabtramtococl2_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$DabTramtoCoCl2){
+    num_cells <- length(dabtramtococl2$Lineage[dabtramtococl2$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(dabtramtococl2), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    dabtramtococl2_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+
+# Significance testing of the dabtramtococl2 simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_dabtramtococl2 <- mean(unlist(lapply(dabtramtococl2_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_dabtramtococl2_sim <- sapply(1:length(dabtramtococl2_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_dabtramtococl2 <- (mean_dabtramtococl2-mean(means_dabtramtococl2_sim))/sd(means_dabtramtococl2_sim)
+pval_mean_dabtramtococl2 <- pnorm(z_mean_dabtramtococl2, mean(means_dabtramtococl2_sim), sd(means_dabtramtococl2_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_dabtramtococl2 <- weighted.mean(unlist(lapply(dabtramtococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_dabtramtococl2_sim <- sapply(1:length(dabtramtococl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_dabtramtococl2 <- (weighted_mean_dabtramtococl2-mean(weighted_means_dabtramtococl2_sim))/sd(weighted_means_dabtramtococl2_sim)
+pval_wmean_dabtramtococl2 <- pnorm(z_wmean_dabtramtococl2, mean(weighted_means_dabtramtococl2_sim), sd(weighted_means_dabtramtococl2_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_dabtramtococl2 <- c()
+for (i in 1:length(means_dabtramtococl2_sim)){
+  sim_maxes <- unlist(lapply(dabtramtococl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_dabtramtococl2 <- cbind(ttest_pval_dabtramtococl2,t.test(x = unlist(lapply(dabtramtococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(dabtramtococl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtramtococl2_lin_clust_list, dabtramtococl2_lin_clust_rand_list,z_mean_dabtramtococl2,pval_mean_dabtramtococl2, z_wmean_dabtramtococl2, ttest_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_sim_results.RData')
+rm(dabtramtococl2)
+```
+
+# Look at whether lineages cluster together in each individual condition - Starting with DabTram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cocl2 object
+
+ElbowPlot(cocl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindClusters(cocl2, resolution = 0.5)
+cocl2 <- RunUMAP(cocl2, dims = 1:10)
+DimPlot(cocl2, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cocl2_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CoCl2){
+  temp_df <- as.data.frame(table(Idents(cocl2)[cocl2$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cocl2_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cocl2_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cocl2_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CoCl2){
+    num_cells <- length(cocl2$Lineage[cocl2$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cocl2), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cocl2_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cocl2 simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cocl2 <- mean(unlist(lapply(cocl2_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cocl2_sim <- sapply(1:length(cocl2_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cocl2 <- (mean_cocl2-mean(means_cocl2_sim))/sd(means_cocl2_sim)
+pval_mean_cocl2 <- pnorm(z_mean_cocl2, mean(means_cocl2_sim), sd(means_cocl2_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cocl2 <- weighted.mean(unlist(lapply(cocl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cocl2_sim <- sapply(1:length(cocl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cocl2 <- (weighted_mean_cocl2-mean(weighted_means_cocl2_sim))/sd(weighted_means_cocl2_sim)
+pval_wmean_cocl2 <- pnorm(z_wmean_cocl2, mean(weighted_means_cocl2_sim), sd(weighted_means_cocl2_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cocl2 <- c()
+for (i in 1:length(means_cocl2_sim)){
+  sim_maxes <- unlist(lapply(cocl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cocl2 <- cbind(ttest_pval_cocl2,t.test(x = unlist(lapply(cocl2_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cocl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2_lin_clust_list, cocl2_lin_clust_rand_list,z_mean_cocl2,pval_mean_cocl2, z_wmean_cocl2, ttest_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_sim_results.RData')
+rm(cocl2)
+```
+
+# Look at whether lineages cluster together in each individual condition - Starting with CoCl2toCoCl2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2tococl2
+cocl2tococl2 <- subset(all_data, idents = 'cocl2tococl2') # Subset down to the cocl2tococl2 object
+
+ElbowPlot(cocl2tococl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2tococl2 <- FindNeighbors(cocl2tococl2, dims = 1:10)
+cocl2tococl2 <- FindClusters(cocl2tococl2, resolution = 0.5)
+cocl2tococl2 <- RunUMAP(cocl2tococl2, dims = 1:10)
+DimPlot(cocl2tococl2, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cocl2tococl2_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CoCl2toCoCl2){
+  temp_df <- as.data.frame(table(Idents(cocl2tococl2)[cocl2tococl2$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cocl2tococl2_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cocl2tococl2_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cocl2tococl2_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CoCl2toCoCl2){
+    num_cells <- length(cocl2tococl2$Lineage[cocl2tococl2$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cocl2tococl2), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cocl2tococl2_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cocl2tococl2 simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cocl2tococl2 <- mean(unlist(lapply(cocl2tococl2_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cocl2tococl2_sim <- sapply(1:length(cocl2tococl2_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cocl2tococl2 <- (mean_cocl2tococl2-mean(means_cocl2tococl2_sim))/sd(means_cocl2tococl2_sim)
+pval_mean_cocl2tococl2 <- pnorm(z_mean_cocl2tococl2, mean(means_cocl2tococl2_sim), sd(means_cocl2tococl2_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cocl2tococl2 <- weighted.mean(unlist(lapply(cocl2tococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cocl2tococl2_sim <- sapply(1:length(cocl2tococl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cocl2tococl2 <- (weighted_mean_cocl2tococl2-mean(weighted_means_cocl2tococl2_sim))/sd(weighted_means_cocl2tococl2_sim)
+pval_wmean_cocl2tococl2 <- pnorm(z_wmean_cocl2tococl2, mean(weighted_means_cocl2tococl2_sim), sd(weighted_means_cocl2tococl2_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cocl2tococl2 <- c()
+for (i in 1:length(means_cocl2tococl2_sim)){
+  sim_maxes <- unlist(lapply(cocl2tococl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cocl2tococl2 <- cbind(ttest_pval_cocl2tococl2,t.test(x = unlist(lapply(cocl2tococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cocl2tococl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2tococl2_lin_clust_list, cocl2tococl2_lin_clust_rand_list,z_mean_cocl2tococl2,pval_mean_cocl2tococl2, z_wmean_cocl2tococl2, ttest_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_sim_results.RData')
+rm(cocl2tococl2)
+```
+
+# Look at whether lineages cluster together in each individual condition - Starting with CoCl2toCis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2tocis
+cocl2tocis <- subset(all_data, idents = 'cocl2tocis') # Subset down to the cocl2tocis object
+
+ElbowPlot(cocl2tocis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2tocis <- FindNeighbors(cocl2tocis, dims = 1:10)
+cocl2tocis <- FindClusters(cocl2tocis, resolution = 0.5)
+cocl2tocis <- RunUMAP(cocl2tocis, dims = 1:10)
+DimPlot(cocl2tocis, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cocl2tocis_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CoCl2toCis){
+  temp_df <- as.data.frame(table(Idents(cocl2tocis)[cocl2tocis$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cocl2tocis_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cocl2tocis_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cocl2tocis_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CoCl2toCis){
+    num_cells <- length(cocl2tocis$Lineage[cocl2tocis$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cocl2tocis), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cocl2tocis_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cocl2tocis simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cocl2tocis <- mean(unlist(lapply(cocl2tocis_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cocl2tocis_sim <- sapply(1:length(cocl2tocis_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cocl2tocis <- (mean_cocl2tocis-mean(means_cocl2tocis_sim))/sd(means_cocl2tocis_sim)
+pval_mean_cocl2tocis <- pnorm(z_mean_cocl2tocis, mean(means_cocl2tocis_sim), sd(means_cocl2tocis_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cocl2tocis <- weighted.mean(unlist(lapply(cocl2tocis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cocl2tocis_sim <- sapply(1:length(cocl2tocis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cocl2tocis <- (weighted_mean_cocl2tocis-mean(weighted_means_cocl2tocis_sim))/sd(weighted_means_cocl2tocis_sim)
+pval_wmean_cocl2tocis <- pnorm(z_wmean_cocl2tocis, mean(weighted_means_cocl2tocis_sim), sd(weighted_means_cocl2tocis_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cocl2tocis <- c()
+for (i in 1:length(means_cocl2tocis_sim)){
+  sim_maxes <- unlist(lapply(cocl2tocis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cocl2tocis <- cbind(ttest_pval_cocl2tocis,t.test(x = unlist(lapply(cocl2tocis_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cocl2tocis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2tocis_lin_clust_list, cocl2tocis_lin_clust_rand_list,z_mean_cocl2tocis,pval_mean_cocl2tocis, z_wmean_cocl2tocis, ttest_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_sim_results.RData')
+rm(cocl2tocis)
+```
+
+# Look at whether lineages cluster together in each individual condition - Starting with CoCl2toDabTram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2todabtram
+cocl2todabtram <- subset(all_data, idents = 'cocl2todabtram') # Subset down to the cocl2todabtram object
+
+ElbowPlot(cocl2todabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2todabtram <- FindNeighbors(cocl2todabtram, dims = 1:10)
+cocl2todabtram <- FindClusters(cocl2todabtram, resolution = 0.5)
+cocl2todabtram <- RunUMAP(cocl2todabtram, dims = 1:10)
+DimPlot(cocl2todabtram, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cocl2todabtram_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CoCl2toDabTram){
+  temp_df <- as.data.frame(table(Idents(cocl2todabtram)[cocl2todabtram$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cocl2todabtram_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cocl2todabtram_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cocl2todabtram_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CoCl2toDabTram){
+    num_cells <- length(cocl2todabtram$Lineage[cocl2todabtram$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cocl2todabtram), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cocl2todabtram_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cocl2todabtram simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cocl2todabtram <- mean(unlist(lapply(cocl2todabtram_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cocl2todabtram_sim <- sapply(1:length(cocl2todabtram_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cocl2todabtram <- (mean_cocl2todabtram-mean(means_cocl2todabtram_sim))/sd(means_cocl2todabtram_sim)
+pval_mean_cocl2todabtram <- pnorm(z_mean_cocl2todabtram, mean(means_cocl2todabtram_sim), sd(means_cocl2todabtram_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cocl2todabtram <- weighted.mean(unlist(lapply(cocl2todabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cocl2todabtram_sim <- sapply(1:length(cocl2todabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cocl2todabtram <- (weighted_mean_cocl2todabtram-mean(weighted_means_cocl2todabtram_sim))/sd(weighted_means_cocl2todabtram_sim)
+pval_wmean_cocl2todabtram <- pnorm(z_wmean_cocl2todabtram, mean(weighted_means_cocl2todabtram_sim), sd(weighted_means_cocl2todabtram_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cocl2todabtram <- c()
+for (i in 1:length(means_cocl2todabtram_sim)){
+  sim_maxes <- unlist(lapply(cocl2todabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cocl2todabtram <- cbind(ttest_pval_cocl2todabtram,t.test(x = unlist(lapply(cocl2todabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cocl2todabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2todabtram_lin_clust_list, cocl2todabtram_lin_clust_rand_list,z_mean_cocl2todabtram,pval_mean_cocl2todabtram, z_wmean_cocl2todabtram, ttest_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_sim_results.RData')
+rm(cocl2todabtram)
+```
+
+# Look at whether lineages cluster together in each individual condition - Starting with Cis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cis
+cis <- subset(all_data, idents = 'cis') # Subset down to the cis object
+
+ElbowPlot(cis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindClusters(cis, resolution = 0.5)
+cis <- RunUMAP(cis, dims = 1:10)
+DimPlot(cis, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cis_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$Cis){
+  temp_df <- as.data.frame(table(Idents(cis)[cis$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cis_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cis_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cis_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$Cis){
+    num_cells <- length(cis$Lineage[cis$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cis), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cis_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cis simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cis <- mean(unlist(lapply(cis_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cis_sim <- sapply(1:length(cis_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cis <- (mean_cis-mean(means_cis_sim))/sd(means_cis_sim)
+pval_mean_cis <- pnorm(z_mean_cis, mean(means_cis_sim), sd(means_cis_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cis <- weighted.mean(unlist(lapply(cis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cis_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cis_sim <- sapply(1:length(cis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cis <- (weighted_mean_cis-mean(weighted_means_cis_sim))/sd(weighted_means_cis_sim)
+pval_wmean_cis <- pnorm(z_wmean_cis, mean(weighted_means_cis_sim), sd(weighted_means_cis_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cis <- c()
+for (i in 1:length(means_cis_sim)){
+  sim_maxes <- unlist(lapply(cis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cis <- cbind(ttest_pval_cis,t.test(x = unlist(lapply(cis_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cis_lin_clust_list, cis_lin_clust_rand_list,z_mean_cis,pval_mean_cis, z_wmean_cis, ttest_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_sim_results.RData')
+rm(cis)
+```
+
+
+# Look at whether lineages cluster together in each individual condition - Starting with cistocis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistocis
+cistocis <- subset(all_data, idents = 'cistocis') # Subset down to the cistocis object
+
+ElbowPlot(cistocis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cistocis <- FindNeighbors(cistocis, dims = 1:10)
+cistocis <- FindClusters(cistocis, resolution = 0.5)
+cistocis <- RunUMAP(cistocis, dims = 1:10)
+DimPlot(cistocis, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cistocis_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CistoCis){
+  temp_df <- as.data.frame(table(Idents(cistocis)[cistocis$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cistocis_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cistocis_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cistocis_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CistoCis){
+    num_cells <- length(cistocis$Lineage[cistocis$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cistocis), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cistocis_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cistocis simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cistocis <- mean(unlist(lapply(cistocis_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cistocis_sim <- sapply(1:length(cistocis_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cistocis <- (mean_cistocis-mean(means_cistocis_sim))/sd(means_cistocis_sim)
+pval_mean_cistocis <- pnorm(z_mean_cistocis, mean(means_cistocis_sim), sd(means_cistocis_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cistocis <- weighted.mean(unlist(lapply(cistocis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cistocis_sim <- sapply(1:length(cistocis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cistocis <- (weighted_mean_cistocis-mean(weighted_means_cistocis_sim))/sd(weighted_means_cistocis_sim)
+pval_wmean_cistocis <- pnorm(z_wmean_cistocis, mean(weighted_means_cistocis_sim), sd(weighted_means_cistocis_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cistocis <- c()
+for (i in 1:length(means_cistocis_sim)){
+  sim_maxes <- unlist(lapply(cistocis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cistocis <- cbind(ttest_pval_cistocis,t.test(x = unlist(lapply(cistocis_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cistocis_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cistocis_lin_clust_list, cistocis_lin_clust_rand_list,z_mean_cistocis,pval_mean_cistocis, z_wmean_cistocis, ttest_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_sim_results.RData')
+rm(cistocis)
+```
+
+
+# Look at whether lineages cluster together in each individual condition - Starting with cistodabtram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistodabtram
+cistodabtram <- subset(all_data, idents = 'cistodabtram') # Subset down to the cistodabtram object
+
+ElbowPlot(cistodabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cistodabtram <- FindNeighbors(cistodabtram, dims = 1:10)
+cistodabtram <- FindClusters(cistodabtram, resolution = 0.5)
+cistodabtram <- RunUMAP(cistodabtram, dims = 1:10)
+DimPlot(cistodabtram, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cistodabtram_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CistoDabTram){
+  temp_df <- as.data.frame(table(Idents(cistodabtram)[cistodabtram$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cistodabtram_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cistodabtram_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cistodabtram_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CistoDabTram){
+    num_cells <- length(cistodabtram$Lineage[cistodabtram$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cistodabtram), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cistodabtram_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cistodabtram simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cistodabtram <- mean(unlist(lapply(cistodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cistodabtram_sim <- sapply(1:length(cistodabtram_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cistodabtram <- (mean_cistodabtram-mean(means_cistodabtram_sim))/sd(means_cistodabtram_sim)
+pval_mean_cistodabtram <- pnorm(z_mean_cistodabtram, mean(means_cistodabtram_sim), sd(means_cistodabtram_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cistodabtram <- weighted.mean(unlist(lapply(cistodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cistodabtram_sim <- sapply(1:length(cistodabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cistodabtram <- (weighted_mean_cistodabtram-mean(weighted_means_cistodabtram_sim))/sd(weighted_means_cistodabtram_sim)
+pval_wmean_cistodabtram <- pnorm(z_wmean_cistodabtram, mean(weighted_means_cistodabtram_sim), sd(weighted_means_cistodabtram_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cistodabtram <- c()
+for (i in 1:length(means_cistodabtram_sim)){
+  sim_maxes <- unlist(lapply(cistodabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cistodabtram <- cbind(ttest_pval_cistodabtram,t.test(x = unlist(lapply(cistodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cistodabtram_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cistodabtram_lin_clust_list, cistodabtram_lin_clust_rand_list,z_mean_cistodabtram,pval_mean_cistodabtram, z_wmean_cistodabtram, ttest_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_sim_results.RData')
+rm(cistodabtram)
+```
+
+# Look at whether lineages cluster together in each individual condition - Starting with cistococl2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistococl2
+cistococl2 <- subset(all_data, idents = 'cistococl2') # Subset down to the cistococl2 object
+
+ElbowPlot(cistococl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cistococl2 <- FindNeighbors(cistococl2, dims = 1:10)
+cistococl2 <- FindClusters(cistococl2, resolution = 0.5)
+cistococl2 <- RunUMAP(cistococl2, dims = 1:10)
+DimPlot(cistococl2, reduction = 'umap')
+
+# Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
+cistococl2_lin_clust_list <- list()
+
+for (i in fivecell_cDNA$CistoCoCl2){
+  temp_df <- as.data.frame(table(Idents(cistococl2)[cistococl2$Lineage == i]))
+  colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+  temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+  cistococl2_lin_clust_list[[i]] <- temp_df
+}
+
+# Need to do a random sampling of the same thing 
+cistococl2_lin_clust_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  set.seed(j)
+  cistococl2_lin_clust_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$CistoCoCl2){
+    num_cells <- length(cistococl2$Lineage[cistococl2$Lineage == i])
+    temp_df <- as.data.frame(table(sample(Idents(cistococl2), num_cells, replace = F)))
+    colnames(temp_df) <- c('Seurat_clust', 'Num_cells')
+    temp_df$Pcnt_cells <- temp_df$Num_cells/sum(temp_df$Num_cells)
+    cistococl2_lin_clust_rand_list[[j]][[i]] <- temp_df
+  }
+}
+```
+# Significance testing of the cistococl2 simulation
+```{r}
+# Find the mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+mean_cistococl2 <- mean(unlist(lapply(cistococl2_lin_clust_list, function(x) max(x$Pcnt_cells))))
+means_cistococl2_sim <- sapply(1:length(cistococl2_lin_clust_rand_list), function(y)
+  mean(unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells)))))
+z_mean_cistococl2 <- (mean_cistococl2-mean(means_cistococl2_sim))/sd(means_cistococl2_sim)
+pval_mean_cistococl2 <- pnorm(z_mean_cistococl2, mean(means_cistococl2_sim), sd(means_cistococl2_sim), lower.tail = F)
+
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+weighted_mean_cistococl2 <- weighted.mean(unlist(lapply(cistococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells))))
+weighted_means_cistococl2_sim <- sapply(1:length(cistococl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells)))))
+z_wmean_cistococl2 <- (weighted_mean_cistococl2-mean(weighted_means_cistococl2_sim))/sd(weighted_means_cistococl2_sim)
+pval_wmean_cistococl2 <- pnorm(z_wmean_cistococl2, mean(weighted_means_cistococl2_sim), sd(weighted_means_cistococl2_sim), lower.tail = F)
+
+# Compare each individual distribution of maxes to the observed max by t test and track pval
+ttest_pval_cistococl2 <- c()
+for (i in 1:length(means_cistococl2_sim)){
+  sim_maxes <- unlist(lapply(cistococl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells)))
+  ttest_pval_cistococl2 <- cbind(ttest_pval_cistococl2,t.test(x = unlist(lapply(cistococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),y = unlist(lapply(cistococl2_lin_clust_rand_list[[i]], function(x) max(x$Pcnt_cells))), alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cistococl2_lin_clust_list, cistococl2_lin_clust_rand_list,z_mean_cistococl2,pval_mean_cistococl2, z_wmean_cistococl2, ttest_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_sim_results.RData')
+rm(cistococl2)
+```
+
+# Build dataframe of overall simulation results
+```{r}
+sim_results <- rbind(
+  dabtram <- data.frame("Mean_Zscore" = z_mean_dabtram, "Mean_pval" = pval_mean_dabtram, "Weighted_Mean_Zscore" = z_wmean_dabtram, "Weighted_Mean_pval" = pval_wmean_dabtram, ttest_sims_sig = sum(ttest_pval_dabtram <= 0.05)),
+  dabtramtodabtram <- data.frame("Mean_Zscore" = z_mean_dabtramtodabtram, "Mean_pval" = pval_mean_dabtramtodabtram, "Weighted_Mean_Zscore" = z_wmean_dabtramtodabtram, "Weighted_Mean_pval" = pval_wmean_dabtramtodabtram, ttest_sims_sig = sum(ttest_pval_dabtramtodabtram <= 0.05)),
+  dabtramtococl2 <- data.frame("Mean_Zscore" = z_mean_dabtramtococl2, "Mean_pval" = pval_mean_dabtramtococl2, "Weighted_Mean_Zscore" = z_wmean_dabtramtococl2, "Weighted_Mean_pval" = pval_wmean_dabtramtococl2, ttest_sims_sig = sum(ttest_pval_dabtramtococl2 <= 0.05)),
+  dabtramtocis <- data.frame("Mean_Zscore" = z_mean_dabtramtocis, "Mean_pval" = pval_mean_dabtramtocis, "Weighted_Mean_Zscore" = z_wmean_dabtramtocis, "Weighted_Mean_pval" = pval_wmean_dabtramtocis, ttest_sims_sig = sum(ttest_pval_dabtramtocis <= 0.05)),
+  cis <- data.frame("Mean_Zscore" = z_mean_cis, "Mean_pval" = pval_mean_cis, "Weighted_Mean_Zscore" = z_wmean_cis, "Weighted_Mean_pval" = pval_wmean_cis, ttest_sims_sig = sum(ttest_pval_cis <= 0.05)),
+  cistodabtram <- data.frame("Mean_Zscore" = z_mean_cistodabtram, "Mean_pval" = pval_mean_cistodabtram, "Weighted_Mean_Zscore" = z_wmean_cistodabtram, "Weighted_Mean_pval" = pval_wmean_cistodabtram, ttest_sims_sig = sum(ttest_pval_cistodabtram <= 0.05)),
+  cistococl2 <- data.frame("Mean_Zscore" = z_mean_cistococl2, "Mean_pval" = pval_mean_cistococl2, "Weighted_Mean_Zscore" = z_wmean_cistococl2, "Weighted_Mean_pval" = pval_wmean_cistococl2, ttest_sims_sig = sum(ttest_pval_cistococl2 <= 0.05)),
+  cistocis <- data.frame("Mean_Zscore" = z_mean_cistocis, "Mean_pval" = pval_mean_cistocis, "Weighted_Mean_Zscore" = z_wmean_cistocis, "Weighted_Mean_pval" = pval_wmean_cistocis, ttest_sims_sig = sum(ttest_pval_cistocis <= 0.05)),
+  cocl2 <- data.frame("Mean_Zscore" = z_mean_cocl2, "Mean_pval" = pval_mean_cocl2, "Weighted_Mean_Zscore" = z_wmean_cocl2, "Weighted_Mean_pval" = pval_wmean_cocl2, ttest_sims_sig = sum(ttest_pval_cocl2 <= 0.05)),
+  cocl2todabtram <- data.frame("Mean_Zscore" = z_mean_cocl2todabtram, "Mean_pval" = pval_mean_cocl2todabtram, "Weighted_Mean_Zscore" = z_wmean_cocl2todabtram, "Weighted_Mean_pval" = pval_wmean_cocl2todabtram, ttest_sims_sig = sum(ttest_pval_cocl2todabtram <= 0.05)),
+  cocl2tococl2 <- data.frame("Mean_Zscore" = z_mean_cocl2tococl2, "Mean_pval" = pval_mean_cocl2tococl2, "Weighted_Mean_Zscore" = z_wmean_cocl2tococl2, "Weighted_Mean_pval" = pval_wmean_cocl2tococl2, ttest_sims_sig = sum(ttest_pval_cocl2tococl2 <= 0.05)),
+  cocl2tocis <- data.frame("Mean_Zscore" = z_mean_cocl2tocis, "Mean_pval" = pval_mean_cocl2tocis, "Weighted_Mean_Zscore" = z_wmean_cocl2tocis, "Weighted_Mean_pval" = pval_wmean_cocl2tocis, ttest_sims_sig = sum(ttest_pval_cocl2tocis <= 0.05))
+)
+
+rownames(sim_results) <- c("dabtram", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cis", "cistodabtram", "cistococl2", "cistocis", "cocl2", "cocl2todabtram", "cocl2tococl2", "cocl2tocis")
+
+write.csv(sim_results, '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/sim_results.csv', row.names = T) 
+```
+
