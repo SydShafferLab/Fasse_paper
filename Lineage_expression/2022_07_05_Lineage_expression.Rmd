@@ -1094,3 +1094,44 @@ rownames(sim_results) <- c("dabtram", "dabtramtodabtram", "dabtramtococl2", "dab
 write.csv(sim_results, '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/sim_results.csv', row.names = T) 
 ```
 
+# histogram lineage size greater than 5 cell normalize to total cells per condition
+```{r}
+adj_lin_sizes <- data.frame()
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'dabtram'),'cond' = rep('dabtram', length(dabtram_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'dabtramtodabtram'),'cond' = rep('dabtramtodabtram', length(dabtramtodabtram_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'dabtramtococl2'),'cond' = rep('dabtramtococl2', length(dabtramtococl2_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'dabtramtocis'),'cond' = rep('dabtramtocis', length(dabtramtocis_lin_clust_list))))
+
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cocl2'),'cond' = rep('cocl2', length(cocl2_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cocl2todabtram'),'cond' = rep('cocl2todabtram', length(cocl2todabtram_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cocl2tococl2'),'cond' = rep('cocl2tococl2', length(cocl2tococl2_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cocl2tocis'),'cond' = rep('cocl2tocis', length(cocl2tocis_lin_clust_list))))
+
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cis_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cis'),'cond' = rep('cis', length(cis_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cistodabtram'),'cond' = rep('cistodabtram', length(cistodabtram_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cistococl2'),'cond' = rep('cistococl2', length(cistococl2_lin_clust_list))))
+adj_lin_sizes <- rbind(adj_lin_sizes, data.frame('adj_size' = unlist(lapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells)))/sum(all_data$OG_condition == 'cistocis'),'cond' = rep('cistocis', length(cistocis_lin_clust_list))))
+
+ggplot(adj_lin_sizes, aes(x = log(adj_size), y = cond)) + geom_violin()
+```
+
+# histogram lineage size greater than 5 cell normalize to total cells per condition - med norm
+```{r}
+adj_lin_sizes_median <- data.frame()
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('dabtram', length(dabtram_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('dabtramtodabtram', length(dabtramtodabtram_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('dabtramtococl2', length(dabtramtococl2_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('dabtramtocis', length(dabtramtocis_lin_clust_list))))
+
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cocl2', length(cocl2_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cocl2todabtram', length(cocl2todabtram_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cocl2tococl2', length(cocl2tococl2_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cocl2tocis', length(cocl2tocis_lin_clust_list))))
+
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cis_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cis_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cis', length(cis_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cistodabtram', length(cistodabtram_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cistococl2', length(cistococl2_lin_clust_list))))
+adj_lin_sizes_median <- rbind(adj_lin_sizes_median, data.frame('adj_size' = unlist(lapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells)))/median(unlist(lapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells)))),'cond' = rep('cistocis', length(cistocis_lin_clust_list))))
+
+ggplot(adj_lin_sizes_median, aes(x = log(adj_size), y = cond)) + geom_violin()
+```
