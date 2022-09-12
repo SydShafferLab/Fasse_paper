@@ -252,15 +252,22 @@ dev.off()
 # Plot the number of cells per lineage in second drug for lineages that survived in DabTram
 ```{r}
 # Get the number of cells in the DabTram resistant lineages in the conditions that got DabTram first
+dabtramtodabtram_dt_resist_lins <- list()
 dabtramtococl2_dt_resist_lins <- list()
 dabtramtocis_dt_resist_lins <- list()
 
 for (i in fivecell_cDNA$DabTram){
+  dabtramtodabtram_dt_resist_lins[[i]] <- all_data$Lineage[all_data$Lineage == i & all_data$OG_condition == 'dabtramtodabtram']
   dabtramtococl2_dt_resist_lins[[i]] <- all_data$Lineage[all_data$Lineage == i & all_data$OG_condition == 'dabtramtococl2']
   dabtramtocis_dt_resist_lins[[i]] <- all_data$Lineage[all_data$Lineage == i & all_data$OG_condition == 'dabtramtocis']
 }
+scaleFUN <- function(x) sprintf("%.2f", x)
 
 # convert list to dataframe
+dabtramtodabtram_dt_resist_lins_df <- data.frame(num_cells = lengths(dabtramtodabtram_dt_resist_lins))
+dabtramtodabtram_dt_resist_lins_df$Lineage = rownames(dabtramtodabtram_dt_resist_lins_df)
+dabtramtodabtram_dt_resist_lins_df$Lineage <- factor(dabtramtodabtram_dt_resist_lins_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
+
 dabtramtococl2_dt_resist_lins_df <- data.frame(num_cells = lengths(dabtramtococl2_dt_resist_lins))
 dabtramtococl2_dt_resist_lins_df$Lineage = rownames(dabtramtococl2_dt_resist_lins_df)
 dabtramtococl2_dt_resist_lins_df$Lineage <- factor(dabtramtococl2_dt_resist_lins_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
@@ -270,12 +277,14 @@ dabtramtocis_dt_resist_lins_df$Lineage = rownames(dabtramtocis_dt_resist_lins_df
 dabtramtocis_dt_resist_lins_df$Lineage <- factor(dabtramtocis_dt_resist_lins_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
 
 # Plot 
-p3 <- ggplot(dabtramtococl2_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#A2248E') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to CoCl2')
+p3 <- ggplot(dabtramtodabtram_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#561E59') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to DabTram') + scale_y_continuous(labels = scaleFUN)
 
-p4 <- ggplot(dabtramtocis_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#9D85BE') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to Cis') 
+p4 <- ggplot(dabtramtococl2_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#A2248E') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to CoCl2') + scale_y_continuous(labels = scaleFUN)
+
+p5 <- ggplot(dabtramtocis_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#9D85BE') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to Cis') + scale_y_continuous(labels = scaleFUN)
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/stacked_bar_EGFR_NGFR_Died_w_other_second_drugs.pdf', height = 14)
-ggarrange(p1+ theme(legend.position = 'bottom'),p2+ theme(legend.position = 'bottom'),p3,p4, nrow = 4)
+ggarrange(p1+ theme(legend.position = 'bottom'),p2+ theme(legend.position = 'bottom'),p3,p4,p5, nrow = 5)
 dev.off()
 
 # Also look at reads in gDNA of these plots?????
@@ -1149,12 +1158,12 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistoci
 breaks <- seq(0, 1, 0.1)
 
 # DabTram
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/proportion_clusters_heatmaps.pdf', width = 16)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/proportion_clusters_heatmaps_rowclust.pdf', width = 16)
 dabtram_pcnts <- as.data.frame(sapply(dabtram_lin_clust_list, '[[', 3))
 cell_nums <- sapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(dabtram_pcnts) <- c("0","1","2","3","4","5","6")
 colnames(dabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(dabtram_pcnts,cluster_rows = F, color = inferno(11), main = "DabTram", breaks = breaks) # 
+p <- pheatmap(dabtram_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram", breaks = breaks) # 
 p
 
 dabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtram_lin_clust_rand_list, function(x) {
@@ -1163,6 +1172,7 @@ dabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtram_lin_clust_rand_li
 rownames(dabtram_pcnts_rand) <- c("0","1","2","3","4","5","6")
 colnames(dabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtram_pcnts_rand <- dabtram_pcnts_rand[,p$tree_col$order]
+dabtram_pcnts_rand <- dabtram_pcnts_rand[p$tree_row$order,]
 pheatmap(dabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main = "DabTram Rand", breaks = breaks, cluster_cols = F)
 
 # DabTram to DabTram
@@ -1170,7 +1180,7 @@ dabtramtodabtram_pcnts <- as.data.frame(sapply(dabtramtodabtram_lin_clust_list, 
 cell_nums <- sapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(dabtramtodabtram_pcnts) <- c("0","1","2","3","4","5","6")
 colnames(dabtramtodabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(dabtramtodabtram_pcnts,cluster_rows = F, color = inferno(11), main = "DabTram to DabTram", breaks = breaks)
+p <- pheatmap(dabtramtodabtram_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram to DabTram", breaks = breaks)
 p
 
 dabtramtodabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtodabtram_lin_clust_rand_list, function(x) {
@@ -1179,6 +1189,7 @@ dabtramtodabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtodabtram
 rownames(dabtramtodabtram_pcnts_rand) <- c("0","1","2","3","4","5","6")
 colnames(dabtramtodabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtramtodabtram_pcnts_rand <- dabtramtodabtram_pcnts_rand[,p$tree_col$order]
+dabtramtodabtram_pcnts_rand <- dabtramtodabtram_pcnts_rand[p$tree_row$order,]
 pheatmap(dabtramtodabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main = "DabTram to DabTram Rand", breaks = breaks, cluster_cols = F)
 
 # DabTram to CoCl2
@@ -1186,7 +1197,7 @@ dabtramtococl2_pcnts <- as.data.frame(sapply(dabtramtococl2_lin_clust_list, '[['
 cell_nums <- sapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(dabtramtococl2_pcnts) <- c("0","1","2","3","4","5","6","7")
 colnames(dabtramtococl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(dabtramtococl2_pcnts,cluster_rows = F, color = inferno(11), main = "DabTram to CoCl2", breaks = breaks)
+p <- pheatmap(dabtramtococl2_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram to CoCl2", breaks = breaks)
 p
 
 dabtramtococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtococl2_lin_clust_rand_list, function(x) {
@@ -1195,6 +1206,7 @@ dabtramtococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtococl2_lin
 rownames(dabtramtococl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
 colnames(dabtramtococl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtramtococl2_pcnts_rand <- dabtramtococl2_pcnts_rand[,p$tree_col$order]
+dabtramtococl2_pcnts_rand <- dabtramtococl2_pcnts_rand[p$tree_row$order,]
 pheatmap(dabtramtococl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "DabTram to CoCl2 Rand", breaks = breaks, cluster_cols = F)
 
 # DabTram to Cis
@@ -1202,7 +1214,7 @@ dabtramtocis_pcnts <- as.data.frame(sapply(dabtramtocis_lin_clust_list, '[[', 3)
 cell_nums <- sapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(dabtramtocis_pcnts) <- c("0","1","2","3","4","5","6")
 colnames(dabtramtocis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(dabtramtocis_pcnts,cluster_rows = F, color = inferno(11), main = "DabTram to Cis", breaks = breaks)
+p <- pheatmap(dabtramtocis_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram to Cis", breaks = breaks)
 p
 
 dabtramtocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtocis_lin_clust_rand_list, function(x) {
@@ -1211,6 +1223,7 @@ dabtramtocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtocis_lin_clu
 rownames(dabtramtocis_pcnts_rand) <- c("0","1","2","3","4","5","6")
 colnames(dabtramtocis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtramtocis_pcnts_rand <- dabtramtocis_pcnts_rand[,p$tree_col$order]
+dabtramtocis_pcnts_rand <- dabtramtocis_pcnts_rand[p$tree_row$order,]
 pheatmap(dabtramtocis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "DabTram to Cis Rand", breaks = breaks, cluster_cols = F)
 
 # CoCl2 objects
@@ -1218,7 +1231,7 @@ cocl2_pcnts <- as.data.frame(sapply(cocl2_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cocl2_pcnts) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cocl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cocl2_pcnts,cluster_rows = F, color = inferno(11), main = "CoCl2", breaks = breaks)
+p <- pheatmap(cocl2_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2", breaks = breaks)
 p
 
 cocl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2_lin_clust_rand_list, function(x) {
@@ -1227,6 +1240,7 @@ cocl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2_lin_clust_rand_list, 
 rownames(cocl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cocl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2_pcnts_rand <- cocl2_pcnts_rand[,p$tree_col$order]
+cocl2_pcnts_rand <- cocl2_pcnts_rand[p$tree_row$order,]
 pheatmap(cocl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "CoCl2 Rand", breaks = breaks, cluster_cols = F)
 
 # CoCl2 to DabTram
@@ -1234,7 +1248,7 @@ cocl2todabtram_pcnts <- as.data.frame(sapply(cocl2todabtram_lin_clust_list, '[['
 cell_nums <- sapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cocl2todabtram_pcnts) <- c("0","1","2","3","4","5","6")
 colnames(cocl2todabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cocl2todabtram_pcnts,cluster_rows = F, color = inferno(11), main = "CoCl2 to DabTram", breaks = breaks)
+p <- pheatmap(cocl2todabtram_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2 to DabTram", breaks = breaks)
 p
 
 cocl2todabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2todabtram_lin_clust_rand_list, function(x) {
@@ -1243,6 +1257,7 @@ cocl2todabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2todabtram_lin
 rownames(cocl2todabtram_pcnts_rand) <- c("0","1","2","3","4","5","6")
 colnames(cocl2todabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2todabtram_pcnts_rand <- cocl2todabtram_pcnts_rand[,p$tree_col$order]
+cocl2todabtram_pcnts_rand <- cocl2todabtram_pcnts_rand[p$tree_row$order,]
 pheatmap(cocl2todabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main = "CoCl2 to DabTram Rand", breaks = breaks, cluster_cols = F)
 
 # CoCl2 to CoCl2
@@ -1250,7 +1265,7 @@ cocl2tococl2_pcnts <- as.data.frame(sapply(cocl2tococl2_lin_clust_list, '[[', 3)
 cell_nums <- sapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cocl2tococl2_pcnts) <- c("0","1","2","3","4","5")
 colnames(cocl2tococl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cocl2tococl2_pcnts,cluster_rows = F, color = inferno(11), main = "CoCl2 to CoCl2", breaks = breaks)
+p <- pheatmap(cocl2tococl2_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2 to CoCl2", breaks = breaks)
 p
 
 cocl2tococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2tococl2_lin_clust_rand_list, function(x) {
@@ -1259,6 +1274,7 @@ cocl2tococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2tococl2_lin_clu
 rownames(cocl2tococl2_pcnts_rand) <- c("0","1","2","3","4","5")
 colnames(cocl2tococl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2tococl2_pcnts_rand <- cocl2tococl2_pcnts_rand[,p$tree_col$order]
+cocl2tococl2_pcnts_rand <- cocl2tococl2_pcnts_rand[p$tree_row$order,]
 pheatmap(cocl2tococl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "CoCl2 to CoCl2 Rand", breaks = breaks, cluster_cols = F)
 
 # CoCl2 to Cis
@@ -1266,7 +1282,7 @@ cocl2tocis_pcnts <- as.data.frame(sapply(cocl2tocis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cocl2tocis_pcnts) <- c("0","1","2","3","4","5")
 colnames(cocl2tocis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cocl2tocis_pcnts,cluster_rows = F, color = inferno(11), main = "CoCl2 to Cis", breaks = breaks)
+p <- pheatmap(cocl2tocis_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2 to Cis", breaks = breaks)
 p
 
 cocl2tocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2tocis_lin_clust_rand_list, function(x) {
@@ -1275,6 +1291,7 @@ cocl2tocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2tocis_lin_clust_r
 rownames(cocl2tocis_pcnts_rand) <- c("0","1","2","3","4","5")
 colnames(cocl2tocis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2tocis_pcnts_rand <- cocl2tocis_pcnts_rand[,p$tree_col$order]
+cocl2tocis_pcnts_rand <- cocl2tocis_pcnts_rand[p$tree_row$order,]
 pheatmap(cocl2tocis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "CoCl2 to Cis Rand", breaks = breaks, cluster_cols = F)
 
 # Cis 
@@ -1282,7 +1299,7 @@ cis_pcnts <- as.data.frame(sapply(cis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cis_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cis_pcnts) <- c("0","1","2","3","4","5","6","7")
 colnames(cis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cis_pcnts,cluster_rows = F, color = inferno(10), main = "Cis", breaks = breaks)
+p <- pheatmap(cis_pcnts,cluster_rows = T, color = inferno(10), main = "Cis", breaks = breaks)
 p
 
 cis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cis_lin_clust_rand_list, function(x) {
@@ -1291,6 +1308,7 @@ cis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cis_lin_clust_rand_list, func
 rownames(cis_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
 colnames(cis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cis_pcnts_rand <- cis_pcnts_rand[,p$tree_col$order]
+cis_pcnts_rand <- cis_pcnts_rand[p$tree_row$order,]
 pheatmap(cis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Cis Rand", breaks = breaks, cluster_cols = F)
 
 # Cis to DabTram
@@ -1298,7 +1316,7 @@ cistodabtram_pcnts <- as.data.frame(sapply(cistodabtram_lin_clust_list, '[[', 3)
 cell_nums <- sapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cistodabtram_pcnts) <- c("0","1","2","3","4","5","6","7")
 colnames(cistodabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cistodabtram_pcnts,cluster_rows = F, color = inferno(11), main = "Cis to DabTram", breaks = breaks)
+p <- pheatmap(cistodabtram_pcnts,cluster_rows = T, color = inferno(11), main = "Cis to DabTram", breaks = breaks)
 p
 
 cistodabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistodabtram_lin_clust_rand_list, function(x) {
@@ -1307,6 +1325,7 @@ cistodabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistodabtram_lin_clu
 rownames(cistodabtram_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
 colnames(cistodabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cistodabtram_pcnts_rand <- cistodabtram_pcnts_rand[,p$tree_col$order]
+cistodabtram_pcnts_rand <- cistodabtram_pcnts_rand[p$tree_row$order,]
 pheatmap(cistodabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Cis to DabTram Rand", breaks = breaks, cluster_cols = F)
 
 # Cis to CoCl2
@@ -1314,7 +1333,7 @@ cistococl2_pcnts <- as.data.frame(sapply(cistococl2_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cistococl2_pcnts) <- c("0","1","2","3","4","5","6")
 colnames(cistococl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cistococl2_pcnts,cluster_rows = F, color = inferno(11), main = "Cis to CoCl2", breaks = breaks)
+p <- pheatmap(cistococl2_pcnts,cluster_rows = T, color = inferno(11), main = "Cis to CoCl2", breaks = breaks)
 p
 
 cistococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistococl2_lin_clust_rand_list, function(x) {
@@ -1323,6 +1342,7 @@ cistococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistococl2_lin_clust_r
 rownames(cistococl2_pcnts_rand) <- c("0","1","2","3","4","5","6")
 colnames(cistococl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cistococl2_pcnts_rand <- cistococl2_pcnts_rand[,p$tree_col$order]
+cistococl2_pcnts_rand <- cistococl2_pcnts_rand[p$tree_row$order,]
 pheatmap(cistococl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Cis to CoCl2 Rand", breaks = breaks, cluster_cols = F)
 
 # Cis to Cis
@@ -1330,7 +1350,7 @@ cistocis_pcnts <- as.data.frame(sapply(cistocis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells))
 rownames(cistocis_pcnts) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cistocis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
-p <- pheatmap(cistocis_pcnts,cluster_rows = F, color = inferno(11), main = "Cis to Cis", breaks = breaks)
+p <- pheatmap(cistocis_pcnts,cluster_rows = T, color = inferno(11), main = "Cis to Cis", breaks = breaks)
 p
 
 cistocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistocis_lin_clust_rand_list, function(x) {
@@ -1339,6 +1359,7 @@ cistocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistocis_lin_clust_rand_
 rownames(cistocis_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cistocis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cistocis_pcnts_rand <- cistocis_pcnts_rand[,p$tree_col$order]
+cistocis_pcnts_rand <- cistocis_pcnts_rand[p$tree_row$order,]
 pheatmap(cistocis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Cis to Cis Rand", breaks = breaks, cluster_cols = F)
 dev.off()
 
@@ -1469,7 +1490,131 @@ df <- data.frame(weighted_mean = sapply(1:length(cistocis_lin_clust_rand_list), 
 ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#FBD08C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 500), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to Cis') + xlim(0.15, 0.65) + ylim(0,850) + geom_text(aes(x = wmean+.03, label = 'Observed', y = 525), color = 'red') + theme_classic()
 dev.off()
 
+
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/weighted_mean_cluster_assignments_test_stats_diffyaxes.pdf')
+# DabTram
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(dabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(dabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#623594', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# DabTram to DabTram
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(dabtramtodabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#561e59', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# DabTram to CoCl2
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(dabtramtococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(dabtramtococl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#A2248E', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# DabTram to Cis
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(dabtramtocis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(dabtramtocis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#9D85BE', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# CoCl2
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cocl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cocl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#0F8241', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# CoCl2 to DabTram
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cocl2todabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cocl2todabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#10413B', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# CoCl2 to CoCl2
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cocl2tococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cocl2tococl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#6ABD45', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# CoCl2 to Cis
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cocl2tocis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cocl2tocis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#6DC49C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# Cis
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cis_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#C96D29', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# Cis to DabTram
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cistodabtram_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cistodabtram_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#A23622', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# Cis to CoCl2
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cistococl2_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cistococl2_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#C96D29', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+
+# Cis to Cis
+# Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
+wmean <- weighted.mean(unlist(lapply(cistocis_lin_clust_list, function(x) max(x$Pcnt_cells))),
+unlist(lapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells))))
+df <- data.frame(weighted_mean = sapply(1:length(cistocis_lin_clust_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
+                unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
+
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#FBD08C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+dev.off()
+
 ```
 
-
+pdf('/Users/dylanschaff/Desktop')
 
