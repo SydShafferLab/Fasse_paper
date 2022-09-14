@@ -226,14 +226,27 @@ Builds filtered_meta Idents to say if each cell is in resistant, large resistant
 Plots expression of egfr/ngfr per lineage >5 cells over time in dabtram as violin
 Highlights cells in UMAP space in switching vs stable lineages
 Finds egfr/ngfr score per lineage over time in dabtram, plots as heatmap
+	Identifies how these lineages grow in other drugs after dabtram as well
+Assesses whether cells from the same lineage are more likely to be in the same cluster than by random changce for each drug condition
+	Plots the test statistics
+Identifies which clusters have lineages with only a single cell in them (singlets)
 ```
 #### Output: 
 ```
 all_data_markers.RData
 Clusters_per_lin_dabtram.pdf
 Clusters_per_lin_dabtramtodabtram.pdf
-Test_violin.pdf
-heatmap_test.pdf
+test_violin.pdf
+stacked_bar_EGFR_NGFR_Died.pdf
+stacked_bar_EGFR_NGFR_Died_w_other_second_drugs.pdf
+<drug_condition>_sim_results.RData
+sim_results.csv
+proportion_clusters_heatmaps_rowclust.pdf
+proportion_clusters_heatmaps.pdf
+weighted_mean_cluster_assignments_test_stats_diffyaxes.pdf
+weighted_mean_cluster_assignments_test_stats.pdf
+singlets.xlsx
+singlets_on_umap.pdf
 ```
 
 ## Induced_resistance
