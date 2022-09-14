@@ -35,6 +35,7 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/preprocess
 
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/filtered_cDNA.RData') # need list of all lineages with cDNA representation
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData') # list of lineages passing filtering
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') # Load in the single cell object
 
 ```
 
@@ -137,87 +138,137 @@ for (i in names(induced_resistant_df)){
 # dev.off()
 
 ```
-<!-- ``` -->
 
-<!-- # Dab induced to CoCl2 -->
-<!-- ```{r include = FALSE} -->
-<!-- #finding the lineages that end up induced resistant to cocl2, in the dabtram object -->
-<!-- Dabtram_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% induced_resistant_lins$Dabtram_Inducedto_CoCl2]) -->
-<!-- Dabtram_not_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %nin% induced_resistant_lins$Dabtram_Inducedto_CoCl2]) -->
+# Find gene expression markers of dabtram induced to cocl2
+```{r}
+# Finding the lineages that end up induced resistant to cocl2, in the dabtram object
+Dabtram_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% induced_resistant_lins$DabTram_Inducedto_CoCl2])
+# Finding the lineages did not 
+Dabtram_not_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% attr(dabtram_cocl2_venn, "intersections")$'dabtram'])
 
-<!-- # Get markers of dabrafenib induced to cocl2 resistance -->
-<!-- Dabtram_inducedto_CoCl2_markers <- FindMarkers(all_data, ident.1 = Dabtram_inducedto_CoCl2, ident.2 = Dabtram_not_inducedto_CoCl2, logfc.threshold = 0.25) -->
+# Find induced markers
+dabtram_inducedto_cocl2_markers <- FindMarkers(all_data, ident.1 = Dabtram_inducedto_CoCl2, ident.2 = Dabtram_not_inducedto_CoCl2, logfc.threshold = 0.25)
 
+# Also want to plot these lineages on umap along with induced resistance genes
+Idents(all_data) <- all_data$OG_condition
+dabtram <- subset(all_data, idents = 'dabtram')
+dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindClusters(dabtram, resolution = 0.5)
+dabtram <- RunUMAP(dabtram, dims = 1:10)
+DimPlot(dabtram, reduction = 'umap')
+FeaturePlot(dabtram, features = c("IGFBP5","COL1A1","CAV1"))
+DimPlot(dabtram, cells.highlight = Dabtram_inducedto_CoCl2, cols.highlight = c('red'))
+DimPlot(dabtram, cells.highlight = Dabtram_not_inducedto_CoCl2, cols.highlight = c('blue'))
+```
 
-<!-- #actually do need this for ridge plot-- also need separate dabtram object? -->
-<!-- # # make metadata object for dabrafenib induced to cocl2 resistance -->
-<!-- # dabtram_inducedto_cocl2_forvln <- rep(0, length(names(dabtram$Lineage))) -->
-<!-- # dabtram_inducedto_cocl2_forvln[which(dabtram$Lineage %nin% c(final_induced_resistant_lins$Dabtram_Inducedto_CoCl2,"No Barcode","Still multiple"))] <- 'Sensitive' -->
-<!-- # dabtram_inducedto_cocl2_forvln[which(dabtram$Lineage %in% c(final_induced_resistant_lins$Dabtram_Inducedto_CoCl2))] <- 'Induced Resistant' -->
-<!-- # dabtram_inducedto_cocl2_forvln[which(dabtram$Lineage %in% c("No Barcode","Still multiple"))] <- 'No Barcode' -->
-<!-- # dabtram$Dabtram_inducedto_CoCl2 <- dabtram_inducedto_cocl2_forvln -->
-<!-- # Idents(dabtram) <- dabtram$Dabtram_inducedto_CoCl2 -->
+# Find gene expression markers of cocl2 induced to dabtram
+```{r}
+# Finding the lineages that end up induced resistant to cocl2, in the dabtram object
+CoCl2_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' & all_data$Lineage %in% induced_resistant_lins$CoCl2_Inducedto_DabTram])
+# Finding the lineages did not 
+CoCl2_not_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' & all_data$Lineage %in% attr(dabtram_cocl2_venn, "intersections")$'cocl2'])
 
-<!-- ``` -->
+# Find induced markers
+cocl2_inducedto_dabtram_markers <- FindMarkers(all_data, ident.1 = CoCl2_inducedto_Dabtram, ident.2 = CoCl2_not_inducedto_Dabtram, logfc.threshold = 0.25)
 
-<!-- # Plot the Dab resistant cells on naive umap -->
-<!-- ```{r include = FALSE} -->
-<!-- pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cocl2_Markers.pdf') -->
-<!-- DimPlot(all_data, reduction = "umap", dims = c(1,2), -->
-<!--         group.by = 'Lineage', pt.size = .1, cells.highlight = list(Dabtram_inducedto_CoCl2), -->
-<!--         cols.highlight = 'cyan') + ggtitle(paste('Dabrafenib induced resistance to CoCl2 - # cells:', length(Dabtram_inducedto_CoCl2))) -->
+# Also want to plot these lineages on umap along with induced resistance genes
+Idents(all_data) <- all_data$OG_condition
+cocl2 <- subset(all_data, idents = 'cocl2')
+cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindClusters(cocl2, resolution = 0.5)
+cocl2 <- RunUMAP(cocl2, dims = 1:10)
+DimPlot(cocl2, reduction = 'umap')
+FeaturePlot(cocl2, features = c("RAMP1","CYTL1","MT-CO3"))
+DimPlot(cocl2, cells.highlight = CoCl2_inducedto_Dabtram, cols.highlight = c('red'))
+DimPlot(cocl2, cells.highlight = CoCl2_not_inducedto_Dabtram, cols.highlight = c('blue'))
+```
 
-<!-- DimPlot(all_data, reduction = 'umap', dims = c(1,2), group.by = 'Lineage') + ggtitle('Ground Truths') -->
+# Find gene expression markers of dabtram induced to cis
+```{r}
+# Finding the lineages that end up induced resistant to cocl2, in the dabtram object
+Dabtram_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% induced_resistant_lins$DabTram_Inducedto_Cis])
+# Finding the lineages did not 
+Dabtram_not_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% attr(dabtram_cis_venn, "intersections")$'dabtram'])
 
-<!-- Dabtram_inducedto_CoCl2_markers$diffexpressed <- "NO" -->
-<!-- # if log2Foldchange > 0.6 and pvalue < 0.05, set as "UP"  -->
-<!-- Dabtram_inducedto_CoCl2_markers$diffexpressed[Dabtram_inducedto_CoCl2_markers$avg_log2FC > 1 & Dabtram_inducedto_CoCl2_markers$p_val < 0.05] <- "UP" -->
-<!-- # if log2Foldchange < -0.6 and pvalue < 0.05, set as "DOWN" -->
-<!-- Dabtram_inducedto_CoCl2_markers$diffexpressed[Dabtram_inducedto_CoCl2_markers$avg_log2FC < -1 & Dabtram_inducedto_CoCl2_markers$p_val < 0.05] <- "DOWN" -->
+# Find induced markers
+dabtram_inducedto_cis_markers <- FindMarkers(all_data, ident.1 = Dabtram_inducedto_Cis, ident.2 = Dabtram_not_inducedto_Cis, logfc.threshold = 0.25)
 
-<!-- Dabtram_inducedto_CoCl2_markers$delabel <- NA -->
-<!-- Dabtram_inducedto_CoCl2_markers$delabel[Dabtram_inducedto_CoCl2_markers$diffexpressed != "NO"] <- rownames(Dabtram_inducedto_CoCl2_markers)[Dabtram_inducedto_CoCl2_markers$diffexpressed != "NO"] -->
+# Also want to plot these lineages on umap along with induced resistance genes
+Idents(all_data) <- all_data$OG_condition
+dabtram <- subset(all_data, idents = 'dabtram')
+dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindClusters(dabtram, resolution = 0.5)
+dabtram <- RunUMAP(dabtram, dims = 1:10)
+DimPlot(dabtram, reduction = 'umap')
+FeaturePlot(dabtram, features = c("PMEL","A2M","CTSK"))
+DimPlot(dabtram, cells.highlight = Dabtram_inducedto_Cis, cols.highlight = c('red'))
+DimPlot(dabtram, cells.highlight = Dabtram_not_inducedto_Cis, cols.highlight = c('blue'))
+```
 
-<!-- ggplot(data=Dabtram_inducedto_CoCl2_markers, aes(x=avg_log2FC, y=-log10(p_val), col=diffexpressed, label=delabel)) + -->
-<!--   geom_point() +  -->
-<!--   theme_minimal() + -->
-<!--   geom_text() + -->
-<!--   scale_color_manual(values=c("blue", "black", "red")) + -->
-<!--   geom_vline(xintercept=c(-1, 1), col="red") + -->
-<!--   geom_hline(yintercept=-log10(0.05), col="red") + -->
-<!--   ggtitle('p_val') -->
+# Find gene expression markers of cocl2 induced to cis
+```{r}
+# Finding the lineages that end up induced resistant to cocl2, in the cis object
+CoCl2_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' & all_data$Lineage %in% induced_resistant_lins$CoCl2_Inducedto_Cis])
+# Finding the lineages did not 
+CoCl2_not_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' & all_data$Lineage %in% attr(cocl2_cis_venn, "intersections")$'cocl2'])
 
-<!-- Dabtram_inducedto_CoCl2_markers$diffexpressed <- "NO" -->
-<!-- # if log2Foldchange > 0.6 and pvalue < 0.05, set as "UP"  -->
-<!-- Dabtram_inducedto_CoCl2_markers$diffexpressed[Dabtram_inducedto_CoCl2_markers$avg_log2FC > 1 & Dabtram_inducedto_CoCl2_markers$p_val_adj < 0.05] <- "UP" -->
-<!-- # if log2Foldchange < -0.6 and pvalue < 0.05, set as "DOWN" -->
-<!-- Dabtram_inducedto_CoCl2_markers$diffexpressed[Dabtram_inducedto_CoCl2_markers$avg_log2FC < -1 & Dabtram_inducedto_CoCl2_markers$p_val_adj < 0.05] <- "DOWN" -->
+# Find induced markers
+cocl2_inducedto_cis_markers <- FindMarkers(all_data, ident.1 = CoCl2_inducedto_Cis, ident.2 = CoCl2_not_inducedto_Cis, logfc.threshold = 0.25)
 
-<!-- Dabtram_inducedto_CoCl2_markers$delabel <- NA -->
-<!-- Dabtram_inducedto_CoCl2_markers$delabel[Dabtram_inducedto_CoCl2_markers$diffexpressed != "NO"] <- rownames(Dabtram_inducedto_CoCl2_markers)[Dabtram_inducedto_CoCl2_markers$diffexpressed != "NO"] -->
+# Also want to plot these lineages on umap along with induced resistance genes
+Idents(all_data) <- all_data$OG_condition
+cocl2 <- subset(all_data, idents = 'cocl2')
+cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindClusters(cocl2, resolution = 0.5)
+cocl2 <- RunUMAP(cocl2, dims = 1:10)
+DimPlot(cocl2, reduction = 'umap')
+FeaturePlot(cocl2, features = c("PMEL","A2M","CTSK"))
+DimPlot(cocl2, cells.highlight = CoCl2_inducedto_Cis, cols.highlight = c('red'))
+DimPlot(cocl2, cells.highlight = CoCl2_not_inducedto_Cis, cols.highlight = c('blue'))
+```
 
+# Find gene expression markers of cis induced to dabtram
+```{r}
+# Finding the lineages that end up induced resistant to cocl2, in the dabtram object
+Cis_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cis' & all_data$Lineage %in% induced_resistant_lins$Cis_Inducedto_DabTram])
+# Finding the lineages did not 
+Cis_not_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cis' & all_data$Lineage %in% attr(dabtram_cis_venn, "intersections")$'cis'])
 
-<!-- ggplot(data=Dabtram_inducedto_CoCl2_markers, aes(x=avg_log2FC, y=-log10(p_val_adj), col=diffexpressed, label=delabel)) + -->
-<!--   geom_point() +  -->
-<!--   theme_minimal() + -->
-<!--   geom_text() + -->
-<!--   scale_color_manual(values=c("blue", "black", "red")) + -->
-<!--   geom_vline(xintercept=c(-1, 1), col="red") + -->
-<!--   geom_hline(yintercept=-log10(0.05), col="red") +  -->
-<!--   ggtitle('p_val_adj') -->
+# Find induced markers
+cis_inducedto_dabtram_markers <- FindMarkers(all_data, ident.1 = Cis_inducedto_Dabtram, ident.2 = Cis_not_inducedto_Dabtram, logfc.threshold = 0.25)
 
+# Also want to plot these lineages on umap along with induced resistance genes
+Idents(all_data) <- all_data$OG_condition
+cis <- subset(all_data, idents = 'cis')
+cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindClusters(cis, resolution = 0.5)
+cis <- RunUMAP(cis, dims = 1:10)
+DimPlot(cis, reduction = 'umap')
+FeaturePlot(cis, features = c("HIST1H1D","CYP51A1","LDHA","HIST1H1B"))
+DimPlot(cis, cells.highlight = Cis_inducedto_Dabtram, cols.highlight = c('red'))
+DimPlot(cis, cells.highlight = Cis_not_inducedto_Dabtram, cols.highlight = c('blue'))
+```
+# Find gene expression markers of cis induced to cocl2
+```{r}
+# Finding the lineages that end up induced resistant to cocl2, in the dabtram object
+Cis_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'cis' & all_data$Lineage %in% induced_resistant_lins$Cis_Inducedto_CoCl2])
+# Finding the lineages did not 
+Cis_not_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'cis' & all_data$Lineage %in% attr(cocl2_cis_venn, "intersections")$'cis'])
 
-<!-- for (i in rownames(Dabtram_inducedto_CoCl2_markers)[order(Dabtram_inducedto_CoCl2_markers$avg_log2FC, decreasing = T)][1:20]){ -->
-<!--   p1 <- FeaturePlot(all_data, features = i) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) -->
-<!--   print(p1) -->
-<!-- } -->
+# Find induced markers
+cis_inducedto_cocl2_markers <- FindMarkers(all_data, ident.1 = Cis_inducedto_CoCl2, ident.2 = Cis_not_inducedto_CoCl2, logfc.threshold = 0.25)
 
-<!-- for (i in rownames(Dabtram_inducedto_CoCl2_markers)[order(Dabtram_inducedto_CoCl2_markers$avg_log2FC, decreasing = T)][1:20]){ -->
-<!--   print(RidgePlot(all_data, features = i, idents = c('Induced Resistant','Sensitive'), cols = c('grey', 'cyan'))) -->
-<!-- } -->
-<!-- dev.off() -->
-<!-- ``` -->
-
+# Also want to plot these lineages on umap along with induced resistance genes
+Idents(all_data) <- all_data$OG_condition
+cis <- subset(all_data, idents = 'cis')
+cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindClusters(cis, resolution = 0.5)
+cis <- RunUMAP(cis, dims = 1:10)
+DimPlot(cis, reduction = 'umap')
+FeaturePlot(cis, features = c("CYP51A1","MKI67","BNIP3","PGK1"))
+DimPlot(cis, cells.highlight = Cis_inducedto_CoCl2, cols.highlight = c('red'))
+DimPlot(cis, cells.highlight = Cis_not_inducedto_CoCl2, cols.highlight = c('blue'))
+```
 
 <!-- # Dab induced to Cis -->
 <!-- ```{r} -->

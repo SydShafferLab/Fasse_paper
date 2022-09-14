@@ -22,6 +22,7 @@ library(RColorBrewer)
 library(ggpubr)
 library(pheatmap)
 library(viridis)
+library(xlsx)
 
 `%nin%` = Negate(`%in%`)
 ```
@@ -125,13 +126,6 @@ all_data$Resistant_filtered <- filtered_meta
 Idents(all_data) <- all_data$Resistant_filtered
 ```
 
-```{r}
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/test_plot.pdf', height = 10, width = 20)
-DimPlot(all_data, group.by = 'ident', cols = )
-DimPlot(all_data, group.by = "Lineage") + theme(legend.position = 'none')
-dev.off()
-
-```
 
 ```{r}
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/test_violin.pdf', height = 10, width = 30)
@@ -147,7 +141,6 @@ VlnPlot(all_data, features = 'NGFR', idents = 'Large Resistant to DabTramtoDabTr
 VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
 
 dev.off()
-#VlnPlot(all_data, features = 'NGFR', idents = all_data$OG_condition == 'dabtram', group.by = "lineage")
 ```
 
 #Looking into the one lineage that switches ngfr -> egfr
@@ -287,7 +280,7 @@ pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/stacked_
 ggarrange(p1+ theme(legend.position = 'bottom'),p2+ theme(legend.position = 'bottom'),p3,p4,p5, nrow = 5)
 dev.off()
 
-# Also look at reads in gDNA of these plots?????
+
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with DabTram
@@ -316,7 +309,7 @@ for (i in fivecell_cDNA$DabTram){
 
 # Need to do a random sampling of the same thing 
 dabtram_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   dabtram_lin_clust_rand_list[[j]] <- list()
@@ -384,7 +377,7 @@ for (i in fivecell_cDNA$DabTramtoDabTram){
 
 # Need to do a random sampling of the same thing 
 dabtramtodabtram_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   dabtramtodabtram_lin_clust_rand_list[[j]] <- list()
@@ -453,7 +446,7 @@ for (i in fivecell_cDNA$DabTramtoCis){
 
 # Need to do a random sampling of the same thing 
 dabtramtocis_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   dabtramtocis_lin_clust_rand_list[[j]] <- list()
@@ -522,7 +515,7 @@ for (i in fivecell_cDNA$DabTramtoCoCl2){
 
 # Need to do a random sampling of the same thing 
 dabtramtococl2_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   dabtramtococl2_lin_clust_rand_list[[j]] <- list()
@@ -591,7 +584,7 @@ for (i in fivecell_cDNA$CoCl2){
 
 # Need to do a random sampling of the same thing 
 cocl2_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cocl2_lin_clust_rand_list[[j]] <- list()
@@ -659,7 +652,7 @@ for (i in fivecell_cDNA$CoCl2toCoCl2){
 
 # Need to do a random sampling of the same thing 
 cocl2tococl2_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cocl2tococl2_lin_clust_rand_list[[j]] <- list()
@@ -727,7 +720,7 @@ for (i in fivecell_cDNA$CoCl2toCis){
 
 # Need to do a random sampling of the same thing 
 cocl2tocis_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cocl2tocis_lin_clust_rand_list[[j]] <- list()
@@ -795,7 +788,7 @@ for (i in fivecell_cDNA$CoCl2toDabTram){
 
 # Need to do a random sampling of the same thing 
 cocl2todabtram_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cocl2todabtram_lin_clust_rand_list[[j]] <- list()
@@ -863,7 +856,7 @@ for (i in fivecell_cDNA$Cis){
 
 # Need to do a random sampling of the same thing 
 cis_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cis_lin_clust_rand_list[[j]] <- list()
@@ -932,7 +925,7 @@ for (i in fivecell_cDNA$CistoCis){
 
 # Need to do a random sampling of the same thing 
 cistocis_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cistocis_lin_clust_rand_list[[j]] <- list()
@@ -1001,7 +994,7 @@ for (i in fivecell_cDNA$CistoDabTram){
 
 # Need to do a random sampling of the same thing 
 cistodabtram_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cistodabtram_lin_clust_rand_list[[j]] <- list()
@@ -1069,7 +1062,7 @@ for (i in fivecell_cDNA$CistoCoCl2){
 
 # Need to do a random sampling of the same thing 
 cistococl2_lin_clust_rand_list <- list()
-num_iter <- 800 
+num_iter <- 1000 
 for(j in 1:num_iter){
   set.seed(j)
   cistococl2_lin_clust_rand_list[[j]] <- list()
@@ -1616,5 +1609,246 @@ dev.off()
 
 ```
 
-pdf('/Users/dylanschaff/Desktop')
+# Find singlet lineages in different conditions and check cluster/overlay on UMAP
+```{r}
+
+Idents(all_data) <- all_data$OG_condition 
+
+# dabtram
+dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindClusters(dabtram, resolution = 0.5)
+dabtram <- RunUMAP(dabtram, dims = 1:10)
+DimPlot(dabtram, reduction = 'umap')
+
+# dabtramtodabtram
+dabtramtodabtram <- subset(all_data, idents = 'dabtramtodabtram') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+dabtramtodabtram <- FindNeighbors(dabtramtodabtram, dims = 1:10)
+dabtramtodabtram <- FindClusters(dabtramtodabtram, resolution = 0.5)
+dabtramtodabtram <- RunUMAP(dabtramtodabtram, dims = 1:10)
+DimPlot(dabtramtodabtram, reduction = 'umap')
+
+# dabtramtococl2
+dabtramtococl2 <- subset(all_data, idents = 'dabtramtococl2') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+dabtramtococl2 <- FindNeighbors(dabtramtococl2, dims = 1:10)
+dabtramtococl2 <- FindClusters(dabtramtococl2, resolution = 0.5)
+dabtramtococl2 <- RunUMAP(dabtramtococl2, dims = 1:10)
+DimPlot(dabtramtococl2, reduction = 'umap')
+
+# dabtramtocis
+dabtramtocis <- subset(all_data, idents = 'dabtramtocis') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+dabtramtocis <- FindNeighbors(dabtramtocis, dims = 1:10)
+dabtramtocis <- FindClusters(dabtramtocis, resolution = 0.5)
+dabtramtocis <- RunUMAP(dabtramtocis, dims = 1:10)
+DimPlot(dabtramtocis, reduction = 'umap')
+
+# cocl2
+cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindClusters(cocl2, resolution = 0.5)
+cocl2 <- RunUMAP(cocl2, dims = 1:10)
+DimPlot(cocl2, reduction = 'umap')
+
+# cocl2todabtram
+cocl2todabtram <- subset(all_data, idents = 'cocl2todabtram') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cocl2todabtram <- FindNeighbors(cocl2todabtram, dims = 1:10)
+cocl2todabtram <- FindClusters(cocl2todabtram, resolution = 0.5)
+cocl2todabtram <- RunUMAP(cocl2todabtram, dims = 1:10)
+DimPlot(cocl2todabtram, reduction = 'umap')
+
+# cocl2tococl2
+cocl2tococl2 <- subset(all_data, idents = 'cocl2tococl2') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cocl2tococl2 <- FindNeighbors(cocl2tococl2, dims = 1:10)
+cocl2tococl2 <- FindClusters(cocl2tococl2, resolution = 0.5)
+cocl2tococl2 <- RunUMAP(cocl2tococl2, dims = 1:10)
+DimPlot(cocl2tococl2, reduction = 'umap')
+
+# cocl2tocis
+cocl2tocis <- subset(all_data, idents = 'cocl2tocis') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cocl2tocis <- FindNeighbors(cocl2tocis, dims = 1:10)
+cocl2tocis <- FindClusters(cocl2tocis, resolution = 0.5)
+cocl2tocis <- RunUMAP(cocl2tocis, dims = 1:10)
+DimPlot(cocl2tocis, reduction = 'umap')
+
+# cis
+cis <- subset(all_data, idents = 'cis') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindClusters(cis, resolution = 0.5)
+cis <- RunUMAP(cis, dims = 1:10)
+DimPlot(cis, reduction = 'umap')
+
+# cistodabtram
+cistodabtram <- subset(all_data, idents = 'cistodabtram') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cistodabtram <- FindNeighbors(cistodabtram, dims = 1:10)
+cistodabtram <- FindClusters(cistodabtram, resolution = 0.5)
+cistodabtram <- RunUMAP(cistodabtram, dims = 1:10)
+DimPlot(cistodabtram, reduction = 'umap')
+
+# cistococl2
+cistococl2 <- subset(all_data, idents = 'cistococl2') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cistococl2 <- FindNeighbors(cistococl2, dims = 1:10)
+cistococl2 <- FindClusters(cistococl2, resolution = 0.5)
+cistococl2 <- RunUMAP(cistococl2, dims = 1:10)
+DimPlot(cistococl2, reduction = 'umap')
+
+# cistocis
+cistocis <- subset(all_data, idents = 'cistocis') # Subset down to the cistocis object
+# Recluster with the appropriate number of dimensions
+cistocis <- FindNeighbors(cistocis, dims = 1:10)
+cistocis <- FindClusters(cistocis, resolution = 0.5)
+cistocis <- RunUMAP(cistocis, dims = 1:10)
+DimPlot(cistocis, reduction = 'umap')
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets_on_umap.pdf', width = 12)
+# dabtram
+dabtram_singlet_lins <- names(table(dabtram$Lineage)[table(dabtram$Lineage) == 1])
+dabtram_singlets <- names(dabtram$Lineage[dabtram$Lineage %in% dabtram_singlet_lins])
+p.1 <- DimPlot(dabtram, cells.highlight = dabtram_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(dabtram)
+cowplot::plot_grid(p.1, p.2, labels = c('dabtram singlets','dabtram_clusters'))
+dabtram_singlet_clusters <- data.frame(seurat_clust = names(table(dabtram$seurat_clusters[dabtram$Lineage %in% dabtram_singlet_lins])),
+                                       num_singlets = as.numeric(table(dabtram$seurat_clusters[dabtram$Lineage %in% dabtram_singlet_lins])),
+                                       total_cells = as.numeric(table(dabtram$seurat_clusters)))
+
+# dabtramtodabtram
+dabtramtodabtram_singlet_lins <- names(table(dabtramtodabtram$Lineage)[table(dabtramtodabtram$Lineage) == 1])
+dabtramtodabtram_singlets <- names(dabtramtodabtram$Lineage[dabtramtodabtram$Lineage %in% dabtramtodabtram_singlet_lins])
+p.1 <- DimPlot(dabtramtodabtram, cells.highlight = dabtramtodabtram_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(dabtramtodabtram)
+cowplot::plot_grid(p.1, p.2, labels = c('dabtramtodabtram singlets','dabtramtodabtram_clusters'))
+dabtramtodabtram_singlet_clusters <- data.frame(seurat_clust = names(table(dabtramtodabtram$seurat_clusters[dabtramtodabtram$Lineage %in% dabtramtodabtram_singlet_lins])),
+                                       num_singlets = as.numeric(table(dabtramtodabtram$seurat_clusters[dabtramtodabtram$Lineage %in% dabtramtodabtram_singlet_lins])),
+                                       total_cells = as.numeric(table(dabtramtodabtram$seurat_clusters)))
+
+# dabtramtococl2
+dabtramtococl2_singlet_lins <- names(table(dabtramtococl2$Lineage)[table(dabtramtococl2$Lineage) == 1])
+dabtramtococl2_singlets <- names(dabtramtococl2$Lineage[dabtramtococl2$Lineage %in% dabtramtococl2_singlet_lins])
+p.1 <- DimPlot(dabtramtococl2, cells.highlight = dabtramtococl2_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(dabtramtococl2)
+cowplot::plot_grid(p.1, p.2, labels = c('dabtramtococl2 singlets','dabtramtococl2_clusters'))
+dabtramtococl2_singlet_clusters <- data.frame(seurat_clust = names(table(dabtramtococl2$seurat_clusters[dabtramtococl2$Lineage %in% dabtramtococl2_singlet_lins])),
+                                       num_singlets = as.numeric(table(dabtramtococl2$seurat_clusters[dabtramtococl2$Lineage %in% dabtramtococl2_singlet_lins])),
+                                       total_cells = as.numeric(table(dabtramtococl2$seurat_clusters)))
+
+# dabtramtocis
+dabtramtocis_singlet_lins <- names(table(dabtramtocis$Lineage)[table(dabtramtocis$Lineage) == 1])
+dabtramtocis_singlets <- names(dabtramtocis$Lineage[dabtramtocis$Lineage %in% dabtramtocis_singlet_lins])
+p.1 <- DimPlot(dabtramtocis, cells.highlight = dabtramtocis_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(dabtramtocis)
+cowplot::plot_grid(p.1, p.2, labels = c('dabtramtocis singlets','dabtramtocis_clusters'))
+dabtramtocis_singlet_clusters <- data.frame(seurat_clust = names(table(dabtramtocis$seurat_clusters[dabtramtocis$Lineage %in% dabtramtocis_singlet_lins])),
+                                       num_singlets = as.numeric(table(dabtramtocis$seurat_clusters[dabtramtocis$Lineage %in% dabtramtocis_singlet_lins])),
+                                       total_cells = as.numeric(table(dabtramtocis$seurat_clusters)))
+
+# cocl2
+cocl2_singlet_lins <- names(table(cocl2$Lineage)[table(cocl2$Lineage) == 1])
+cocl2_singlets <- names(cocl2$Lineage[cocl2$Lineage %in% cocl2_singlet_lins])
+p.1 <- DimPlot(cocl2, cells.highlight = cocl2_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cocl2)
+cowplot::plot_grid(p.1, p.2, labels = c('cocl2 singlets','cocl2_clusters'))
+cocl2_singlet_clusters <- data.frame(seurat_clust = names(table(cocl2$seurat_clusters[cocl2$Lineage %in% cocl2_singlet_lins])),
+                                       num_singlets = as.numeric(table(cocl2$seurat_clusters[cocl2$Lineage %in% cocl2_singlet_lins])),
+                                       total_cells = as.numeric(table(cocl2$seurat_clusters)))
+
+# cocl2todabtram
+cocl2todabtram_singlet_lins <- names(table(cocl2todabtram$Lineage)[table(cocl2todabtram$Lineage) == 1])
+cocl2todabtram_singlets <- names(cocl2todabtram$Lineage[cocl2todabtram$Lineage %in% cocl2todabtram_singlet_lins])
+p.1 <- DimPlot(cocl2todabtram, cells.highlight = cocl2todabtram_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cocl2todabtram)
+cowplot::plot_grid(p.1, p.2, labels = c('cocl2todabtram singlets','cocl2todabtram_clusters'))
+cocl2todabtram_singlet_clusters <- data.frame(seurat_clust = names(table(cocl2todabtram$seurat_clusters[cocl2todabtram$Lineage %in% cocl2todabtram_singlet_lins])),
+                                       num_singlets = as.numeric(table(cocl2todabtram$seurat_clusters[cocl2todabtram$Lineage %in% cocl2todabtram_singlet_lins])),
+                                       total_cells = as.numeric(table(cocl2todabtram$seurat_clusters)))
+
+# cocl2tococl2
+cocl2tococl2_singlet_lins <- names(table(cocl2tococl2$Lineage)[table(cocl2tococl2$Lineage) == 1])
+cocl2tococl2_singlets <- names(cocl2tococl2$Lineage[cocl2tococl2$Lineage %in% cocl2tococl2_singlet_lins])
+p.1 <- DimPlot(cocl2tococl2, cells.highlight = cocl2tococl2_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cocl2tococl2)
+cowplot::plot_grid(p.1, p.2, labels = c('cocl2tococl2 singlets','cocl2tococl2_clusters'))
+cocl2tococl2_singlet_clusters <- data.frame(seurat_clust = names(table(cocl2tococl2$seurat_clusters[cocl2tococl2$Lineage %in% cocl2tococl2_singlet_lins])),
+                                       num_singlets = as.numeric(table(cocl2tococl2$seurat_clusters[cocl2tococl2$Lineage %in% cocl2tococl2_singlet_lins])),
+                                       total_cells = as.numeric(table(cocl2tococl2$seurat_clusters)))
+
+# cocl2tocis
+cocl2tocis_singlet_lins <- names(table(cocl2tocis$Lineage)[table(cocl2tocis$Lineage) == 1])
+cocl2tocis_singlets <- names(cocl2tocis$Lineage[cocl2tocis$Lineage %in% cocl2tocis_singlet_lins])
+p.1 <- DimPlot(cocl2tocis, cells.highlight = cocl2tocis_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cocl2tocis)
+cowplot::plot_grid(p.1, p.2, labels = c('cocl2tocis singlets','cocl2tocis_clusters'))
+cocl2tocis_singlet_clusters <- data.frame(seurat_clust = names(table(cocl2tocis$seurat_clusters[cocl2tocis$Lineage %in% cocl2tocis_singlet_lins])),
+                                       num_singlets = as.numeric(table(cocl2tocis$seurat_clusters[cocl2tocis$Lineage %in% cocl2tocis_singlet_lins])),
+                                       total_cells = as.numeric(table(cocl2tocis$seurat_clusters)))
+
+# cis
+cis_singlet_lins <- names(table(cis$Lineage)[table(cis$Lineage) == 1])
+cis_singlets <- names(cis$Lineage[cis$Lineage %in% cis_singlet_lins])
+p.1 <- DimPlot(cis, cells.highlight = cis_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cis)
+cowplot::plot_grid(p.1, p.2, labels = c('cis singlets','cis_clusters'))
+cis_singlet_clusters <- data.frame(seurat_clust = names(table(cis$seurat_clusters[cis$Lineage %in% cis_singlet_lins])),
+                                       num_singlets = as.numeric(table(cis$seurat_clusters[cis$Lineage %in% cis_singlet_lins])),
+                                       total_cells = as.numeric(table(cis$seurat_clusters)))
+
+# cistodabtram
+cistodabtram_singlet_lins <- names(table(cistodabtram$Lineage)[table(cistodabtram$Lineage) == 1])
+cistodabtram_singlets <- names(cistodabtram$Lineage[cistodabtram$Lineage %in% cistodabtram_singlet_lins])
+p.1 <- DimPlot(cistodabtram, cells.highlight = cistodabtram_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cistodabtram)
+cowplot::plot_grid(p.1, p.2, labels = c('cistodabtram singlets','cistodabtram_clusters'))
+cistodabtram_singlet_clusters <- data.frame(seurat_clust = names(table(cistodabtram$seurat_clusters[cistodabtram$Lineage %in% cistodabtram_singlet_lins])),
+                                       num_singlets = as.numeric(table(cistodabtram$seurat_clusters[cistodabtram$Lineage %in% cistodabtram_singlet_lins])),
+                                       total_cells = as.numeric(table(cistodabtram$seurat_clusters)))
+
+# cistococl2
+cistococl2_singlet_lins <- names(table(cistococl2$Lineage)[table(cistococl2$Lineage) == 1])
+cistococl2_singlets <- names(cistococl2$Lineage[cistococl2$Lineage %in% cistococl2_singlet_lins])
+p.1 <- DimPlot(cistococl2, cells.highlight = cistococl2_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cistococl2)
+cowplot::plot_grid(p.1, p.2, labels = c('cistococl2 singlets','cistococl2_clusters'))
+cistococl2_singlet_clusters <- data.frame(seurat_clust = names(table(cistococl2$seurat_clusters[cistococl2$Lineage %in% cistococl2_singlet_lins])),
+                                       num_singlets = as.numeric(table(cistococl2$seurat_clusters[cistococl2$Lineage %in% cistococl2_singlet_lins])),
+                                       total_cells = as.numeric(table(cistococl2$seurat_clusters)))
+
+# cistocis
+cistocis_singlet_lins <- names(table(cistocis$Lineage)[table(cistocis$Lineage) == 1])
+cistocis_singlets <- names(cistocis$Lineage[cistocis$Lineage %in% cistocis_singlet_lins])
+p.1 <- DimPlot(cistocis, cells.highlight = cistocis_singlets, cols.highlight = c('red'))
+p.2 <- DimPlot(cistocis)
+cowplot::plot_grid(p.1, p.2, labels = c('cistocis singlets','cistocis_clusters'))
+cistocis_singlet_clusters <- data.frame(seurat_clust = names(table(cistocis$seurat_clusters[cistocis$Lineage %in% cistocis_singlet_lins])),
+                                       num_singlets = as.numeric(table(cistocis$seurat_clusters[cistocis$Lineage %in% cistocis_singlet_lins])),
+                                       total_cells = as.numeric(table(cistocis$seurat_clusters)))
+dev.off()
+
+# Make an excel file of the number of singlets per cluster
+write.xlsx(dabtram_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'DabTram', append = F)
+write.xlsx(dabtramtodabtram_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'DabTramtoDabTram', append = T)
+write.xlsx(dabtramtococl2_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'DabTramtoCoCl2', append = T)
+write.xlsx(dabtramtocis_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'DabTramtoCis', append = T)
+write.xlsx(cocl2_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CoCl2', append = T)
+write.xlsx(cocl2todabtram_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CoCl2toDabTram', append = T)
+write.xlsx(cocl2tococl2_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CoCl2toCoCl2', append = T)
+write.xlsx(cocl2tocis_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CoCl2toCis', append = T)
+write.xlsx(cis_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'Cis', append = T)
+write.xlsx(cistodabtram_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CistoDabTram', append = T)
+write.xlsx(cistococl2_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CistoCoCl2', append = T)
+write.xlsx(cistocis_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets.xlsx', sheetName = 'CistoCis', append = T)
+```
+
+# save image to return to work on this
+```{r}
+save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/final_workspace.RData')
+```
 
