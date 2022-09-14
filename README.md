@@ -230,6 +230,7 @@ Finds egfr/ngfr score per lineage over time in dabtram, plots as heatmap
 Assesses whether cells from the same lineage are more likely to be in the same cluster than by random changce for each drug condition
 	Plots the test statistics
 Identifies which clusters have lineages with only a single cell in them (singlets)
+Code takes a very long time to run, so also saves worksapce for loading everything back in to R
 ```
 #### Output: 
 ```
@@ -247,6 +248,7 @@ weighted_mean_cluster_assignments_test_stats_diffyaxes.pdf
 weighted_mean_cluster_assignments_test_stats.pdf
 singlets.xlsx
 singlets_on_umap.pdf
+final_workspace.RData
 ```
 
 ## Induced_resistance
