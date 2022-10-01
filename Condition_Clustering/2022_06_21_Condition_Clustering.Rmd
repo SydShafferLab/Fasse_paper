@@ -7,8 +7,8 @@ output: html_notebook
 
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/ is additional path for outputs
 
@@ -325,6 +325,7 @@ dev.off()
 ```{r}
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/drug_group_highlights_first_timepoint.pdf')
 
+DimPlot(first_timepoint, reduction = "umap", dims = c(1,2), group.by = "OG_condition", pt.size = 2, cols =  c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29'))
 DimPlot(first_timepoint, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1,
         cells.highlight = list(names(first_timepoint$orig.ident[first_timepoint$OG_condition == 'dabtram'])),
         cols.highlight = ('red')) + ggtitle('dabtram first cells')
@@ -334,6 +335,12 @@ DimPlot(first_timepoint, reduction = "umap", dims = c(1,2), group.by = 'OG_condi
 DimPlot(first_timepoint, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1,
         cells.highlight = list(names(first_timepoint$orig.ident[first_timepoint$OG_condition == 'cis'])),
         cols.highlight = ('red')) + ggtitle('cis first cells')
+
+FeaturePlot(first_timepoint, features = 'EGFR', pt.size = 2) +
+  scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu')))
+FeaturePlot(first_timepoint, features = 'NGFR', pt.size = 2) +
+  scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu')))
+
 
 dev.off()
 ```

@@ -195,6 +195,8 @@ Clusters all_data with varying cluster numbers
 Finds drug condition of cells in each cluster
 Repeats this looking at shared 1st and 2nd drug groups
 Highlights cells in UMAP space with shared 1st and 2nd drug groups
+Highlights cells in UMAP space with with drug condition in initial timepoint
+Plots EGFR and NGFR on the initial timepoint UMAP
 ```
 #### Output: 
 ```
@@ -205,6 +207,7 @@ original_condition_second_timepoint_cluster', i-1, '.pdf
 end_condition_second_timepoint', i-1, '.pdf
 first_condition_second_timepoint', i-1, '.pdf
 drug_group_highlights.pdf
+drug_group_highlights_first_timepoint.pdf
 ```
 
 ## Lineage_expression
@@ -229,8 +232,11 @@ Finds egfr/ngfr score per lineage over time in dabtram, plots as heatmap
 	Identifies how these lineages grow in other drugs after dabtram as well
 Assesses whether cells from the same lineage are more likely to be in the same cluster than by random changce for each drug condition
 	Plots the test statistics
+Plots the DabTram both times object and overlays EGFR and NGFR expression
 Identifies which clusters have lineages with only a single cell in them (singlets)
 Code takes a very long time to run, so also saves worksapce for loading everything back in to R
+Looks into different cisplatin resistant cell clusters to try to understant why there is one massive cluster/what is special about this cluster. Compares to cisplatin-to-cisplatin. 
+Plots all of the different UMAPs individually for supplemental figure
 ```
 #### Output: 
 ```
@@ -238,6 +244,7 @@ all_data_markers.RData
 Clusters_per_lin_dabtram.pdf
 Clusters_per_lin_dabtramtodabtram.pdf
 test_violin.pdf
+dabtram_both_times.pdf
 stacked_bar_EGFR_NGFR_Died.pdf
 stacked_bar_EGFR_NGFR_Died_w_other_second_drugs.pdf
 <drug_condition>_sim_results.RData
@@ -249,6 +256,9 @@ weighted_mean_cluster_assignments_test_stats.pdf
 singlets.xlsx
 singlets_on_umap.pdf
 final_workspace.RData
+cis_stats.pdf
+cistocis_stats.pdf
+individual_UMAPs.pdf
 ```
 
 ## Induced_resistance

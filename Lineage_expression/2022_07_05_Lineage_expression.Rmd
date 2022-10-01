@@ -164,8 +164,11 @@ DimPlot(dabtram, cells.highlight = list(switch_lin))
 
 dabtram_both_times_markers <- FindAllMarkers(dabtram_both_times, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 DimPlot(dabtram_both_times)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_both_times.pdf',)
 DimPlot(dabtram_both_times, group.by = 'OG_condition')
-FeaturePlot(dabtram_both_times, features = c('NGFR', 'EGFR', 'nFeature_RNA'))
+FeaturePlot(dabtram_both_times, features = c('NGFR'))
+FeaturePlot(dabtram_both_times, features = c('EGFR'))
+dev.off()
 ```
 
 #Assign cluster assignments per lineage, find average score per lineage - make plots in order
@@ -348,7 +351,7 @@ for (i in 1:length(means_dabtram_sim)){
 }
 
 # Save outputs
-save(dabtram_lin_clust_list, dabtram_lin_clust_rand_list,z_mean_dabtram,pval_mean_dabtram, z_wmean_dabtram, ttest_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_sim_results.RData')
+save(dabtram_lin_clust_list, dabtram_lin_clust_rand_list,z_mean_dabtram,pval_mean_dabtram, z_wmean_dabtram, pval_wmean_dabtram, ttest_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_sim_results.RData')
 rm(dabtram)
 ```
 
@@ -417,7 +420,7 @@ for (i in 1:length(means_dabtramtodabtram_sim)){
 }
 
 # Save outputs
-save(dabtramtodabtram_lin_clust_list, dabtramtodabtram_lin_clust_rand_list,z_mean_dabtramtodabtram,pval_mean_dabtramtodabtram, z_wmean_dabtramtodabtram, ttest_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_sim_results.RData')
+save(dabtramtodabtram_lin_clust_list, dabtramtodabtram_lin_clust_rand_list,z_mean_dabtramtodabtram,pval_mean_dabtramtodabtram, z_wmean_dabtramtodabtram, pval_wmean_dabtramtodabtram,  ttest_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_sim_results.RData')
 rm(dabtramtodabtram)
 ```
 
@@ -486,7 +489,7 @@ for (i in 1:length(means_dabtramtocis_sim)){
 }
 
 # Save outputs
-save(dabtramtocis_lin_clust_list, dabtramtocis_lin_clust_rand_list,z_mean_dabtramtocis,pval_mean_dabtramtocis, z_wmean_dabtramtocis, ttest_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_sim_results.RData')
+save(dabtramtocis_lin_clust_list, dabtramtocis_lin_clust_rand_list,z_mean_dabtramtocis,pval_mean_dabtramtocis, z_wmean_dabtramtocis, pval_wmean_dabtramtocis,  ttest_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_sim_results.RData')
 rm(dabtramtocis)
 ```
 
@@ -555,7 +558,7 @@ for (i in 1:length(means_dabtramtococl2_sim)){
 }
 
 # Save outputs
-save(dabtramtococl2_lin_clust_list, dabtramtococl2_lin_clust_rand_list,z_mean_dabtramtococl2,pval_mean_dabtramtococl2, z_wmean_dabtramtococl2, ttest_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_sim_results.RData')
+save(dabtramtococl2_lin_clust_list, dabtramtococl2_lin_clust_rand_list,z_mean_dabtramtococl2,pval_mean_dabtramtococl2, z_wmean_dabtramtococl2, pval_wmean_dabtramtococl2,  ttest_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_sim_results.RData')
 rm(dabtramtococl2)
 ```
 
@@ -623,7 +626,7 @@ for (i in 1:length(means_cocl2_sim)){
 }
 
 # Save outputs
-save(cocl2_lin_clust_list, cocl2_lin_clust_rand_list,z_mean_cocl2,pval_mean_cocl2, z_wmean_cocl2, ttest_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_sim_results.RData')
+save(cocl2_lin_clust_list, cocl2_lin_clust_rand_list,z_mean_cocl2,pval_mean_cocl2, z_wmean_cocl2, pval_wmean_cocl2,  ttest_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_sim_results.RData')
 rm(cocl2)
 ```
 
@@ -691,7 +694,7 @@ for (i in 1:length(means_cocl2tococl2_sim)){
 }
 
 # Save outputs
-save(cocl2tococl2_lin_clust_list, cocl2tococl2_lin_clust_rand_list,z_mean_cocl2tococl2,pval_mean_cocl2tococl2, z_wmean_cocl2tococl2, ttest_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_sim_results.RData')
+save(cocl2tococl2_lin_clust_list, cocl2tococl2_lin_clust_rand_list,z_mean_cocl2tococl2,pval_mean_cocl2tococl2, z_wmean_cocl2tococl2, pval_wmean_cocl2tococl2,  ttest_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_sim_results.RData')
 rm(cocl2tococl2)
 ```
 
@@ -759,7 +762,7 @@ for (i in 1:length(means_cocl2tocis_sim)){
 }
 
 # Save outputs
-save(cocl2tocis_lin_clust_list, cocl2tocis_lin_clust_rand_list,z_mean_cocl2tocis,pval_mean_cocl2tocis, z_wmean_cocl2tocis, ttest_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_sim_results.RData')
+save(cocl2tocis_lin_clust_list, cocl2tocis_lin_clust_rand_list,z_mean_cocl2tocis,pval_mean_cocl2tocis, z_wmean_cocl2tocis, pval_wmean_cocl2tocis,  ttest_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_sim_results.RData')
 rm(cocl2tocis)
 ```
 
@@ -827,7 +830,7 @@ for (i in 1:length(means_cocl2todabtram_sim)){
 }
 
 # Save outputs
-save(cocl2todabtram_lin_clust_list, cocl2todabtram_lin_clust_rand_list,z_mean_cocl2todabtram,pval_mean_cocl2todabtram, z_wmean_cocl2todabtram, ttest_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_sim_results.RData')
+save(cocl2todabtram_lin_clust_list, cocl2todabtram_lin_clust_rand_list,z_mean_cocl2todabtram,pval_mean_cocl2todabtram, z_wmean_cocl2todabtram, pval_wmean_cocl2todabtram,  ttest_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_sim_results.RData')
 rm(cocl2todabtram)
 ```
 
@@ -895,7 +898,7 @@ for (i in 1:length(means_cis_sim)){
 }
 
 # Save outputs
-save(cis_lin_clust_list, cis_lin_clust_rand_list,z_mean_cis,pval_mean_cis, z_wmean_cis, ttest_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_sim_results.RData')
+save(cis_lin_clust_list, cis_lin_clust_rand_list,z_mean_cis,pval_mean_cis, z_wmean_cis, pval_wmean_cis,  ttest_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_sim_results.RData')
 rm(cis)
 ```
 
@@ -964,7 +967,7 @@ for (i in 1:length(means_cistocis_sim)){
 }
 
 # Save outputs
-save(cistocis_lin_clust_list, cistocis_lin_clust_rand_list,z_mean_cistocis,pval_mean_cistocis, z_wmean_cistocis, ttest_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_sim_results.RData')
+save(cistocis_lin_clust_list, cistocis_lin_clust_rand_list,z_mean_cistocis,pval_mean_cistocis, z_wmean_cistocis, pval_wmean_cistocis,  ttest_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_sim_results.RData')
 rm(cistocis)
 ```
 
@@ -1033,7 +1036,7 @@ for (i in 1:length(means_cistodabtram_sim)){
 }
 
 # Save outputs
-save(cistodabtram_lin_clust_list, cistodabtram_lin_clust_rand_list,z_mean_cistodabtram,pval_mean_cistodabtram, z_wmean_cistodabtram, ttest_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_sim_results.RData')
+save(cistodabtram_lin_clust_list, cistodabtram_lin_clust_rand_list,z_mean_cistodabtram,pval_mean_cistodabtram, z_wmean_cistodabtram, pval_wmean_cistodabtram,  ttest_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_sim_results.RData')
 rm(cistodabtram)
 ```
 
@@ -1101,7 +1104,7 @@ for (i in 1:length(means_cistococl2_sim)){
 }
 
 # Save outputs
-save(cistococl2_lin_clust_list, cistococl2_lin_clust_rand_list,z_mean_cistococl2,pval_mean_cistococl2, z_wmean_cistococl2, ttest_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_sim_results.RData')
+save(cistococl2_lin_clust_list, cistococl2_lin_clust_rand_list,z_mean_cistococl2,pval_mean_cistococl2, z_wmean_cistococl2, pval_wmean_cistococl2,  ttest_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_sim_results.RData')
 rm(cistococl2)
 ```
 
@@ -1850,5 +1853,93 @@ write.xlsx(cistocis_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_0
 # save image to return to work on this
 ```{r}
 save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/final_workspace.RData')
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/final_workspace.RData')
+```
+
+# Try to understand what the massive seurat cluster is
+```{r}
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_stats.pdf')
+DimPlot(cis)
+DimPlot(cis, group.by = 'Phase')
+FeaturePlot(cis, features = c('S.Score'))
+FeaturePlot(cis, features = c('G2M.Score'))
+FeaturePlot(cis, features = c('nCount_RNA'))
+FeaturePlot(cis, features = c('nFeature_RNA'))
+FeaturePlot(cis, features = c('nCount_lineage'))
+FeaturePlot(cis, features = c('nFeature_lineage'))
+FeaturePlot(cis, features = c('percent.mt'))
+FeaturePlot(cis, features = c('percent.rb'))
+FeaturePlot(cis, features = c('MKI67'))
+
+VlnPlot(cis, features = c('S.Score'))
+VlnPlot(cis, features = c('G2M.Score'))
+VlnPlot(cis, features = c('nCount_RNA'))
+VlnPlot(cis, features = c('nFeature_RNA'))
+VlnPlot(cis, features = c('nCount_lineage'))
+VlnPlot(cis, features = c('nFeature_lineage'))
+VlnPlot(cis, features = c('percent.mt'))
+VlnPlot(cis, features = c('percent.rb'))
+VlnPlot(cis, features = c('MKI67'))
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_stats.pdf')
+DimPlot(cistocis)
+DimPlot(cistocis, group.by = 'Phase')
+FeaturePlot(cistocis, features = c('S.Score'))
+FeaturePlot(cistocis, features = c('G2M.Score'))
+FeaturePlot(cistocis, features = c('nCount_RNA'))
+FeaturePlot(cistocis, features = c('nFeature_RNA'))
+FeaturePlot(cistocis, features = c('nCount_lineage'))
+FeaturePlot(cistocis, features = c('nFeature_lineage'))
+FeaturePlot(cistocis, features = c('percent.mt'))
+FeaturePlot(cistocis, features = c('percent.rb'))
+FeaturePlot(cistocis, features = c('MKI67'))
+
+VlnPlot(cistocis, features = c('S.Score'))
+VlnPlot(cistocis, features = c('G2M.Score'))
+VlnPlot(cistocis, features = c('nCount_RNA'))
+VlnPlot(cistocis, features = c('nFeature_RNA'))
+VlnPlot(cistocis, features = c('nCount_lineage'))
+VlnPlot(cistocis, features = c('nFeature_lineage'))
+VlnPlot(cistocis, features = c('percent.mt'))
+VlnPlot(cistocis, features = c('percent.rb'))
+VlnPlot(cistocis, features = c('MKI67'))
+dev.off()
+
+#pt <- table(cis$Phase, Idents(cis))
+#pt <- as.data.frame(pt)
+#pt$Var1 <- as.character(pt$Var1)
+
+#ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
+#  theme_bw(base_size = 15) +
+#  geom_col(position = "fill", width = 0.5) +
+#  xlab("Sample") +
+#  ylab("Proportion") +
+#  scale_fill_manual(values = brewer.pal(12, "Paired")) +
+#  theme(legend.title = element_blank())
+
+```
+
+# Plot the individual UMAPs for each condition for supplemental figure
+```{r}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/individual_UMAPs.pdf')
+DimPlot(dabtram, pt.size = 1)
+DimPlot(cocl2, pt.size = 1)
+DimPlot(cis, pt.size = 1)
+
+DimPlot(dabtramtodabtram, pt.size = 1)
+DimPlot(dabtramtococl2, pt.size = 1)
+DimPlot(dabtramtocis, pt.size = 1)
+
+DimPlot(cocl2todabtram, pt.size = 1)
+DimPlot(cocl2tococl2, pt.size = 1)
+DimPlot(cocl2tocis, pt.size = 1)
+
+DimPlot(cistodabtram, pt.size = 1)
+DimPlot(cistococl2, pt.size = 1)
+DimPlot(cistocis, pt.size = 1)
+dev.off()
 ```
 
