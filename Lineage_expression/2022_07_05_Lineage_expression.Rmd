@@ -140,6 +140,7 @@ VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTram', grou
 VlnPlot(all_data, features = 'NGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
 VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
 
+
 dev.off()
 ```
 
