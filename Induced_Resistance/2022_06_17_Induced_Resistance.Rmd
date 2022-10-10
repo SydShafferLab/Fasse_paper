@@ -23,6 +23,7 @@ library(kit)
 library(cowplot)
 library(venn)
 library(xlsx)
+library(fgsea)
 `%nin%` = Negate(`%in%`)
 
 ```
@@ -155,13 +156,22 @@ dabtram <- FindNeighbors(dabtram, dims = 1:10)
 dabtram <- FindClusters(dabtram, resolution = 0.5)
 dabtram <- RunUMAP(dabtram, dims = 1:10)
 
+dabtram_cocl2_venn_attr <- attr(dabtram_cocl2_venn, "intersections")
+dabtram_cocl2_venn_names <- rep(names(dabtram_cocl2_venn_attr), times = sapply(dabtram_cocl2_venn_attr, length))
+names(dabtram_cocl2_venn_names) <- unlist(dabtram_cocl2_venn_attr)
+dabtram$dabtram_cocl2_venn_meta <- dabtram_cocl2_venn_names[dabtram$Lineage]
+
 # Find induced markers
 dabtram_inducedto_cocl2_markers <- FindMarkers(dabtram, ident.1 = Dabtram_inducedto_CoCl2, ident.2 = Dabtram_not_inducedto_CoCl2, logfc.threshold = 0.25)
 dabtram_inducedto_cocl2_markers_sig_p <- dabtram_inducedto_cocl2_markers[dabtram_inducedto_cocl2_markers$p_val <= 0.05,] 
 dabtram_inducedto_cocl2_markers_sig_padj <- dabtram_inducedto_cocl2_markers[dabtram_inducedto_cocl2_markers$p_val_adj <= 0.05,] 
 
+Idents(dabtram) <- dabtram$dabtram_cocl2_venn_meta
+dabtram_cocl2_allmarkers_dabtram <- FindAllMarkers(dabtram) # This may not work due to all of the cells in the NA group
+
 # Plot induced markers
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cocl2.pdf', height = 10, width = 10)
+Idents(dabtram) <- dabtram$seurat_clusters
 DimPlot(dabtram, reduction = 'umap')
 DimPlot(dabtram, cells.highlight = Dabtram_inducedto_CoCl2, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(dabtram, cells.highlight = Dabtram_not_inducedto_CoCl2, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
@@ -174,8 +184,11 @@ write.xlsx(dabtram_inducedto_cocl2_markers_sig_padj,'2022_01_14_analysis_scripts
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cocl2_allMarkers.pdf')
 DimPlot(dabtram, cells.highlight = Dabtram_inducedto_CoCl2, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(dabtram, cells.highlight = Dabtram_not_inducedto_CoCl2, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
+Idents(dabtram) <- dabtram$dabtram_cocl2_venn_meta
+DimPlot(dabtram) + labs(title = 'venn coloring')
 for (i in rownames(dabtram_inducedto_cocl2_markers_sig_p)){
   print(FeaturePlot(dabtram, features = c(i)) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme())
+  print(VlnPlot(dabtram, features = c(i)))
 }
 dev.off()
 ```
@@ -195,13 +208,22 @@ cocl2 <- FindNeighbors(cocl2, dims = 1:10)
 cocl2 <- FindClusters(cocl2, resolution = 0.5)
 cocl2 <- RunUMAP(cocl2, dims = 1:10)
 
+dabtram_cocl2_venn_attr <- attr(dabtram_cocl2_venn, "intersections")
+dabtram_cocl2_venn_names <- rep(names(dabtram_cocl2_venn_attr), times = sapply(dabtram_cocl2_venn_attr, length))
+names(dabtram_cocl2_venn_names) <- unlist(dabtram_cocl2_venn_attr)
+cocl2$dabtram_cocl2_venn_meta <- dabtram_cocl2_venn_names[cocl2$Lineage]
+
 # Find induced markers
 cocl2_inducedto_dabtram_markers <- FindMarkers(cocl2, ident.1 = CoCl2_inducedto_Dabtram, ident.2 = CoCl2_not_inducedto_Dabtram, logfc.threshold = 0.25)
 cocl2_inducedto_dabtram_markers_sig_p <- cocl2_inducedto_dabtram_markers[cocl2_inducedto_dabtram_markers$p_val <= 0.05,]
 cocl2_inducedto_dabtram_markers_sig_padj <- cocl2_inducedto_dabtram_markers[cocl2_inducedto_dabtram_markers$p_val_adj <= 0.05,]
 
+Idents(cocl2) <- cocl2$dabtram_cocl2_venn_meta
+dabtram_cocl2_allmarkers_cocl2 <- FindAllMarkers(cocl2) # This may not work due to all of the cells in the NA group
+
 # Plot induced markers
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cocl2_inducedto_dabtram.pdf', height = 10, width = 10)
+Idents(cocl2) <- cocl2$seurat_clusters
 DimPlot(cocl2, reduction = 'umap')
 DimPlot(cocl2, cells.highlight = CoCl2_inducedto_Dabtram, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(cocl2, cells.highlight = CoCl2_not_inducedto_Dabtram, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
@@ -214,8 +236,11 @@ write.xlsx(cocl2_inducedto_dabtram_markers_sig_padj,'2022_01_14_analysis_scripts
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cocl2_inducedto_dabtram_allMarkers.pdf')
 DimPlot(cocl2, cells.highlight = CoCl2_inducedto_Dabtram, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(cocl2, cells.highlight = CoCl2_not_inducedto_Dabtram, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
+Idents(cocl2) <- cocl2$dabtram_cocl2_venn_meta
+DimPlot(cocl2) + labs(title = 'venn coloring')
 for (i in rownames(cocl2_inducedto_dabtram_markers_sig_p)){
   print(FeaturePlot(cocl2, features = c(i)) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme())
+  print(VlnPlot(cocl2, features = c(i)))
 }
 dev.off()
 ```
@@ -235,13 +260,22 @@ dabtram <- FindNeighbors(dabtram, dims = 1:10)
 dabtram <- FindClusters(dabtram, resolution = 0.5)
 dabtram <- RunUMAP(dabtram, dims = 1:10)
 
+dabtram_cis_venn_attr <- attr(dabtram_cis_venn, "intersections")
+dabtram_cis_venn_names <- rep(names(dabtram_cis_venn_attr), times = sapply(dabtram_cis_venn_attr, length))
+names(dabtram_cis_venn_names) <- unlist(dabtram_cis_venn_attr)
+dabtram$dabtram_cis_venn_meta <- dabtram_cis_venn_names[dabtram$Lineage]
+
 # Find induced markers
 dabtram_inducedto_cis_markers <- FindMarkers(dabtram, ident.1 = Dabtram_inducedto_Cis, ident.2 = Dabtram_not_inducedto_Cis, logfc.threshold = 0.25)
 dabtram_inducedto_cis_markers_sig_p <- dabtram_inducedto_cis_markers[dabtram_inducedto_cis_markers$p_val <= 0.05,]
 dabtram_inducedto_cis_markers_sig_padj <- dabtram_inducedto_cis_markers[dabtram_inducedto_cis_markers$p_val_adj <= 0.05,] # none sig after adjusting for multiple comparisons
 
+Idents(dabtram) <- dabtram$dabtram_cis_venn_meta
+dabtram_cis_allmarkers_dabtram <- FindAllMarkers(dabtram) # This may not work due to all of the cells in the NA group
+
 # Plot induced markers
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cis.pdf', height = 10, width = 10)
+Idents(dabtram) <- dabtram$seurat_clusters
 DimPlot(dabtram, reduction = 'umap')
 DimPlot(dabtram, cells.highlight = Dabtram_inducedto_Cis, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(dabtram, cells.highlight = Dabtram_not_inducedto_Cis, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
@@ -254,8 +288,11 @@ write.xlsx(dabtram_inducedto_cis_markers_sig_padj,'2022_01_14_analysis_scripts/2
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cis_allMarkers.pdf')
 DimPlot(dabtram, cells.highlight = Dabtram_inducedto_Cis, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(dabtram, cells.highlight = Dabtram_not_inducedto_Cis, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
+Idents(dabtram) <- dabtram$dabtram_cis_venn_meta
+DimPlot(dabtram) + labs(title = 'venn coloring')
 for (i in rownames(dabtram_inducedto_cis_markers_sig_p)){
   print(FeaturePlot(dabtram, features = c(i)) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme())
+  print(VlnPlot(dabtram, features = c(i)))
 }
 dev.off()
 ```
@@ -275,6 +312,14 @@ cocl2 <- FindNeighbors(cocl2, dims = 1:10)
 cocl2 <- FindClusters(cocl2, resolution = 0.5)
 cocl2 <- RunUMAP(cocl2, dims = 1:10)
 
+cocl2_cis_venn_attr <- attr(cocl2_cis_venn, "intersections")
+cocl2_cis_venn_names <- rep(names(cocl2_cis_venn_attr), times = sapply(cocl2_cis_venn_attr, length))
+names(cocl2_cis_venn_names) <- unlist(cocl2_cis_venn_attr)
+cocl2$cocl2_cis_venn_meta <- cocl2_cis_venn_names[cocl2$Lineage]
+
+Idents(cocl2) <- cocl2$cocl2_cis_venn_meta
+cocl2_cis_allmarkers_cocl2 <- FindAllMarkers(cocl2) # This may not work due to all of the cells in the NA group
+
 # Find induced markers
 cocl2_inducedto_cis_markers <- FindMarkers(cocl2, ident.1 = CoCl2_inducedto_Cis, ident.2 = CoCl2_not_inducedto_Cis, logfc.threshold = 0.25)
 cocl2_inducedto_cis_markers_sig_p <- cocl2_inducedto_cis_markers[cocl2_inducedto_cis_markers$p_val <= 0.05,]
@@ -282,6 +327,7 @@ cocl2_inducedto_cis_markers_sig_padj <- cocl2_inducedto_cis_markers[cocl2_induce
 
 # Plot induced markers
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cocl2_inducedto_cis.pdf', height = 10, width = 10)
+Idents(cocl2) <- cocl2$seurat_clusters
 DimPlot(cocl2, reduction = 'umap')
 DimPlot(cocl2, cells.highlight = CoCl2_inducedto_Cis, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(cocl2, cells.highlight = CoCl2_not_inducedto_Cis, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
@@ -294,8 +340,11 @@ write.xlsx(cocl2_inducedto_cis_markers_sig_padj,'2022_01_14_analysis_scripts/202
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cocl2_inducedto_cis_allMarkers.pdf')
 DimPlot(cocl2, cells.highlight = CoCl2_inducedto_Cis, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(cocl2, cells.highlight = CoCl2_not_inducedto_Cis, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
+Idents(cocl2) <- cocl2$cocl2_cis_venn_meta
+DimPlot(cocl2) + labs(title = 'venn coloring')
 for (i in rownames(cocl2_inducedto_cis_markers_sig_p)){
   print(FeaturePlot(cocl2, features = c(i)) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme())
+  print(VlnPlot(cocl2, features = c(i)))
 }
 dev.off()
 ```
@@ -315,13 +364,22 @@ cis <- FindNeighbors(cis, dims = 1:10)
 cis <- FindClusters(cis, resolution = 0.5)
 cis <- RunUMAP(cis, dims = 1:10)
 
+dabtram_cis_venn_attr <- attr(dabtram_cis_venn, "intersections")
+dabtram_cis_venn_names <- rep(names(dabtram_cis_venn_attr), times = sapply(dabtram_cis_venn_attr, length))
+names(dabtram_cis_venn_names) <- unlist(dabtram_cis_venn_attr)
+cis$dabtram_cis_venn_meta <- dabtram_cis_venn_names[cis$Lineage]
+
 # Find induced markers
 cis_inducedto_dabtram_markers <- FindMarkers(cis, ident.1 = Cis_inducedto_Dabtram, ident.2 = Cis_not_inducedto_Dabtram, logfc.threshold = 0.25)
 cis_inducedto_dabtram_markers_sig_p <- cis_inducedto_dabtram_markers[cis_inducedto_dabtram_markers$p_val <= 0.05,]
 cis_inducedto_dabtram_markers_sig_padj <- cis_inducedto_dabtram_markers[cis_inducedto_dabtram_markers$p_val_adj <= 0.05,]
 
+Idents(cis) <- cis$dabtram_cis_venn_meta
+dabtram_cis_allmarkers_cis <- FindAllMarkers(cis) # This may not work due to all of the cells in the NA group
+
 # Plot induced markers
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cis_inducedto_dabtram.pdf', height = 10, width = 10)
+Idents(cis) <- cis$seurat_clusters
 DimPlot(cis, reduction = 'umap')
 FeaturePlot(cis, features = c("HIST1H1D","CYP51A1","LDHA","ACSL3", "CDKN2A", "PRKDC"))
 DimPlot(cis, cells.highlight = Cis_inducedto_Dabtram, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
@@ -334,8 +392,11 @@ write.xlsx(cis_inducedto_dabtram_markers_sig_padj,'2022_01_14_analysis_scripts/2
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cis_inducedto_dabtram_allMarkers.pdf')
 DimPlot(cis, cells.highlight = Cis_inducedto_Dabtram, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(cis, cells.highlight = Cis_not_inducedto_Dabtram, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
+Idents(cis) <- cis$dabtram_cis_venn_meta
+DimPlot(cis) + labs(title = 'venn coloring')
 for (i in rownames(cis_inducedto_dabtram_markers_sig_p)){
   print(FeaturePlot(cis, features = c(i)) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme())
+  print(VlnPlot(cis, features = c(i)))
 }
 dev.off()
 ```
@@ -354,13 +415,22 @@ cis <- FindNeighbors(cis, dims = 1:10)
 cis <- FindClusters(cis, resolution = 0.5)
 cis <- RunUMAP(cis, dims = 1:10)
 
+cocl2_cis_venn_attr <- attr(cocl2_cis_venn, "intersections")
+cocl2_cis_venn_names <- rep(names(cocl2_cis_venn_attr), times = sapply(cocl2_cis_venn_attr, length))
+names(cocl2_cis_venn_names) <- unlist(cocl2_cis_venn_attr)
+cis$cocl2_cis_venn_meta <- cocl2_cis_venn_names[cis$Lineage]
+
 # Find induced markers
 cis_inducedto_cocl2_markers <- FindMarkers(cis, ident.1 = Cis_inducedto_CoCl2, ident.2 = Cis_not_inducedto_CoCl2, logfc.threshold = 0.25)
 cis_inducedto_cocl2_markers_sig_p <- cis_inducedto_cocl2_markers[cis_inducedto_cocl2_markers$p_val <= 0.05,]
 cis_inducedto_cocl2_markers_sig_padj <- cis_inducedto_cocl2_markers[cis_inducedto_cocl2_markers$p_val_adj <= 0.05,]
 
+Idents(cis) <- cis$cocl2_cis_venn_meta
+cocl2_cis_allmarkers_cis <- FindAllMarkers(cis) # This may not work due to all of the cells in the NA group
+
 # Plot induced markers
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cis_inducedto_cocl2.pdf', height = 10, width = 10)
+Idents(cis) <- cis$seurat_clusters
 DimPlot(cis, reduction = 'umap')
 FeaturePlot(cis, features = c("CYP51A1","MKI67","BNIP3","TIMP3", "FN1", "PGAM1"))
 DimPlot(cis, cells.highlight = Cis_inducedto_CoCl2, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
@@ -373,8 +443,11 @@ write.xlsx(cis_inducedto_cocl2_markers_sig_padj,'2022_01_14_analysis_scripts/202
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/cis_inducedto_cocl2_allMarkers.pdf')
 DimPlot(cis, cells.highlight = Cis_inducedto_CoCl2, cols.highlight = c('red')) + labs(title = 'Induced_lineages')
 DimPlot(cis, cells.highlight = Cis_not_inducedto_CoCl2, cols.highlight = c('blue')) + labs(title = 'Non_Induced_lineages')
+Idents(cis) <- cis$cocl2_cis_venn_meta
+DimPlot(cis) + labs(title = 'venn coloring')
 for (i in rownames(cis_inducedto_cocl2_markers_sig_p)){
   print(FeaturePlot(cis, features = c(i)) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme())
+  print(VlnPlot(cis, features = c(i)))
 }
 dev.off()
 ```
@@ -497,6 +570,132 @@ cis_inducedto_cocl2_fgseaRes <- fgsea(Hs.H, cis_inducedto_cocl2_ranks, minSize=5
 # Plot results
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_cis_inducedto_cocl2.pdf')
 ggplot(cis_inducedto_cocl2_fgseaRes, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+dev.off()
+```
+
+# Do directional GSEA to see what pathways are up and down in the two populations of cells - using p_adj
+```{r}
+# Load in the Hallmark pathways downloaded from MSigDB
+human_gene_sets <- read.delim('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/h.all.v2022.1.Hs.symbols.gmt.txt', header = F)
+
+Hs.H <- list()
+for(i in human_gene_sets$V1){
+  temp_list <- as.character(human_gene_sets[human_gene_sets$V1 == i,3:ncol(human_gene_sets)])
+  Hs.H[[i]] <- temp_list[temp_list != ""]
+}
+
+# DabTram induced to CoCl2
+# Rank order the data
+dabtram_inducedto_cocl2_ranks_padj <- dabtram_inducedto_cocl2_markers_sig_padj$avg_log2FC
+names(dabtram_inducedto_cocl2_ranks_padj) <- rownames(dabtram_inducedto_cocl2_markers_sig_padj)
+dabtram_inducedto_cocl2_ranks_padj <- sort(dabtram_inducedto_cocl2_ranks_padj, decreasing = T)
+
+# Run gsea
+dabtram_inducedto_cocl2_fgseaRes_padj <- fgsea(Hs.H, dabtram_inducedto_cocl2_ranks_padj, minSize=5, maxSize = 500)
+
+# Plot results
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_dabtram_inducedto_cocl2_padj.pdf')
+ggplot(dabtram_inducedto_cocl2_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+dev.off()
+
+# DabTram induced to Cis
+# Rank order the data
+dabtram_inducedto_cis_ranks_padj <- dabtram_inducedto_cis_markers_sig_padj$avg_log2FC
+names(dabtram_inducedto_cis_ranks_padj) <- rownames(dabtram_inducedto_cis_markers_sig_padj)
+dabtram_inducedto_cis_ranks_padj <- sort(dabtram_inducedto_cis_ranks_padj, decreasing = T)
+
+# Run gsea
+dabtram_inducedto_cis_fgseaRes_padj <- fgsea(Hs.H, dabtram_inducedto_cis_ranks_padj, minSize=5, maxSize = 500)
+
+# Plot results
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_dabtram_inducedto_cis_padj.pdf')
+ggplot(dabtram_inducedto_cis_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+dev.off()
+
+# CoCl2 induced to Cis
+# Rank order the data
+cocl2_inducedto_cis_ranks_padj <- cocl2_inducedto_cis_markers_sig_padj$avg_log2FC
+names(cocl2_inducedto_cis_ranks_padj) <- rownames(cocl2_inducedto_cis_markers_sig_padj)
+cocl2_inducedto_cis_ranks_padj <- sort(cocl2_inducedto_cis_ranks_padj, decreasing = T)
+
+# Run gsea
+cocl2_inducedto_cis_fgseaRes_padj <- fgsea(Hs.H, cocl2_inducedto_cis_ranks_padj, minSize=5, maxSize = 500)
+
+# Plot results
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_cocl2_inducedto_cis_padj.pdf')
+ggplot(cocl2_inducedto_cis_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+dev.off()
+
+# CoCl2 induced to DabTram
+# Rank order the data
+cocl2_inducedto_dabtram_ranks_padj <- cocl2_inducedto_dabtram_markers_sig_padj$avg_log2FC
+names(cocl2_inducedto_dabtram_ranks_padj) <- rownames(cocl2_inducedto_dabtram_markers_sig_padj)
+cocl2_inducedto_dabtram_ranks_padj <- sort(cocl2_inducedto_dabtram_ranks_padj, decreasing = T)
+
+# Run gsea
+cocl2_inducedto_dabtram_fgseaRes_padj <- fgsea(Hs.H, cocl2_inducedto_dabtram_ranks_padj, minSize=5, maxSize = 500)
+
+# Plot results
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_cocl2_inducedto_dabtram_padj.pdf')
+ggplot(cocl2_inducedto_dabtram_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+dev.off()
+
+# Cis induced to DabTram
+# Rank order the data
+cis_inducedto_dabtram_ranks_padj <- cis_inducedto_dabtram_markers_sig_padj$avg_log2FC
+names(cis_inducedto_dabtram_ranks_padj) <- rownames(cis_inducedto_dabtram_markers_sig_padj)
+cis_inducedto_dabtram_ranks_padj <- sort(cis_inducedto_dabtram_ranks_padj, decreasing = T)
+
+# Run gsea
+cis_inducedto_dabtram_fgseaRes_padj <- fgsea(Hs.H, cis_inducedto_dabtram_ranks_padj, minSize=5, maxSize = 500)
+
+# Plot results
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_cis_inducedto_dabtram_padj.pdf')
+ggplot(cis_inducedto_dabtram_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+dev.off()
+
+# Cis induced to CoCl2
+# Rank order the data
+cis_inducedto_cocl2_ranks_padj <- cis_inducedto_cocl2_markers_sig_padj$avg_log2FC
+names(cis_inducedto_cocl2_ranks_padj) <- rownames(cis_inducedto_cocl2_markers_sig_padj)
+cis_inducedto_cocl2_ranks_padj <- sort(cis_inducedto_cocl2_ranks_padj, decreasing = T)
+
+# Run gsea
+cis_inducedto_cocl2_fgseaRes_padj <- fgsea(Hs.H, cis_inducedto_cocl2_ranks_padj, minSize=5, maxSize = 500)
+
+# Plot results
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/gsea_cis_inducedto_cocl2_padj.pdf')
+ggplot(cis_inducedto_cocl2_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
   geom_col(aes(fill=padj<0.05)) +
   coord_flip() +
   labs(x="Pathway", y="Normalized Enrichment Score",

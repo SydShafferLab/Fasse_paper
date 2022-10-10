@@ -166,9 +166,12 @@ DimPlot(dabtram, cells.highlight = list(switch_lin))
 dabtram_both_times_markers <- FindAllMarkers(dabtram_both_times, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 DimPlot(dabtram_both_times)
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_both_times.pdf',)
-DimPlot(dabtram_both_times, group.by = 'OG_condition')
-FeaturePlot(dabtram_both_times, features = c('NGFR'))
-FeaturePlot(dabtram_both_times, features = c('EGFR'))
+DimPlot(dabtram_both_times, group.by = 'OG_condition', pt.size = 2, cols = c('dabtram' = '#623594','dabtramtodabtram' = '#561E59'))
+DimPlot(dabtram_both_times, pt.size = 2)
+FeaturePlot(dabtram_both_times, features = c('NGFR'), pt.size = 2)+
+  scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu')))
+FeaturePlot(dabtram_both_times, features = c('EGFR'), pt.size = 2)+
+  scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu')))
 dev.off()
 ```
 
