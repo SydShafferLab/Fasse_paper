@@ -149,12 +149,15 @@ Dabtram_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'dabt
 Dabtram_not_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% attr(dabtram_cocl2_venn, "intersections")$'dabtram'])
 
 # Also want to plot these lineages on umap along with induced resistance genes
-Idents(all_data) <- all_data$OG_condition
-dabtram <- subset(all_data, idents = 'dabtram')
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the dabtram object
 dabtram <- NormalizeData(dabtram)
-dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
 dabtram <- FindClusters(dabtram, resolution = 0.5)
-dabtram <- RunUMAP(dabtram, dims = 1:10)
+dabtram <- RunUMAP(dabtram, dims = 1:15)
 
 dabtram_cocl2_venn_attr <- attr(dabtram_cocl2_venn, "intersections")
 dabtram_cocl2_venn_names <- rep(names(dabtram_cocl2_venn_attr), times = sapply(dabtram_cocl2_venn_attr, length))
@@ -201,12 +204,15 @@ CoCl2_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cocl
 CoCl2_not_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' & all_data$Lineage %in% attr(dabtram_cocl2_venn, "intersections")$'cocl2'])
 
 # Also want to plot these lineages on umap along with induced resistance genes
-Idents(all_data) <- all_data$OG_condition
-cocl2 <- subset(all_data, idents = 'cocl2')
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cocl2 object
 cocl2 <- NormalizeData(cocl2)
-cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindVariableFeatures(cocl2, selection.method = 'vst', nFeatures = 20000)
+cocl2 <- ScaleData(cocl2)
+cocl2 <- RunPCA(cocl2)
+cocl2 <- FindNeighbors(cocl2, dims = 1:15)
 cocl2 <- FindClusters(cocl2, resolution = 0.5)
-cocl2 <- RunUMAP(cocl2, dims = 1:10)
+cocl2 <- RunUMAP(cocl2, dims = 1:15)
 
 dabtram_cocl2_venn_attr <- attr(dabtram_cocl2_venn, "intersections")
 dabtram_cocl2_venn_names <- rep(names(dabtram_cocl2_venn_attr), times = sapply(dabtram_cocl2_venn_attr, length))
@@ -253,12 +259,15 @@ Dabtram_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'dabtra
 Dabtram_not_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage %in% attr(dabtram_cis_venn, "intersections")$'dabtram'])
 
 # Also want to plot these lineages on umap along with induced resistance genes
-Idents(all_data) <- all_data$OG_condition
-dabtram <- subset(all_data, idents = 'dabtram')
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the dabtram object
 dabtram <- NormalizeData(dabtram)
-dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
 dabtram <- FindClusters(dabtram, resolution = 0.5)
-dabtram <- RunUMAP(dabtram, dims = 1:10)
+dabtram <- RunUMAP(dabtram, dims = 1:15)
 
 dabtram_cis_venn_attr <- attr(dabtram_cis_venn, "intersections")
 dabtram_cis_venn_names <- rep(names(dabtram_cis_venn_attr), times = sapply(dabtram_cis_venn_attr, length))
@@ -305,12 +314,15 @@ CoCl2_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' &
 CoCl2_not_inducedto_Cis <- names(all_data$Lineage[all_data$OG_condition == 'cocl2' & all_data$Lineage %in% attr(cocl2_cis_venn, "intersections")$'cocl2'])
 
 # Also want to plot these lineages on umap along with induced resistance genes
-Idents(all_data) <- all_data$OG_condition
-cocl2 <- subset(all_data, idents = 'cocl2')
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cocl2 object
 cocl2 <- NormalizeData(cocl2)
-cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindVariableFeatures(cocl2, selection.method = 'vst', nFeatures = 20000)
+cocl2 <- ScaleData(cocl2)
+cocl2 <- RunPCA(cocl2)
+cocl2 <- FindNeighbors(cocl2, dims = 1:15)
 cocl2 <- FindClusters(cocl2, resolution = 0.5)
-cocl2 <- RunUMAP(cocl2, dims = 1:10)
+cocl2 <- RunUMAP(cocl2, dims = 1:15)
 
 cocl2_cis_venn_attr <- attr(cocl2_cis_venn, "intersections")
 cocl2_cis_venn_names <- rep(names(cocl2_cis_venn_attr), times = sapply(cocl2_cis_venn_attr, length))
@@ -357,12 +369,15 @@ Cis_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cis' &
 Cis_not_inducedto_Dabtram <- names(all_data$Lineage[all_data$OG_condition == 'cis' & all_data$Lineage %in% attr(dabtram_cis_venn, "intersections")$'cis'])
 
 # Also want to plot these lineages on umap along with induced resistance genes
-Idents(all_data) <- all_data$OG_condition
-cis <- subset(all_data, idents = 'cis')
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cis
+cis <- subset(all_data, idents = 'cis') # Subset down to the cis object
 cis <- NormalizeData(cis)
-cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindVariableFeatures(cis, selection.method = 'vst', nFeatures = 20000)
+cis <- ScaleData(cis)
+cis <- RunPCA(cis)
+cis <- FindNeighbors(cis, dims = 1:15)
 cis <- FindClusters(cis, resolution = 0.5)
-cis <- RunUMAP(cis, dims = 1:10)
+cis <- RunUMAP(cis, dims = 1:15)
 
 dabtram_cis_venn_attr <- attr(dabtram_cis_venn, "intersections")
 dabtram_cis_venn_names <- rep(names(dabtram_cis_venn_attr), times = sapply(dabtram_cis_venn_attr, length))
@@ -408,12 +423,15 @@ Cis_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'cis' & a
 Cis_not_inducedto_CoCl2 <- names(all_data$Lineage[all_data$OG_condition == 'cis' & all_data$Lineage %in% attr(cocl2_cis_venn, "intersections")$'cis'])
 
 # Also want to plot these lineages on umap along with induced resistance genes
-Idents(all_data) <- all_data$OG_condition
-cis <- subset(all_data, idents = 'cis')
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cis
+cis <- subset(all_data, idents = 'cis') # Subset down to the cis object
 cis <- NormalizeData(cis)
-cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindVariableFeatures(cis, selection.method = 'vst', nFeatures = 20000)
+cis <- ScaleData(cis)
+cis <- RunPCA(cis)
+cis <- FindNeighbors(cis, dims = 1:15)
 cis <- FindClusters(cis, resolution = 0.5)
-cis <- RunUMAP(cis, dims = 1:10)
+cis <- RunUMAP(cis, dims = 1:15)
 
 cocl2_cis_venn_attr <- attr(cocl2_cis_venn, "intersections")
 cocl2_cis_venn_names <- rep(names(cocl2_cis_venn_attr), times = sapply(cocl2_cis_venn_attr, length))

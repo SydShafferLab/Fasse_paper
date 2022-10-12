@@ -144,21 +144,21 @@ VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTramtoDabTr
 dev.off()
 ```
 
-#Looking into the one lineage that switches ngfr -> egfr
-```{r}
+<!-- #Looking into the one lineage that switches ngfr -> egfr -->
+<!-- ```{r} -->
 
-switch_lin_dabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtram'])
-switch_lin_dabtramtodabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtramtodabtram'])
+<!-- switch_lin_dabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtram']) -->
+<!-- switch_lin_dabtramtodabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtramtodabtram']) -->
 
-DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))
-DimPlot(all_data, cells.highlight = list(switch_lin_dabtram), cols.highlight = c('red'))
-DimPlot(all_data, cells.highlight = list(switch_lin_dabtram, switch_lin_dabtramtodabtram), cols.highlight = c('blue', 'red'))
+<!-- DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')) -->
+<!-- DimPlot(all_data, cells.highlight = list(switch_lin_dabtram), cols.highlight = c('red')) -->
+<!-- DimPlot(all_data, cells.highlight = list(switch_lin_dabtram, switch_lin_dabtramtodabtram), cols.highlight = c('blue', 'red')) -->
 
-switch_lin <- names(dabtram$orig.ident[dabtram$Lineage == "Lin171516"])
-DimPlot(dabtram)
-DimPlot(dabtram, cells.highlight = list(switch_lin))
+<!-- switch_lin <- names(dabtram$orig.ident[dabtram$Lineage == "Lin171516"]) -->
+<!-- DimPlot(dabtram) -->
+<!-- DimPlot(dabtram, cells.highlight = list(switch_lin)) -->
 
-```
+<!-- ``` -->
 
 #from dabtram_both_times, force 2 clusters in umap, plot vs ngfr egfr, find markers of these 2
 ```{r}
@@ -295,14 +295,19 @@ dev.off()
 rm(dabtram, cis, cocl2) # Remove old seurat objects that are no longer needed
 Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
 dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the dabtram object
-
+dabtram <- NormalizeData(dabtram)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
 ElbowPlot(dabtram) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-dabtram <- FindNeighbors(dabtram, dims = 1:10)
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
 dabtram <- FindClusters(dabtram, resolution = 0.5)
-dabtram <- RunUMAP(dabtram, dims = 1:10)
-DimPlot(dabtram, reduction = 'umap')
+dabtram <- RunUMAP(dabtram, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_umap.pdf')
+DimPlot(dabtram, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 dabtram_lin_clust_list <- list()
@@ -355,22 +360,27 @@ for (i in 1:length(means_dabtram_sim)){
 }
 
 # Save outputs
-save(dabtram_lin_clust_list, dabtram_lin_clust_rand_list,z_mean_dabtram,pval_mean_dabtram, z_wmean_dabtram, pval_wmean_dabtram, ttest_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_sim_results.RData')
+save(dabtram, dabtram_lin_clust_list, dabtram_lin_clust_rand_list,z_mean_dabtram,pval_mean_dabtram, z_wmean_dabtram, pval_wmean_dabtram, ttest_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_sim_results.RData')
 rm(dabtram)
 ```
 
 # Look at whether lineages cluster together in each individual condition -  DabTramtoDabTram
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtodabtram
-dabtramtodabtram <- subset(all_data, idents = 'dabtramtodabtram') # Subset down to the dabtramtodabtram object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtramtodabtram <- subset(all_data, idents = 'dabtramtodabtram') # Subset down to the dabtram object
+dabtramtodabtram <- NormalizeData(dabtramtodabtram)
+dabtramtodabtram <- FindVariableFeatures(dabtramtodabtram, selection.method = 'vst', nFeatures = 20000)
+dabtramtodabtram <- ScaleData(dabtramtodabtram)
+dabtramtodabtram <- RunPCA(dabtramtodabtram)
 ElbowPlot(dabtramtodabtram) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-dabtramtodabtram <- FindNeighbors(dabtramtodabtram, dims = 1:10)
+dabtramtodabtram <- FindNeighbors(dabtramtodabtram, dims = 1:15)
 dabtramtodabtram <- FindClusters(dabtramtodabtram, resolution = 0.5)
-dabtramtodabtram <- RunUMAP(dabtramtodabtram, dims = 1:10)
-DimPlot(dabtramtodabtram, reduction = 'umap')
+dabtramtodabtram <- RunUMAP(dabtramtodabtram, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_umap.pdf')
+DimPlot(dabtramtodabtram, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 dabtramtodabtram_lin_clust_list <- list()
@@ -424,22 +434,27 @@ for (i in 1:length(means_dabtramtodabtram_sim)){
 }
 
 # Save outputs
-save(dabtramtodabtram_lin_clust_list, dabtramtodabtram_lin_clust_rand_list,z_mean_dabtramtodabtram,pval_mean_dabtramtodabtram, z_wmean_dabtramtodabtram, pval_wmean_dabtramtodabtram,  ttest_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_sim_results.RData')
+save(dabtramtodabtram, dabtramtodabtram_lin_clust_list, dabtramtodabtram_lin_clust_rand_list,z_mean_dabtramtodabtram,pval_mean_dabtramtodabtram, z_wmean_dabtramtodabtram, pval_wmean_dabtramtodabtram,  ttest_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_sim_results.RData')
 rm(dabtramtodabtram)
 ```
 
 # Look at whether lineages cluster together in each individual condition -  DabTramtoCis
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtocis
-dabtramtocis <- subset(all_data, idents = 'dabtramtocis') # Subset down to the dabtramtocis object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtramtocis <- subset(all_data, idents = 'dabtramtocis') # Subset down to the dabtram object
+dabtramtocis <- NormalizeData(dabtramtocis)
+dabtramtocis <- FindVariableFeatures(dabtramtocis, selection.method = 'vst', nFeatures = 20000)
+dabtramtocis <- ScaleData(dabtramtocis)
+dabtramtocis <- RunPCA(dabtramtocis)
 ElbowPlot(dabtramtocis) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-dabtramtocis <- FindNeighbors(dabtramtocis, dims = 1:10)
+dabtramtocis <- FindNeighbors(dabtramtocis, dims = 1:15)
 dabtramtocis <- FindClusters(dabtramtocis, resolution = 0.5)
-dabtramtocis <- RunUMAP(dabtramtocis, dims = 1:10)
-DimPlot(dabtramtocis, reduction = 'umap')
+dabtramtocis <- RunUMAP(dabtramtocis, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_umap.pdf')
+DimPlot(dabtramtocis, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 dabtramtocis_lin_clust_list <- list()
@@ -493,22 +508,27 @@ for (i in 1:length(means_dabtramtocis_sim)){
 }
 
 # Save outputs
-save(dabtramtocis_lin_clust_list, dabtramtocis_lin_clust_rand_list,z_mean_dabtramtocis,pval_mean_dabtramtocis, z_wmean_dabtramtocis, pval_wmean_dabtramtocis,  ttest_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_sim_results.RData')
+save(dabtramtocis, dabtramtocis_lin_clust_list, dabtramtocis_lin_clust_rand_list,z_mean_dabtramtocis,pval_mean_dabtramtocis, z_wmean_dabtramtocis, pval_wmean_dabtramtocis,  ttest_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_sim_results.RData')
 rm(dabtramtocis)
 ```
 
 # Look at whether lineages cluster together in each individual condition -  DabTramtoCis
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtococl2
-dabtramtococl2 <- subset(all_data, idents = 'dabtramtococl2') # Subset down to the dabtramtococl2 object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtramtococl2 <- subset(all_data, idents = 'dabtramtococl2') # Subset down to the dabtram object
+dabtramtococl2 <- NormalizeData(dabtramtococl2)
+dabtramtococl2 <- FindVariableFeatures(dabtramtococl2, selection.method = 'vst', nFeatures = 20000)
+dabtramtococl2 <- ScaleData(dabtramtococl2)
+dabtramtococl2 <- RunPCA(dabtramtococl2)
 ElbowPlot(dabtramtococl2) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-dabtramtococl2 <- FindNeighbors(dabtramtococl2, dims = 1:10)
+dabtramtococl2 <- FindNeighbors(dabtramtococl2, dims = 1:15)
 dabtramtococl2 <- FindClusters(dabtramtococl2, resolution = 0.5)
-dabtramtococl2 <- RunUMAP(dabtramtococl2, dims = 1:10)
-DimPlot(dabtramtococl2, reduction = 'umap')
+dabtramtococl2 <- RunUMAP(dabtramtococl2, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_umap.pdf')
+DimPlot(dabtramtococl2, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 dabtramtococl2_lin_clust_list <- list()
@@ -562,22 +582,27 @@ for (i in 1:length(means_dabtramtococl2_sim)){
 }
 
 # Save outputs
-save(dabtramtococl2_lin_clust_list, dabtramtococl2_lin_clust_rand_list,z_mean_dabtramtococl2,pval_mean_dabtramtococl2, z_wmean_dabtramtococl2, pval_wmean_dabtramtococl2,  ttest_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_sim_results.RData')
+save(dabtramtococl2, dabtramtococl2_lin_clust_list, dabtramtococl2_lin_clust_rand_list,z_mean_dabtramtococl2,pval_mean_dabtramtococl2, z_wmean_dabtramtococl2, pval_wmean_dabtramtococl2,  ttest_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_sim_results.RData')
 rm(dabtramtococl2)
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with DabTram
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
 cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cocl2 object
-
+cocl2 <- NormalizeData(cocl2)
+cocl2 <- FindVariableFeatures(cocl2, selection.method = 'vst', nFeatures = 20000)
+cocl2 <- ScaleData(cocl2)
+cocl2 <- RunPCA(cocl2)
 ElbowPlot(cocl2) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cocl2 <- FindNeighbors(cocl2, dims = 1:10)
+cocl2 <- FindNeighbors(cocl2, dims = 1:15)
 cocl2 <- FindClusters(cocl2, resolution = 0.5)
-cocl2 <- RunUMAP(cocl2, dims = 1:10)
-DimPlot(cocl2, reduction = 'umap')
+cocl2 <- RunUMAP(cocl2, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_umap.pdf')
+DimPlot(cocl2, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cocl2_lin_clust_list <- list()
@@ -630,22 +655,27 @@ for (i in 1:length(means_cocl2_sim)){
 }
 
 # Save outputs
-save(cocl2_lin_clust_list, cocl2_lin_clust_rand_list,z_mean_cocl2,pval_mean_cocl2, z_wmean_cocl2, pval_wmean_cocl2,  ttest_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_sim_results.RData')
+save(cocl2, cocl2_lin_clust_list, cocl2_lin_clust_rand_list,z_mean_cocl2,pval_mean_cocl2, z_wmean_cocl2, pval_wmean_cocl2,  ttest_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_sim_results.RData')
 rm(cocl2)
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with CoCl2toCoCl2
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2tococl2
-cocl2tococl2 <- subset(all_data, idents = 'cocl2tococl2') # Subset down to the cocl2tococl2 object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cocl2tococl2 <- subset(all_data, idents = 'cocl2tococl2') # Subset down to the cocl2 object
+cocl2tococl2 <- NormalizeData(cocl2tococl2)
+cocl2tococl2 <- FindVariableFeatures(cocl2tococl2, selection.method = 'vst', nFeatures = 20000)
+cocl2tococl2 <- ScaleData(cocl2tococl2)
+cocl2tococl2 <- RunPCA(cocl2tococl2)
 ElbowPlot(cocl2tococl2) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cocl2tococl2 <- FindNeighbors(cocl2tococl2, dims = 1:10)
+cocl2tococl2 <- FindNeighbors(cocl2tococl2, dims = 1:15)
 cocl2tococl2 <- FindClusters(cocl2tococl2, resolution = 0.5)
-cocl2tococl2 <- RunUMAP(cocl2tococl2, dims = 1:10)
-DimPlot(cocl2tococl2, reduction = 'umap')
+cocl2tococl2 <- RunUMAP(cocl2tococl2, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_umap.pdf')
+DimPlot(cocl2tococl2, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cocl2tococl2_lin_clust_list <- list()
@@ -698,22 +728,27 @@ for (i in 1:length(means_cocl2tococl2_sim)){
 }
 
 # Save outputs
-save(cocl2tococl2_lin_clust_list, cocl2tococl2_lin_clust_rand_list,z_mean_cocl2tococl2,pval_mean_cocl2tococl2, z_wmean_cocl2tococl2, pval_wmean_cocl2tococl2,  ttest_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_sim_results.RData')
+save(cocl2tococl2, cocl2tococl2_lin_clust_list, cocl2tococl2_lin_clust_rand_list,z_mean_cocl2tococl2,pval_mean_cocl2tococl2, z_wmean_cocl2tococl2, pval_wmean_cocl2tococl2,  ttest_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_sim_results.RData')
 rm(cocl2tococl2)
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with CoCl2toCis
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2tocis
-cocl2tocis <- subset(all_data, idents = 'cocl2tocis') # Subset down to the cocl2tocis object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cocl2tocis <- subset(all_data, idents = 'cocl2tocis') # Subset down to the cocl2 object
+cocl2tocis <- NormalizeData(cocl2tocis)
+cocl2tocis <- FindVariableFeatures(cocl2tocis, selection.method = 'vst', nFeatures = 20000)
+cocl2tocis <- ScaleData(cocl2tocis)
+cocl2tocis <- RunPCA(cocl2tocis)
 ElbowPlot(cocl2tocis) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cocl2tocis <- FindNeighbors(cocl2tocis, dims = 1:10)
+cocl2tocis <- FindNeighbors(cocl2tocis, dims = 1:15)
 cocl2tocis <- FindClusters(cocl2tocis, resolution = 0.5)
-cocl2tocis <- RunUMAP(cocl2tocis, dims = 1:10)
-DimPlot(cocl2tocis, reduction = 'umap')
+cocl2tocis <- RunUMAP(cocl2tocis, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_umap.pdf')
+DimPlot(cocl2tocis, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cocl2tocis_lin_clust_list <- list()
@@ -766,22 +801,27 @@ for (i in 1:length(means_cocl2tocis_sim)){
 }
 
 # Save outputs
-save(cocl2tocis_lin_clust_list, cocl2tocis_lin_clust_rand_list,z_mean_cocl2tocis,pval_mean_cocl2tocis, z_wmean_cocl2tocis, pval_wmean_cocl2tocis,  ttest_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_sim_results.RData')
+save(cocl2tocis, cocl2tocis_lin_clust_list, cocl2tocis_lin_clust_rand_list,z_mean_cocl2tocis,pval_mean_cocl2tocis, z_wmean_cocl2tocis, pval_wmean_cocl2tocis,  ttest_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_sim_results.RData')
 rm(cocl2tocis)
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with CoCl2toDabTram
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2todabtram
-cocl2todabtram <- subset(all_data, idents = 'cocl2todabtram') # Subset down to the cocl2todabtram object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cocl2todabtram <- subset(all_data, idents = 'cocl2todabtram') # Subset down to the cocl2 object
+cocl2todabtram <- NormalizeData(cocl2todabtram)
+cocl2todabtram <- FindVariableFeatures(cocl2todabtram, selection.method = 'vst', nFeatures = 20000)
+cocl2todabtram <- ScaleData(cocl2todabtram)
+cocl2todabtram <- RunPCA(cocl2todabtram)
 ElbowPlot(cocl2todabtram) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cocl2todabtram <- FindNeighbors(cocl2todabtram, dims = 1:10)
+cocl2todabtram <- FindNeighbors(cocl2todabtram, dims = 1:15)
 cocl2todabtram <- FindClusters(cocl2todabtram, resolution = 0.5)
-cocl2todabtram <- RunUMAP(cocl2todabtram, dims = 1:10)
-DimPlot(cocl2todabtram, reduction = 'umap')
+cocl2todabtram <- RunUMAP(cocl2todabtram, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_umap.pdf')
+DimPlot(cocl2todabtram, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cocl2todabtram_lin_clust_list <- list()
@@ -834,22 +874,27 @@ for (i in 1:length(means_cocl2todabtram_sim)){
 }
 
 # Save outputs
-save(cocl2todabtram_lin_clust_list, cocl2todabtram_lin_clust_rand_list,z_mean_cocl2todabtram,pval_mean_cocl2todabtram, z_wmean_cocl2todabtram, pval_wmean_cocl2todabtram,  ttest_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_sim_results.RData')
+save(cocl2todabtram, cocl2todabtram_lin_clust_list, cocl2todabtram_lin_clust_rand_list,z_mean_cocl2todabtram,pval_mean_cocl2todabtram, z_wmean_cocl2todabtram, pval_wmean_cocl2todabtram,  ttest_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_sim_results.RData')
 rm(cocl2todabtram)
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with Cis
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cis
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
 cis <- subset(all_data, idents = 'cis') # Subset down to the cis object
-
+cis <- NormalizeData(cis)
+cis <- FindVariableFeatures(cis, selection.method = 'vst', nFeatures = 20000)
+cis <- ScaleData(cis)
+cis <- RunPCA(cis)
 ElbowPlot(cis) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cis <- FindNeighbors(cis, dims = 1:10)
+cis <- FindNeighbors(cis, dims = 1:15)
 cis <- FindClusters(cis, resolution = 0.5)
-cis <- RunUMAP(cis, dims = 1:10)
-DimPlot(cis, reduction = 'umap')
+cis <- RunUMAP(cis, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_umap.pdf')
+DimPlot(cis, reduction = 'umap', pt.size = 1)
+dev.off()
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cis_lin_clust_list <- list()
@@ -902,23 +947,29 @@ for (i in 1:length(means_cis_sim)){
 }
 
 # Save outputs
-save(cis_lin_clust_list, cis_lin_clust_rand_list,z_mean_cis,pval_mean_cis, z_wmean_cis, pval_wmean_cis,  ttest_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_sim_results.RData')
+save(cis, cis_lin_clust_list, cis_lin_clust_rand_list,z_mean_cis,pval_mean_cis, z_wmean_cis, pval_wmean_cis,  ttest_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_sim_results.RData')
 rm(cis)
 ```
 
 
 # Look at whether lineages cluster together in each individual condition - Starting with cistocis
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistocis
-cistocis <- subset(all_data, idents = 'cistocis') # Subset down to the cistocis object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cistocis <- subset(all_data, idents = 'cistocis') # Subset down to the cis object
+cistocis <- NormalizeData(cistocis)
+cistocis <- FindVariableFeatures(cistocis, selection.method = 'vst', nFeatures = 20000)
+cistocis <- ScaleData(cistocis)
+cistocis <- RunPCA(cistocis)
 ElbowPlot(cistocis) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cistocis <- FindNeighbors(cistocis, dims = 1:10)
+cistocis <- FindNeighbors(cistocis, dims = 1:15)
 cistocis <- FindClusters(cistocis, resolution = 0.5)
-cistocis <- RunUMAP(cistocis, dims = 1:10)
-DimPlot(cistocis, reduction = 'umap')
+cistocis <- RunUMAP(cistocis, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_umap.pdf')
+DimPlot(cistocis, reduction = 'umap', pt.size = 1)
+dev.off()
+
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cistocis_lin_clust_list <- list()
@@ -971,23 +1022,29 @@ for (i in 1:length(means_cistocis_sim)){
 }
 
 # Save outputs
-save(cistocis_lin_clust_list, cistocis_lin_clust_rand_list,z_mean_cistocis,pval_mean_cistocis, z_wmean_cistocis, pval_wmean_cistocis,  ttest_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_sim_results.RData')
+save(cistocis, cistocis_lin_clust_list, cistocis_lin_clust_rand_list,z_mean_cistocis,pval_mean_cistocis, z_wmean_cistocis, pval_wmean_cistocis,  ttest_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_sim_results.RData')
 rm(cistocis)
 ```
 
 
 # Look at whether lineages cluster together in each individual condition - Starting with cistodabtram
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistodabtram
-cistodabtram <- subset(all_data, idents = 'cistodabtram') # Subset down to the cistodabtram object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cistodabtram <- subset(all_data, idents = 'cistodabtram') # Subset down to the cis object
+cistodabtram <- NormalizeData(cistodabtram)
+cistodabtram <- FindVariableFeatures(cistodabtram, selection.method = 'vst', nFeatures = 20000)
+cistodabtram <- ScaleData(cistodabtram)
+cistodabtram <- RunPCA(cistodabtram)
 ElbowPlot(cistodabtram) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cistodabtram <- FindNeighbors(cistodabtram, dims = 1:10)
+cistodabtram <- FindNeighbors(cistodabtram, dims = 1:15)
 cistodabtram <- FindClusters(cistodabtram, resolution = 0.5)
-cistodabtram <- RunUMAP(cistodabtram, dims = 1:10)
-DimPlot(cistodabtram, reduction = 'umap')
+cistodabtram <- RunUMAP(cistodabtram, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_umap.pdf')
+DimPlot(cistodabtram, reduction = 'umap', pt.size = 1)
+dev.off()
+
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cistodabtram_lin_clust_list <- list()
@@ -1040,22 +1097,28 @@ for (i in 1:length(means_cistodabtram_sim)){
 }
 
 # Save outputs
-save(cistodabtram_lin_clust_list, cistodabtram_lin_clust_rand_list,z_mean_cistodabtram,pval_mean_cistodabtram, z_wmean_cistodabtram, pval_wmean_cistodabtram,  ttest_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_sim_results.RData')
+save(cistodabtram, cistodabtram_lin_clust_list, cistodabtram_lin_clust_rand_list,z_mean_cistodabtram,pval_mean_cistodabtram, z_wmean_cistodabtram, pval_wmean_cistodabtram,  ttest_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_sim_results.RData')
 rm(cistodabtram)
 ```
 
 # Look at whether lineages cluster together in each individual condition - Starting with cistococl2
 ```{r}
-Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistococl2
-cistococl2 <- subset(all_data, idents = 'cistococl2') # Subset down to the cistococl2 object
-
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cistococl2 <- subset(all_data, idents = 'cistococl2') # Subset down to the cis object
+cistococl2 <- NormalizeData(cistococl2)
+cistococl2 <- FindVariableFeatures(cistococl2, selection.method = 'vst', nFeatures = 20000)
+cistococl2 <- ScaleData(cistococl2)
+cistococl2 <- RunPCA(cistococl2)
 ElbowPlot(cistococl2) # The standard deviation seems to really level off at 10
 
 # Recluster with the appropriate number of dimensions
-cistococl2 <- FindNeighbors(cistococl2, dims = 1:10)
+cistococl2 <- FindNeighbors(cistococl2, dims = 1:15)
 cistococl2 <- FindClusters(cistococl2, resolution = 0.5)
-cistococl2 <- RunUMAP(cistococl2, dims = 1:10)
-DimPlot(cistococl2, reduction = 'umap')
+cistococl2 <- RunUMAP(cistococl2, dims = 1:15)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_umap.pdf')
+DimPlot(cistococl2, reduction = 'umap', pt.size = 1)
+dev.off()
+
 
 # Build list of lineages with at least 5 cells in dab tram and check what seurat cluster the cells are in 
 cistococl2_lin_clust_list <- list()
@@ -1108,7 +1171,7 @@ for (i in 1:length(means_cistococl2_sim)){
 }
 
 # Save outputs
-save(cistococl2_lin_clust_list, cistococl2_lin_clust_rand_list,z_mean_cistococl2,pval_mean_cistococl2, z_wmean_cistococl2, pval_wmean_cistococl2,  ttest_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_sim_results.RData')
+save(cistococl2, cistococl2_lin_clust_list, cistococl2_lin_clust_rand_list,z_mean_cistococl2,pval_mean_cistococl2, z_wmean_cistococl2, pval_wmean_cistococl2,  ttest_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_sim_results.RData')
 rm(cistococl2)
 ```
 
@@ -1161,7 +1224,7 @@ breaks <- seq(0, 1, 0.1)
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/proportion_clusters_heatmaps_rowclust.pdf', width = 16)
 dabtram_pcnts <- as.data.frame(sapply(dabtram_lin_clust_list, '[[', 3))
 cell_nums <- sapply(dabtram_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(dabtram_pcnts) <- c("0","1","2","3","4","5","6")
+rownames(dabtram_pcnts) <- c("0","1","2","3","4","5","6","7")
 colnames(dabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(dabtram_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram", breaks = breaks) # 
 p
@@ -1169,7 +1232,7 @@ p
 dabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtram_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(dabtram_lin_clust_rand_list))
-rownames(dabtram_pcnts_rand) <- c("0","1","2","3","4","5","6")
+rownames(dabtram_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
 colnames(dabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtram_pcnts_rand <- dabtram_pcnts_rand[,p$tree_col$order]
 dabtram_pcnts_rand <- dabtram_pcnts_rand[p$tree_row$order,]
@@ -1178,7 +1241,7 @@ pheatmap(dabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main = "DabTr
 # DabTram to DabTram
 dabtramtodabtram_pcnts <- as.data.frame(sapply(dabtramtodabtram_lin_clust_list, '[[', 3))
 cell_nums <- sapply(dabtramtodabtram_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(dabtramtodabtram_pcnts) <- c("0","1","2","3","4","5","6")
+rownames(dabtramtodabtram_pcnts) <- c("0","1","2","3","4","5","6","7","8","9")
 colnames(dabtramtodabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(dabtramtodabtram_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram to DabTram", breaks = breaks)
 p
@@ -1186,7 +1249,7 @@ p
 dabtramtodabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtodabtram_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(dabtramtodabtram_lin_clust_rand_list))
-rownames(dabtramtodabtram_pcnts_rand) <- c("0","1","2","3","4","5","6")
+rownames(dabtramtodabtram_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8","9")
 colnames(dabtramtodabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtramtodabtram_pcnts_rand <- dabtramtodabtram_pcnts_rand[,p$tree_col$order]
 dabtramtodabtram_pcnts_rand <- dabtramtodabtram_pcnts_rand[p$tree_row$order,]
@@ -1195,7 +1258,7 @@ pheatmap(dabtramtodabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main
 # DabTram to CoCl2
 dabtramtococl2_pcnts <- as.data.frame(sapply(dabtramtococl2_lin_clust_list, '[[', 3))
 cell_nums <- sapply(dabtramtococl2_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(dabtramtococl2_pcnts) <- c("0","1","2","3","4","5","6","7")
+rownames(dabtramtococl2_pcnts) <- c("0","1","2","3","4","5","6","7","8","9","10")
 colnames(dabtramtococl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(dabtramtococl2_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram to CoCl2", breaks = breaks)
 p
@@ -1203,7 +1266,7 @@ p
 dabtramtococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtococl2_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(dabtramtococl2_lin_clust_rand_list))
-rownames(dabtramtococl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
+rownames(dabtramtococl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8","9","10")
 colnames(dabtramtococl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtramtococl2_pcnts_rand <- dabtramtococl2_pcnts_rand[,p$tree_col$order]
 dabtramtococl2_pcnts_rand <- dabtramtococl2_pcnts_rand[p$tree_row$order,]
@@ -1212,7 +1275,7 @@ pheatmap(dabtramtococl2_pcnts_rand,cluster_rows = F, color = inferno(11), main =
 # DabTram to Cis
 dabtramtocis_pcnts <- as.data.frame(sapply(dabtramtocis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(dabtramtocis_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(dabtramtocis_pcnts) <- c("0","1","2","3","4","5","6")
+rownames(dabtramtocis_pcnts) <- c("0","1","2","3","4","5","6","7","8")
 colnames(dabtramtocis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(dabtramtocis_pcnts,cluster_rows = T, color = inferno(11), main = "DabTram to Cis", breaks = breaks)
 p
@@ -1220,7 +1283,7 @@ p
 dabtramtocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(dabtramtocis_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(dabtramtocis_lin_clust_rand_list))
-rownames(dabtramtocis_pcnts_rand) <- c("0","1","2","3","4","5","6")
+rownames(dabtramtocis_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
 colnames(dabtramtocis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 dabtramtocis_pcnts_rand <- dabtramtocis_pcnts_rand[,p$tree_col$order]
 dabtramtocis_pcnts_rand <- dabtramtocis_pcnts_rand[p$tree_row$order,]
@@ -1229,7 +1292,7 @@ pheatmap(dabtramtocis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "
 # CoCl2 objects
 cocl2_pcnts <- as.data.frame(sapply(cocl2_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cocl2_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cocl2_pcnts) <- c("0","1","2","3","4","5","6","7","8")
+rownames(cocl2_pcnts) <- c("0","1","2","3","4","5","6","7","8","9","10")
 colnames(cocl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cocl2_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2", breaks = breaks)
 p
@@ -1237,7 +1300,7 @@ p
 cocl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cocl2_lin_clust_rand_list))
-rownames(cocl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
+rownames(cocl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8","9","10")
 colnames(cocl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2_pcnts_rand <- cocl2_pcnts_rand[,p$tree_col$order]
 cocl2_pcnts_rand <- cocl2_pcnts_rand[p$tree_row$order,]
@@ -1246,7 +1309,7 @@ pheatmap(cocl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "CoCl2 R
 # CoCl2 to DabTram
 cocl2todabtram_pcnts <- as.data.frame(sapply(cocl2todabtram_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cocl2todabtram_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cocl2todabtram_pcnts) <- c("0","1","2","3","4","5","6")
+rownames(cocl2todabtram_pcnts) <- c("0","1","2","3","4","5","6","7","8","9")
 colnames(cocl2todabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cocl2todabtram_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2 to DabTram", breaks = breaks)
 p
@@ -1254,7 +1317,7 @@ p
 cocl2todabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2todabtram_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cocl2todabtram_lin_clust_rand_list))
-rownames(cocl2todabtram_pcnts_rand) <- c("0","1","2","3","4","5","6")
+rownames(cocl2todabtram_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8","9")
 colnames(cocl2todabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2todabtram_pcnts_rand <- cocl2todabtram_pcnts_rand[,p$tree_col$order]
 cocl2todabtram_pcnts_rand <- cocl2todabtram_pcnts_rand[p$tree_row$order,]
@@ -1263,7 +1326,7 @@ pheatmap(cocl2todabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main =
 # CoCl2 to CoCl2
 cocl2tococl2_pcnts <- as.data.frame(sapply(cocl2tococl2_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cocl2tococl2_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cocl2tococl2_pcnts) <- c("0","1","2","3","4","5")
+rownames(cocl2tococl2_pcnts) <- c("0","1","2","3","4","5","6","7")
 colnames(cocl2tococl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cocl2tococl2_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2 to CoCl2", breaks = breaks)
 p
@@ -1271,7 +1334,7 @@ p
 cocl2tococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2tococl2_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cocl2tococl2_lin_clust_rand_list))
-rownames(cocl2tococl2_pcnts_rand) <- c("0","1","2","3","4","5")
+rownames(cocl2tococl2_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
 colnames(cocl2tococl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2tococl2_pcnts_rand <- cocl2tococl2_pcnts_rand[,p$tree_col$order]
 cocl2tococl2_pcnts_rand <- cocl2tococl2_pcnts_rand[p$tree_row$order,]
@@ -1280,7 +1343,7 @@ pheatmap(cocl2tococl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "
 # CoCl2 to Cis
 cocl2tocis_pcnts <- as.data.frame(sapply(cocl2tocis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cocl2tocis_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cocl2tocis_pcnts) <- c("0","1","2","3","4","5")
+rownames(cocl2tocis_pcnts) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cocl2tocis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cocl2tocis_pcnts,cluster_rows = T, color = inferno(11), main = "CoCl2 to Cis", breaks = breaks)
 p
@@ -1288,7 +1351,7 @@ p
 cocl2tocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cocl2tocis_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cocl2tocis_lin_clust_rand_list))
-rownames(cocl2tocis_pcnts_rand) <- c("0","1","2","3","4","5")
+rownames(cocl2tocis_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cocl2tocis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cocl2tocis_pcnts_rand <- cocl2tocis_pcnts_rand[,p$tree_col$order]
 cocl2tocis_pcnts_rand <- cocl2tocis_pcnts_rand[p$tree_row$order,]
@@ -1297,7 +1360,7 @@ pheatmap(cocl2tocis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Co
 # Cis 
 cis_pcnts <- as.data.frame(sapply(cis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cis_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cis_pcnts) <- c("0","1","2","3","4","5","6","7")
+rownames(cis_pcnts) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cis_pcnts,cluster_rows = T, color = inferno(10), main = "Cis", breaks = breaks)
 p
@@ -1305,7 +1368,7 @@ p
 cis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cis_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cis_lin_clust_rand_list))
-rownames(cis_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
+rownames(cis_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cis_pcnts_rand <- cis_pcnts_rand[,p$tree_col$order]
 cis_pcnts_rand <- cis_pcnts_rand[p$tree_row$order,]
@@ -1314,7 +1377,7 @@ pheatmap(cis_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Cis Rand"
 # Cis to DabTram
 cistodabtram_pcnts <- as.data.frame(sapply(cistodabtram_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cistodabtram_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cistodabtram_pcnts) <- c("0","1","2","3","4","5","6","7")
+rownames(cistodabtram_pcnts) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cistodabtram_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cistodabtram_pcnts,cluster_rows = T, color = inferno(11), main = "Cis to DabTram", breaks = breaks)
 p
@@ -1322,7 +1385,7 @@ p
 cistodabtram_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistodabtram_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cistodabtram_lin_clust_rand_list))
-rownames(cistodabtram_pcnts_rand) <- c("0","1","2","3","4","5","6","7")
+rownames(cistodabtram_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
 colnames(cistodabtram_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cistodabtram_pcnts_rand <- cistodabtram_pcnts_rand[,p$tree_col$order]
 cistodabtram_pcnts_rand <- cistodabtram_pcnts_rand[p$tree_row$order,]
@@ -1331,7 +1394,7 @@ pheatmap(cistodabtram_pcnts_rand,cluster_rows = F, color = inferno(11), main = "
 # Cis to CoCl2
 cistococl2_pcnts <- as.data.frame(sapply(cistococl2_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cistococl2_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cistococl2_pcnts) <- c("0","1","2","3","4","5","6")
+rownames(cistococl2_pcnts) <- c("0","1","2","3","4","5")
 colnames(cistococl2_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cistococl2_pcnts,cluster_rows = T, color = inferno(11), main = "Cis to CoCl2", breaks = breaks)
 p
@@ -1339,7 +1402,7 @@ p
 cistococl2_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistococl2_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cistococl2_lin_clust_rand_list))
-rownames(cistococl2_pcnts_rand) <- c("0","1","2","3","4","5","6")
+rownames(cistococl2_pcnts_rand) <- c("0","1","2","3","4","5")
 colnames(cistococl2_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cistococl2_pcnts_rand <- cistococl2_pcnts_rand[,p$tree_col$order]
 cistococl2_pcnts_rand <- cistococl2_pcnts_rand[p$tree_row$order,]
@@ -1348,7 +1411,7 @@ pheatmap(cistococl2_pcnts_rand,cluster_rows = F, color = inferno(11), main = "Ci
 # Cis to Cis
 cistocis_pcnts <- as.data.frame(sapply(cistocis_lin_clust_list, '[[', 3))
 cell_nums <- sapply(cistocis_lin_clust_list, function(x) sum(x$Num_cells))
-rownames(cistocis_pcnts) <- c("0","1","2","3","4","5","6","7","8")
+rownames(cistocis_pcnts) <- c("0","1","2","3","4","5","6","7","8","9","10")
 colnames(cistocis_pcnts) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 p <- pheatmap(cistocis_pcnts,cluster_rows = T, color = inferno(11), main = "Cis to Cis", breaks = breaks)
 p
@@ -1356,7 +1419,7 @@ p
 cistocis_pcnts_rand <- as.data.frame(Reduce(`+`, lapply(cistocis_lin_clust_rand_list, function(x) {
   sapply(x, function(y) y$Pcnt_cells)
 }))/ length(cistocis_lin_clust_rand_list))
-rownames(cistocis_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8")
+rownames(cistocis_pcnts_rand) <- c("0","1","2","3","4","5","6","7","8","9","10")
 colnames(cistocis_pcnts_rand) <- paste(names(cell_nums), rep('-',length(cell_nums)), cell_nums, rep('cells', length(cell_nums)))
 cistocis_pcnts_rand <- cistocis_pcnts_rand[,p$tree_col$order]
 cistocis_pcnts_rand <- cistocis_pcnts_rand[p$tree_row$order,]
@@ -1501,7 +1564,7 @@ df <- data.frame(weighted_mean = sapply(1:length(dabtram_lin_clust_rand_list), f
   weighted.mean(unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(dabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#623594', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#623594', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # DabTram to DabTram
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1511,7 +1574,7 @@ df <- data.frame(weighted_mean = sapply(1:length(dabtramtodabtram_lin_clust_rand
   weighted.mean(unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(dabtramtodabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#561e59', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#561e59', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to DabTram') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # DabTram to CoCl2
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1521,7 +1584,7 @@ df <- data.frame(weighted_mean = sapply(1:length(dabtramtococl2_lin_clust_rand_l
   weighted.mean(unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(dabtramtococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#A2248E', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#A2248E', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to CoCl2') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # DabTram to Cis
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1531,7 +1594,7 @@ df <- data.frame(weighted_mean = sapply(1:length(dabtramtocis_lin_clust_rand_lis
   weighted.mean(unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(dabtramtocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#9D85BE', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#9D85BE', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'DabTram to Cis') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # CoCl2
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1541,7 +1604,7 @@ df <- data.frame(weighted_mean = sapply(1:length(cocl2_lin_clust_rand_list), fun
   weighted.mean(unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cocl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#0F8241', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#0F8241', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # CoCl2 to DabTram
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1551,7 +1614,7 @@ df <- data.frame(weighted_mean = sapply(1:length(cocl2todabtram_lin_clust_rand_l
   weighted.mean(unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cocl2todabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#10413B', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#10413B', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to DabTram') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # CoCl2 to CoCl2
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1561,7 +1624,7 @@ df <- data.frame(weighted_mean = sapply(1:length(cocl2tococl2_lin_clust_rand_lis
   weighted.mean(unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cocl2tococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#6ABD45', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#6ABD45', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to CoCl2') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # CoCl2 to Cis
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1571,7 +1634,7 @@ df <- data.frame(weighted_mean = sapply(1:length(cocl2tocis_lin_clust_rand_list)
   weighted.mean(unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cocl2tocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#6DC49C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#6DC49C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'CoCl2 to Cis') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # Cis
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1591,7 +1654,7 @@ df <- data.frame(weighted_mean = sapply(1:length(cistodabtram_lin_clust_rand_lis
   weighted.mean(unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cistodabtram_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#A23622', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to DabTram') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#A23622', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to DabTram') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # Cis to CoCl2
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1601,7 +1664,7 @@ df <- data.frame(weighted_mean = sapply(1:length(cistococl2_lin_clust_rand_list)
   weighted.mean(unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cistococl2_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#C96D29', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to CoCl2') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#C96D29', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to CoCl2') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 
 # Cis to Cis
 # Find the weighted mean of the maximum percentage of cells in a single cluster per lineage in each simulation
@@ -1611,111 +1674,13 @@ df <- data.frame(weighted_mean = sapply(1:length(cistocis_lin_clust_rand_list), 
   weighted.mean(unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) max(x$Pcnt_cells))),
                 unlist(lapply(cistocis_lin_clust_rand_list[[y]], function(x) sum(x$Num_cells))))))
 
-ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#FBD08C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to Cis') + xlim(0.15, 0.65) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
+ggplot(df, aes(x = weighted_mean))+geom_histogram(fill = '#FBD08C', color = 'black', binwidth = 0.005) + geom_vline(xintercept = wmean, linetype = 'dashed', color = 'red') + geom_text(aes(x = wmean+.03, label = round(wmean, 3), y = 100), color = 'red') + labs(y = 'Number of simulations', x = 'Weighted mean of percent of cells in dominant lineage', title = 'Cis to Cis') + xlim(0.1, 0.7) +  geom_text(aes(x = wmean+.03, label = 'Observed', y = 125), color = 'red') + theme_classic()
 dev.off()
 
 ```
 
 # Find singlet lineages in different conditions and check cluster/overlay on UMAP
 ```{r}
-
-Idents(all_data) <- all_data$OG_condition 
-
-# dabtram
-dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-dabtram <- FindNeighbors(dabtram, dims = 1:10)
-dabtram <- FindClusters(dabtram, resolution = 0.5)
-dabtram <- RunUMAP(dabtram, dims = 1:10)
-DimPlot(dabtram, reduction = 'umap')
-
-# dabtramtodabtram
-dabtramtodabtram <- subset(all_data, idents = 'dabtramtodabtram') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-dabtramtodabtram <- FindNeighbors(dabtramtodabtram, dims = 1:10)
-dabtramtodabtram <- FindClusters(dabtramtodabtram, resolution = 0.5)
-dabtramtodabtram <- RunUMAP(dabtramtodabtram, dims = 1:10)
-DimPlot(dabtramtodabtram, reduction = 'umap')
-
-# dabtramtococl2
-dabtramtococl2 <- subset(all_data, idents = 'dabtramtococl2') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-dabtramtococl2 <- FindNeighbors(dabtramtococl2, dims = 1:10)
-dabtramtococl2 <- FindClusters(dabtramtococl2, resolution = 0.5)
-dabtramtococl2 <- RunUMAP(dabtramtococl2, dims = 1:10)
-DimPlot(dabtramtococl2, reduction = 'umap')
-
-# dabtramtocis
-dabtramtocis <- subset(all_data, idents = 'dabtramtocis') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-dabtramtocis <- FindNeighbors(dabtramtocis, dims = 1:10)
-dabtramtocis <- FindClusters(dabtramtocis, resolution = 0.5)
-dabtramtocis <- RunUMAP(dabtramtocis, dims = 1:10)
-DimPlot(dabtramtocis, reduction = 'umap')
-
-# cocl2
-cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cocl2 <- FindNeighbors(cocl2, dims = 1:10)
-cocl2 <- FindClusters(cocl2, resolution = 0.5)
-cocl2 <- RunUMAP(cocl2, dims = 1:10)
-DimPlot(cocl2, reduction = 'umap')
-
-# cocl2todabtram
-cocl2todabtram <- subset(all_data, idents = 'cocl2todabtram') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cocl2todabtram <- FindNeighbors(cocl2todabtram, dims = 1:10)
-cocl2todabtram <- FindClusters(cocl2todabtram, resolution = 0.5)
-cocl2todabtram <- RunUMAP(cocl2todabtram, dims = 1:10)
-DimPlot(cocl2todabtram, reduction = 'umap')
-
-# cocl2tococl2
-cocl2tococl2 <- subset(all_data, idents = 'cocl2tococl2') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cocl2tococl2 <- FindNeighbors(cocl2tococl2, dims = 1:10)
-cocl2tococl2 <- FindClusters(cocl2tococl2, resolution = 0.5)
-cocl2tococl2 <- RunUMAP(cocl2tococl2, dims = 1:10)
-DimPlot(cocl2tococl2, reduction = 'umap')
-
-# cocl2tocis
-cocl2tocis <- subset(all_data, idents = 'cocl2tocis') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cocl2tocis <- FindNeighbors(cocl2tocis, dims = 1:10)
-cocl2tocis <- FindClusters(cocl2tocis, resolution = 0.5)
-cocl2tocis <- RunUMAP(cocl2tocis, dims = 1:10)
-DimPlot(cocl2tocis, reduction = 'umap')
-
-# cis
-cis <- subset(all_data, idents = 'cis') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cis <- FindNeighbors(cis, dims = 1:10)
-cis <- FindClusters(cis, resolution = 0.5)
-cis <- RunUMAP(cis, dims = 1:10)
-DimPlot(cis, reduction = 'umap')
-
-# cistodabtram
-cistodabtram <- subset(all_data, idents = 'cistodabtram') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cistodabtram <- FindNeighbors(cistodabtram, dims = 1:10)
-cistodabtram <- FindClusters(cistodabtram, resolution = 0.5)
-cistodabtram <- RunUMAP(cistodabtram, dims = 1:10)
-DimPlot(cistodabtram, reduction = 'umap')
-
-# cistococl2
-cistococl2 <- subset(all_data, idents = 'cistococl2') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cistococl2 <- FindNeighbors(cistococl2, dims = 1:10)
-cistococl2 <- FindClusters(cistococl2, resolution = 0.5)
-cistococl2 <- RunUMAP(cistococl2, dims = 1:10)
-DimPlot(cistococl2, reduction = 'umap')
-
-# cistocis
-cistocis <- subset(all_data, idents = 'cistocis') # Subset down to the cistocis object
-# Recluster with the appropriate number of dimensions
-cistocis <- FindNeighbors(cistocis, dims = 1:10)
-cistocis <- FindClusters(cistocis, resolution = 0.5)
-cistocis <- RunUMAP(cistocis, dims = 1:10)
-DimPlot(cistocis, reduction = 'umap')
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/singlets_on_umap.pdf', width = 12)
 # dabtram
@@ -1858,7 +1823,7 @@ write.xlsx(cistocis_singlet_clusters, file = '2022_01_14_analysis_scripts/2022_0
 ```{r}
 save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/final_workspace.RData')
 
-load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/final_workspace.RData')
+#load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/final_workspace.RData')
 ```
 
 # Try to understand what the massive seurat cluster is
@@ -1911,39 +1876,4 @@ VlnPlot(cistocis, features = c('percent.rb'))
 VlnPlot(cistocis, features = c('MKI67'))
 dev.off()
 
-#pt <- table(cis$Phase, Idents(cis))
-#pt <- as.data.frame(pt)
-#pt$Var1 <- as.character(pt$Var1)
-
-#ggplot(pt, aes(x = Var2, y = Freq, fill = Var1)) +
-#  theme_bw(base_size = 15) +
-#  geom_col(position = "fill", width = 0.5) +
-#  xlab("Sample") +
-#  ylab("Proportion") +
-#  scale_fill_manual(values = brewer.pal(12, "Paired")) +
-#  theme(legend.title = element_blank())
-
 ```
-
-# Plot the individual UMAPs for each condition for supplemental figure
-```{r}
-
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/individual_UMAPs.pdf')
-DimPlot(dabtram, pt.size = 1)
-DimPlot(cocl2, pt.size = 1)
-DimPlot(cis, pt.size = 1)
-
-DimPlot(dabtramtodabtram, pt.size = 1)
-DimPlot(dabtramtococl2, pt.size = 1)
-DimPlot(dabtramtocis, pt.size = 1)
-
-DimPlot(cocl2todabtram, pt.size = 1)
-DimPlot(cocl2tococl2, pt.size = 1)
-DimPlot(cocl2tocis, pt.size = 1)
-
-DimPlot(cistodabtram, pt.size = 1)
-DimPlot(cistococl2, pt.size = 1)
-DimPlot(cistocis, pt.size = 1)
-dev.off()
-```
-
