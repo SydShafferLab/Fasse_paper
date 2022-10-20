@@ -1,0 +1,62 @@
+---
+title: "2022_10_19_Harmange_Analysis"
+output: html_document
+---
+
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(xlsx)
+```
+
+# Load data
+```{r}
+scdata <- readRDS('2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/10X1_Filterd_BatchCor_unnorm_sctrans.rds')
+```
+
+# Subset to have unsorted naive cells, normaalize
+```{r}
+Idents(scdata) <- scdata$well
+scdata <- subset(scdata, idents = c(3,4,7,8))
+scdata <- NormalizeData(scdata)
+scdata <- FindVariableFeatures(scdata, selection.method = 'vst', nFeatures = 20000)
+scdata <- ScaleData(scdata)
+scdata <- RunPCA(scdata)
+
+ElbowPlot(scdata)
+
+scdata <- FindNeighbors(scdata, dims = 1:15)
+scdata <- FindClusters(scdata, resolution = 0.5)
+scdata <- RunUMAP(scdata, dims = 1:15)
+
+DimPlot(scdata)
+```
+
+# Make necessary plots from Harmange Data
+```{r}
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/naive_plots.pdf')
+Idents(scdata) <- scdata$seurat_clusters
+DimPlot(scdata, pt.size = 2)
+Idents(scdata) <- scdata$rep
+DimPlot(scdata, pt.size = 2)
+FeaturePlot(scdata, feature = 'IL6ST', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'MITF', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'SOX10', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'EGFR', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'NGFR', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+dev.off()
+```
+
