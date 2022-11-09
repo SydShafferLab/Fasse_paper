@@ -5,8 +5,8 @@ output: html_notebook
 
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/ is additional path for outputs
 
@@ -51,6 +51,13 @@ heatmap(log(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]+1), scale = "
         ylab = paste0('n=', 0.25*(length(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0]))))
 dev.off()
 
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/firstsorted_full_greys.pdf', height = 10, width = 10)
+heatmap(log(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]+1), scale = "none", Colv = NA, Rowv = NA, col= brewer.pal(n = 9, name = 'Greys'),
+        ylab = paste0('n=', 0.25*(length(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0]))))
+dev.off()
+
+
 #same plot but just for the 1000 top entries in matrix (biggest in first drug state)
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/firstsorted_1000.pdf', height = 10, width = 10)
 heatmap(head(log(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]+1), 1000), scale = "none", Colv = NA, Rowv = NA, col = brewer.pal(n = 9, name = 'OrRd'),
@@ -74,6 +81,11 @@ dabtram_sorted[rownames(filtered_matrix), 'dabtramtococl2'] <- filtered_matrix$D
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/dabtramsorted_full.pdf', height = 10, width = 10)
 heatmap(log(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0,]+1), scale = "none", Colv = NA, Rowv = NA, col= brewer.pal(n = 9, name = 'OrRd'), 
+        ylab = paste0('n=', 0.25*(length(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0]))))
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/dabtramsorted_full_greys.pdf', height = 10, width = 10)
+heatmap(log(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0,]+1), scale = "none", Colv = NA, Rowv = NA, col= brewer.pal(n = 9, name = 'Greys'), 
         ylab = paste0('n=', 0.25*(length(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0]))))
 dev.off()
 
@@ -107,6 +119,11 @@ heatmap(log(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]+1), scale = "
         ylab = paste0('n=', 0.25*(length(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0]))))
 dev.off()
 
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cocl2sorted_full_greys.pdf', height = 10, width = 10)
+heatmap(log(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]+1), scale = "none", Colv = NA, Rowv = NA, col= brewer.pal(n = 9, name = 'Greys'), 
+        ylab = paste0('n=', 0.25*(length(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0]))))
+dev.off()
+
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cocl2sorted_1000.pdf', height = 10, width = 10)
 heatmap(head(log(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]+1), 1000), scale = "none", Colv = NA, Rowv = NA, col = brewer.pal(n = 9, name = 'OrRd'), 
         ylab = paste0('n=', 1000))
@@ -135,6 +152,11 @@ cis_sorted[rownames(filtered_matrix), 'cistodabtram'] <- filtered_matrix$CistoDa
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cissorted_full.pdf', height = 10, width = 10)
 heatmap(log(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0,]+1), scale = "none", Colv = NA, Rowv = NA, col= brewer.pal(n = 9, name = 'OrRd'), 
+        ylab = paste0('n=', 0.25*(length(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0]))))
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cissorted_full_greys.pdf', height = 10, width = 10)
+heatmap(log(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0,]+1), scale = "none", Colv = NA, Rowv = NA, col= brewer.pal(n = 9, name = 'Greys'), 
         ylab = paste0('n=', 0.25*(length(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0]))))
 dev.off()
 
