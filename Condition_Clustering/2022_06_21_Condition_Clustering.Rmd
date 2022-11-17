@@ -30,178 +30,6 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_time
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/first_timepoint_merged.RData')
 ```
 
-# This chunk works with different clusters in the all_data object but for actual plotting I will look at the second_timepoint object
-<!-- # Get 13 cluster UMAP to look at cluster assignment in large number of clusters -->
-<!-- ```{r} -->
-<!-- # Scale, run PCA and UMAP, save -->
-<!-- all_data_13cluster <- merge(dabtram, y = c(cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis), add.cell.ids = c("dabtram", "cocl2", "cis", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis"), project = "All_Data", merge.data = T) -->
-
-<!-- all_data_13cluster <- FindVariableFeatures(all_data_13cluster) %>% ScaleData() %>% RunPCA(verbose=FALSE) %>% RunUMAP(dims = 1:20, verbose = FALSE) %>% FindNeighbors(dims = 1:20, verbose = FALSE) %>%  FindClusters(resolution = 0.4) -->
-
-<!-- condition <- c() -->
-<!-- for (i in 1:length(all_data_13cluster@assays$RNA@counts@Dimnames[2][[1]])){ -->
-<!--   condition <- rbind(condition, strsplit(all_data_13cluster@assays$RNA@counts@Dimnames[2][[1]][[i]], '_')[[1]][1]) -->
-<!-- } -->
-<!-- all_data_13cluster$OG_condition <- condition -->
-
-<!-- #0.03 resolution results in 3 clusters -->
-<!-- #0.3 resolution results in 12 clusters -->
-<!-- save(all_data_13cluster, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/all_data_13cluster.RData') -->
-<!-- #rm(all_data) -->
-
-
-<!-- print(DimPlot(all_data_13cluster)) -->
-<!-- print(DimPlot(all_data_13cluster, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))) -->
-
-<!-- ``` -->
-
-<!-- # in 13 condition cluster umap -->
-<!-- # for each cluster, make dataframe of which OG_condition is assigned to that cell, plot pie chart of cluster condition assignments -->
-<!-- ```{r} -->
-
-<!-- cells_per_cluster <- data.frame (Cluster = as.numeric(all_data_13cluster$seurat_clusters), Condition = all_data_13cluster$OG_condition) -->
-<!-- cells_per_cluster_list <- list() -->
-
-<!-- pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/original_condition_per_cluster_13clusters.pdf') -->
-<!-- print(DimPlot(all_data_13cluster)) -->
-<!-- print(DimPlot(all_data_13cluster, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))) -->
-
-<!-- for (i in 1:(max(cells_per_cluster$Cluster))){ -->
-<!--   currentcluster <- filter(cells_per_cluster, cells_per_cluster$Cluster == i) -->
-<!--   cells_per_cluster_list[[paste0('Cluster', i)]] <- data.frame(table(currentcluster$Condition)) -->
-
-<!--   print(ggplot(cells_per_cluster_list[[paste0('Cluster', i)]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(stat = 'identity') + coord_polar('y', start = 0) + theme_void() + scale_fill_manual(values = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')) + labs(title = paste('Original condition of cells in cluster', i-1))) -->
-<!-- } -->
-<!-- dev.off() -->
-
-<!-- ``` -->
-
-<!-- # This is the same chunk as above but it makes the plots as bar charts in individual PDFs for pulling into illustrator -->
-<!-- ```{r} -->
-
-<!-- for (i in 1:(max(cells_per_cluster$Cluster))){ -->
-<!--   pdf(paste0('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/original_condition_cluster', i-1, '.pdf')) -->
-<!--   currentcluster <- filter(cells_per_cluster, cells_per_cluster$Cluster == i) -->
-<!--   cells_per_cluster_list[[paste0('Cluster', i)]] <- data.frame(table(currentcluster$Condition)) -->
-<!--   print(ggplot(cells_per_cluster_list[[paste0('Cluster', i)]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(position = 'fill', stat = 'identity') + scale_fill_manual(values = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')) + labs(title = paste('Original condition of cells in cluster', i-1))) -->
-<!--   dev.off() -->
-<!-- } -->
-
-<!-- ``` -->
-
-<!-- # Get 7 cluster UMAP -->
-<!-- ```{r} -->
-<!-- # Scale, run PCA and UMAP, save -->
-<!-- all_data_7cluster <- merge(dabtram, y = c(cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis), add.cell.ids = c("dabtram", "cocl2", "cis", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis"), project = "All_Data", merge.data = T) -->
-
-<!-- all_data_7cluster <- FindVariableFeatures(all_data_7cluster) %>% ScaleData() %>% RunPCA(verbose=FALSE) %>% RunUMAP(dims = 1:20, verbose = FALSE) %>% FindNeighbors(dims = 1:20, verbose = FALSE) %>%  FindClusters(resolution = 0.1) -->
-
-<!-- condition <- c() -->
-<!-- for (i in 1:length(all_data_7cluster@assays$RNA@counts@Dimnames[2][[1]])){ -->
-<!--   condition <- rbind(condition, strsplit(all_data_7cluster@assays$RNA@counts@Dimnames[2][[1]][[i]], '_')[[1]][1]) -->
-<!-- } -->
-<!-- all_data_7cluster$OG_condition <- condition -->
-
-<!-- #0.03 resolution results in 3 clusters -->
-<!-- #0.1 resolution results in 7 clusters -->
-<!-- #0.3 resolution results in 12 clusters -->
-<!-- save(all_data_7cluster, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/all_data_7cluster.RData') -->
-<!-- #rm(all_data) -->
-
-
-<!-- print(DimPlot(all_data_7cluster)) -->
-<!-- print(DimPlot(all_data_7cluster, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))) -->
-
-<!-- rm(cis, cistocis, cistococl2, cistodabtram, cocl2, cocl2tocis, cocl2tococl2, cocl2todabtram, dabtram, dabtramtocis, dabtramtococl2, dabtramtodabtram) -->
-
-<!-- ``` -->
-
-<!-- # in 7 condition cluster umap -->
-<!-- # for each cluster, make dataframe of which OG_condition is assigned to that cell -->
-<!-- ```{r} -->
-
-<!-- cells_per_7cluster <- data.frame (Cluster = as.numeric(all_data_7cluster$seurat_clusters), Condition = all_data_7cluster$OG_condition) -->
-<!-- cells_per_7cluster_list <- list() -->
-
-<!-- pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/original_condition_per_cluster_7clusters.pdf') -->
-<!-- print(DimPlot(all_data_7cluster)) -->
-<!-- print(DimPlot(all_data_7cluster, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C'))) -->
-
-<!-- for (i in 1:(max(cells_per_7cluster$Cluster))){ -->
-<!--   currentcluster <- filter(cells_per_7cluster, cells_per_7cluster$Cluster == i) -->
-<!--   cells_per_7cluster_list[[paste0('Cluster', i)]] <- data.frame(table(currentcluster$Condition)) -->
-
-<!--   print(ggplot(cells_per_7cluster_list[[paste0('Cluster', i)]], aes(x ='', y = Freq, fill = Var1)) + geom_bar(stat = 'identity') + coord_polar('y', start = 0) + theme_void() + scale_fill_manual(values = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')) + labs(title = paste('Original condition of cells in cluster', i-1))) -->
-<!-- } -->
-<!-- dev.off() -->
-
-<!-- ``` -->
-
-<!-- #UMAPs highlighting all cells that had same first and second drug in all_data object -->
-<!-- ```{r} -->
-<!-- cells_per_condition <- list() -->
-<!-- for (i in c('dabtram', 'cocl2', 'cis', 'dabtramtodabtram', 'dabtramtococl2', 'dabtramtocis', 'cocl2todabtram', 'cocl2tococl2', 'cocl2tocis', 'cistodabtram', 'cistococl2', 'cistocis')){ -->
-<!--   cells_per_condition[[paste0(i, '_cells')]] <- names(all_data_7cluster$orig.ident[all_data_7cluster$OG_condition == i]) -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$dabtram_cells, cells_per_condition$dabtramtodabtram_cells, cells_per_condition$dabtramtocis_cells, cells_per_condition$dabtramtococl2_cells), -->
-<!--         cols.highlight = c('#a2248e', '#9d85be', '#561e59', '#623594')) + ggtitle('dabtram first cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$dabtram_cells, cells_per_condition$dabtramtodabtram_cells, cells_per_condition$dabtramtocis_cells, cells_per_condition$dabtramtococl2_cells), -->
-<!--         cols.highlight = ('#623594')) + ggtitle('dabtram first cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$dabtram_cells, cells_per_condition$dabtramtodabtram_cells, cells_per_condition$cistodabtram_cells, cells_per_condition$cocl2todabtram_cells), -->
-<!--         cols.highlight = c('#10413b', '#a23622', '#561e59', '#623594')) + ggtitle('dabtram second cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$dabtram_cells, cells_per_condition$dabtramtodabtram_cells, cells_per_condition$cistodabtram_cells, cells_per_condition$cocl2todabtram_cells), -->
-<!--         cols.highlight = ('#623594')) + ggtitle('dabtram second cells') -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cocl2_cells, cells_per_condition$cocl2tococl2_cells, cells_per_condition$cocl2tocis_cells, cells_per_condition$cocl2todabtram_cells), -->
-<!--         cols.highlight = c('#10413b', '#6dc49c', '#6abd45', '#0f8241')) + ggtitle('cocl2 first cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cocl2_cells, cells_per_condition$cocl2tococl2_cells, cells_per_condition$cocl2tocis_cells, cells_per_condition$cocl2todabtram_cells), -->
-<!--         cols.highlight = ('#0f8241')) + ggtitle('cocl2 first cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cocl2_cells, cells_per_condition$cocl2tococl2_cells, cells_per_condition$cistococl2_cells, cells_per_condition$dabtramtococl2_cells), -->
-<!--         cols.highlight = c('#a2248e', '#f49129', '#6abd45', '#0f8241')) + ggtitle('cocl2 second cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cocl2_cells, cells_per_condition$cocl2tococl2_cells, cells_per_condition$cistococl2_cells, cells_per_condition$dabtramtococl2_cells), -->
-<!--         cols.highlight = ('#0f8241')) + ggtitle('cocl2 second cells') -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cis_cells, cells_per_condition$cistocis_cells, cells_per_condition$cistococl2_cells, cells_per_condition$cistodabtram_cells), -->
-<!--         cols.highlight = c('#a23622', '#f49129', '#fbd08c', '#c96d29')) + ggtitle('cis first cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cis_cells, cells_per_condition$cistocis_cells, cells_per_condition$cistococl2_cells, cells_per_condition$cistodabtram_cells), -->
-<!--         cols.highlight = ('#c96d29')) + ggtitle('cis first cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cis_cells, cells_per_condition$cistocis_cells, cells_per_condition$cocl2tocis_cells, cells_per_condition$dabtramtocis_cells), -->
-<!--         cols.highlight = c('#9d85be', '#6dc49c', '#fbd08c', '#c96d29')) + ggtitle('cis second cells') -->
-
-<!-- DimPlot(all_data_7cluster, reduction = "umap", dims = c(1,2), group.by = 'OG_condition', pt.size = .1, -->
-<!--         cells.highlight = list(cells_per_condition$cis_cells, cells_per_condition$cistocis_cells, cells_per_condition$cocl2tocis_cells, cells_per_condition$dabtramtocis_cells), -->
-<!--         cols.highlight = ('#c96d29')) + ggtitle('cis second cells') -->
-
-<!-- ``` -->
-
 # Now do this all on the second_timepoint object 
 ```{r}
 
@@ -402,3 +230,180 @@ DimPlot(second_timepoint, reduction = "umap", dims = c(1,2), group.by = 'OG_cond
         cols.highlight = ('#c96d29')) + ggtitle('cis second cells')
 
 ```
+
+# Save the object to load in for distance metrics
+```{r}
+save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/workspace.RData')
+```
+
+# Run distance metrics
+```{r}
+# Define manhatten distance function
+manhattan.distance <- function(x, y) return(sum(abs(x-y)))
+
+# Make metadata objects of the first and second conditions
+second_timepoint$first_treatment <- sapply(strsplit(second_timepoint$OG_condition, "to"), "[[", 1)
+second_timepoint$second_treatment <- sapply(strsplit(second_timepoint$OG_condition, "to"), "[[", 2)
+
+# Get input data and subest
+input_data <- GetAssayData(second_timepoint, assay = 'RNA', slot = 'scale.data')
+
+# Number of cells for subsetting
+num_cells <- 10000
+
+# Look at grouping based on first sample
+Idents(second_timepoint) <- second_timepoint$first_treatment
+DimPlot(second_timepoint)
+
+cocl2_first_cells <-  sample(names(second_timepoint$first_treatment)[second_timepoint$first_treatment == 'cocl2'], num_cells)
+cocl2_first_subset <- input_data[,cocl2_first_cells]
+cocl2_first_manhatten_distance <- CustomDistance(cocl2_first_subset, manhattan.distance)
+
+dabtram_first_cells <-  sample(names(second_timepoint$first_treatment)[second_timepoint$first_treatment == 'dabtram'], num_cells)
+dabtram_first_subset <- input_data[,dabtram_first_cells]
+dabtram_first_manhatten_distance <- CustomDistance(dabtram_first_subset, manhattan.distance)
+
+cis_first_cells <-  sample(names(second_timepoint$first_treatment)[second_timepoint$first_treatment == 'cis'], num_cells)
+cis_first_subset <- input_data[,cis_first_cells]
+cis_first_manhatten_distance <- CustomDistance(cis_first_subset, manhattan.distance)
+
+Idents(second_timepoint) <- second_timepoint$second_treatment
+DimPlot(second_timepoint)
+
+cocl2_second_cells <-  sample(names(second_timepoint$second_treatment)[second_timepoint$second_treatment == 'cocl2'], num_cells)
+cocl2_second_subset <- input_data[,cocl2_second_cells]
+cocl2_second_manhatten_distance <- CustomDistance(cocl2_second_subset, manhattan.distance)
+
+dabtram_second_cells <-  sample(names(second_timepoint$second_treatment)[second_timepoint$second_treatment == 'dabtram'], num_cells)
+dabtram_second_subset <- input_data[,dabtram_second_cells]
+dabtram_second_manhatten_distance <- CustomDistance(dabtram_second_subset, manhattan.distance)
+
+cis_second_cells <-  sample(names(second_timepoint$second_treatment)[second_timepoint$second_treatment == 'cis'], num_cells)
+cis_second_subset <- input_data[,cis_second_cells]
+cis_second_manhatten_distance <- CustomDistance(cis_second_subset, manhattan.distance)
+
+plotting_df <- data.frame(Grouping = c(rep('first',3*length(cis_first_manhatten_distance)),rep('second', 3*(length(cis_second_manhatten_distance)))),
+                          Manhatten_dist <- c(cocl2_first_manhatten_distance, dabtram_first_manhatten_distance, cis_first_manhatten_distance, cocl2_second_manhatten_distance,dabtram_second_manhatten_distance, cis_second_manhatten_distance),
+                          Treatment = c(rep('CoCl2 first',length(cocl2_first_manhatten_distance)),rep('Dab/Tram first',length(dabtram_first_manhatten_distance)),rep('Cisplatin first',length(cis_first_manhatten_distance)),rep('CoCl2 second',length(cocl2_second_manhatten_distance)),rep('Dab/Tram second',length(dabtram_second_manhatten_distance)),rep('Cisplatin second',length(cis_second_manhatten_distance))))
+
+ggplot(plotting_df, aes(x = Treatment, y = Manhatten_dist, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1)
+
+save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/workspace_v2.RData')
+
+```
+
+# Try pearson and other distance metrics - https://pubmed.ncbi.nlm.nih.gov/30137247/
+```{r}
+rm(manhatten.distance, cocl2_first_manhatten_distance, dabtram_first_manhatten_distance, cis_first_manhatten_distance, cocl2_second_manhatten_distance, dabtram_second_manhatten_distance, cis_second_manhatten_distance)
+rm(cis, cistocis, cistococl2, cistodabtram, cocl2, cocl2tocis, cocl2tococl2, cocl2todabtram, dabtram, dabtramtocis, dabtramtococl2, dabtramtodabtram)
+gc()
+
+# Make metadata objects of the first and second conditions
+second_timepoint$first_treatment <- sapply(strsplit(second_timepoint$OG_condition, "to"), "[[", 1)
+second_timepoint$second_treatment <- sapply(strsplit(second_timepoint$OG_condition, "to"), "[[", 2)
+
+# Get input data and subest
+input_data <- GetAssayData(second_timepoint, assay = 'RNA', slot = 'scale.data')
+
+# Number of cells for subsetting
+#num_cells <- 10000
+
+# Look at grouping based on first sample
+Idents(second_timepoint) <- second_timepoint$first_treatment
+DimPlot(second_timepoint)
+
+cocl2_first_cells <-  names(second_timepoint$first_treatment)[second_timepoint$first_treatment == 'cocl2']
+cocl2_first_subset <- input_data[,cocl2_first_cells]
+cocl2_first_pearson <- cor(cocl2_first_subset)
+cocl2_first_pearson_filt <- cocl2_first_pearson[lower.tri(cocl2_first_pearson, diag = FALSE)]
+
+set.seed(1)
+cocl2_first_subset_rand <- input_data[,sample(colnames(input_data),length(cocl2_first_cells))]
+cocl2_first_pearson_rand <- cor(cocl2_first_subset_rand)
+cocl2_first_pearson_filt_rand <- cocl2_first_pearson_rand[lower.tri(cocl2_first_pearson_rand, diag = FALSE)]
+
+dabtram_first_cells <-  names(second_timepoint$first_treatment)[second_timepoint$first_treatment == 'dabtram']
+dabtram_first_subset <- input_data[,dabtram_first_cells]
+dabtram_first_pearson <- cor(dabtram_first_subset)
+dabtram_first_pearson_filt <- dabtram_first_pearson[lower.tri(dabtram_first_pearson, diag = FALSE)]
+
+set.seed(1)
+dabtram_first_subset_rand <- input_data[,sample(colnames(input_data),length(dabtram_first_cells))]
+dabtram_first_pearson_rand <- cor(dabtram_first_subset_rand)
+dabtram_first_pearson_filt_rand <- dabtram_first_pearson_rand[lower.tri(dabtram_first_pearson_rand, diag = FALSE)]
+
+cis_first_cells <-  names(second_timepoint$first_treatment)[second_timepoint$first_treatment == 'cis']
+cis_first_subset <- input_data[,cis_first_cells]
+cis_first_pearson <- cor(cis_first_subset)
+cis_first_pearson_filt <- cis_first_pearson[lower.tri(cis_first_pearson, diag = FALSE)]
+
+set.seed(1)
+cis_first_subset_rand <- input_data[,sample(colnames(input_data),length(cis_first_cells))]
+cis_first_pearson_rand <- cor(cis_first_subset_rand)
+cis_first_pearson_filt_rand <- cis_first_pearson_rand[lower.tri(cis_first_pearson_rand, diag = FALSE)]
+
+Idents(second_timepoint) <- second_timepoint$second_treatment
+DimPlot(second_timepoint)
+
+cocl2_second_cells <-  names(second_timepoint$second_treatment)[second_timepoint$second_treatment == 'cocl2']
+cocl2_second_subset <- input_data[,cocl2_second_cells]
+cocl2_second_pearson <- cor(cocl2_second_subset)
+cocl2_second_pearson_filt <- cocl2_second_pearson[lower.tri(cocl2_second_pearson, diag = FALSE)]
+
+set.seed(1)
+cocl2_second_subset_rand <- input_data[,sample(colnames(input_data),length(cocl2_second_cells))]
+cocl2_second_pearson_rand <- cor(cocl2_second_subset_rand)
+cocl2_second_pearson_filt_rand <- cocl2_second_pearson_rand[lower.tri(cocl2_second_pearson_rand, diag = FALSE)]
+
+dabtram_second_cells <-  names(second_timepoint$second_treatment)[second_timepoint$second_treatment == 'dabtram']
+dabtram_second_subset <- input_data[,dabtram_second_cells]
+dabtram_second_pearson <- cor(dabtram_second_subset)
+dabtram_second_pearson_filt <- dabtram_second_pearson[lower.tri(dabtram_second_pearson, diag = FALSE)]
+
+set.seed(1)
+dabtram_second_subset_rand <- input_data[,sample(colnames(input_data),length(dabtram_second_cells))]
+dabtram_second_pearson_rand <- cor(dabtram_second_subset_rand)
+dabtram_second_pearson_filt_rand <- dabtram_second_pearson_rand[lower.tri(dabtram_second_pearson_rand, diag = FALSE)]
+
+cis_second_cells <-  names(second_timepoint$second_treatment)[second_timepoint$second_treatment == 'cis']
+cis_second_subset <- input_data[,cis_second_cells]
+cis_second_pearson <- cor(cis_second_subset)
+cis_second_pearson_filt <- cis_second_pearson[lower.tri(cis_second_pearson, diag = FALSE)]
+
+set.seed(1)
+cis_second_subset_rand <- input_data[,sample(colnames(input_data),length(cis_second_cells))]
+cis_second_pearson_rand <- cor(cis_second_subset_rand)
+cis_second_pearson_filt_rand <- cis_second_pearson_rand[lower.tri(cis_second_pearson_rand, diag = FALSE)]
+
+save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/workspace_v3.RData')
+
+# Save CoCl2 outputs
+save(cocl2_first_pearson, cocl2_first_pearson_rand, cocl2_first_subset, cocl2_first_subset_rand, cocl2_second_pearson, cocl2_second_pearson_rand, cocl2_second_subset, cocl2_second_subset_rand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_results.RData')
+rm(cocl2_first_pearson, cocl2_first_pearson_rand, cocl2_first_subset, cocl2_first_subset_rand, cocl2_second_pearson, cocl2_second_pearson_rand, cocl2_second_subset, cocl2_second_subset_rand)
+
+# Save dabtram outputs
+save(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_results.RData')
+rm(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand)
+
+# Save cis outputs
+save(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subset_rand, cis_second_pearson, cis_second_pearson_rand, cis_second_subset, cis_second_subset_rand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_results.RData')
+rm(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subset_rand, cis_second_pearson, cis_second_pearson_rand, cis_second_subset, cis_second_subset_rand)
+```
+# Look at this excluding the cells that stayed in the same drug both times???
+
+# plotting_df_pearson <- data.frame(Grouping = c(rep('first',2*length(c(cocl2_first_pearson_filt,dabtram_first_pearson,cis_first_pearson_filt))),rep('second', 2*length(c(cocl2_second_pearson_filt,dabtram_second_pearson_filt,cis_second_pearson_filt)))),
+#                           Pearson <- c(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, cis_first_pearson_filt, cis_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand, cis_second_pearson_filt, cis_second_pearson_filt_rand),
+#                           Treatment = c(rep('CoCl2 first',length(cocl2_first_pearson_filt)), rep('CoCl2 first rand',length(cocl2_first_pearson_filt_rand)),rep('Dab/Tram first',length(dabtram_first_pearson_filt)),rep('Dab/Tram first rand',length(dabtram_first_pearson_filt_rand)),rep('Cisplatin first',length(cis_first_pearson_filt)),rep('Cisplatin first rand',length(cis_first_pearson_filt_rand)),rep('CoCl2 second',length(cocl2_second_pearson_filt)),rep('CoCl2 second rand',length(cocl2_second_pearson_filt_rand)),rep('Dab/Tram second',length(dabtram_second_pearson_filt)),rep('Dab/Tram second rand',length(dabtram_second_pearson_filt_rand)),rep('Cisplatin second',length(cis_second_pearson_filt)),rep('Cisplatin second rand',length(cis_second_pearson_filt_rand))))
+# colnames(plotting_df_pearson) <- c('Grouping','Pearson','Treatment')
+
+
+plotting_df_pearson_cocl2 <- data.frame(Grouping = c(rep('first',2*length(c(cocl2_first_pearson_filt))),rep('second', 2*length(c(cocl2_second_pearson_filt)))),
+                          Pearson <- c(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand),
+                          Treatment = c(rep('CoCl2 first',length(cocl2_first_pearson_filt)), rep('CoCl2 first rand',length(cocl2_first_pearson_filt_rand)),rep('CoCl2 second',length(cocl2_second_pearson_filt)),rep('CoCl2 second rand',length(cocl2_second_pearson_filt_rand))))
+colnames(plotting_df_pearson_cocl2) <- c('Grouping','Pearson','Treatment')
+
+ggplot(plotting_df_pearson, aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1)
+
+pearson_ttest_cisplatin <- t.test(cis_first_pearson_filt, cis_second_pearson_filt, alternative = 'less', paired = F)
+pearson_ttest_cocl2 <- t.test(cocl2_first_pearson_filt, cocl2_second_pearson_filt, alternative = 'less', paired = F)
+pearson_ttest_dabtram <- t.test(dabtram_first_pearson_filt, dabtram_second_pearson_filt, alternative = 'less', paired = F)
