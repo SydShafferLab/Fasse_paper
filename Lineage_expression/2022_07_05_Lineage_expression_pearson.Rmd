@@ -1,0 +1,1057 @@
+---
+title: "Lineage expression over time"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(pheatmap)
+library(viridis)
+library(xlsx)
+
+`%nin%` = Negate(`%in%`)
+```
+
+# Load data
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cis_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cocl2_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_both_times_final_lineages.RData')
+
+```
+
+# need to make Idents metadata object which says if the cells are included in the combined lins list, or if they were filtered
+```{r}
+#find lineages that are maintained at both dabtram timepoints
+fivecell_cDNA$DabTramMaintained <- Reduce(intersect, list(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram))
+
+filtered_meta <- rep(0, length(names(all_data$Lineage)))
+
+#specify which cells are in lineages that pass filtering for that condition
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% combined_lins_list$DabTram)] <- 'Resistant to DabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% combined_lins_list$DabTramtoDabTram)] <- 'Resistant to DabTramtoDabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %in% combined_lins_list$DabTramtoCoCl2)] <- 'Resistant to DabTramtoCoCl2'
+filtered_meta[which(all_data$OG_condition == "dabtramtocis" & all_data$Lineage %in% combined_lins_list$DabTramtoCis)] <- 'Resistant to DabTramtoCis'
+filtered_meta[which(all_data$OG_condition == "cocl2" & all_data$Lineage %in% combined_lins_list$CoCl2)] <- 'Resistant to CoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2todabtram" & all_data$Lineage %in% combined_lins_list$CoCl2toDabTram)] <- 'Resistant to CoCl2toDabTram'
+filtered_meta[which(all_data$OG_condition == "cocl2tococl2" & all_data$Lineage %in% combined_lins_list$CoCl2toCoCl2)] <- 'Resistant to CoCl2toCoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2tocis" & all_data$Lineage %in% combined_lins_list$CoCl2toCis)] <- 'Resistant to CoCl2toCis'
+filtered_meta[which(all_data$OG_condition == "cis" & all_data$Lineage %in% combined_lins_list$Cis)] <- 'Resistant to Cis'
+filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %in% combined_lins_list$CistoDabTram)] <- 'Resistant to CistoDabTram'
+filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %in% combined_lins_list$CistoCoCl2)] <- 'Resistant to CistoCoCl2'
+filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %in% combined_lins_list$CistoCis)] <- 'Resistant to CistoCis'
+
+#specify which cells are in lineages of more than 5 cells
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTram)] <- 'Large Resistant to DabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramtoDabTram)] <- 'Large Resistant to DabTramtoDabTram'
+filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %in% fivecell_cDNA$DabTramtoCoCl2)] <- 'Large Resistant to DabTramtoCoCl2'
+filtered_meta[which(all_data$OG_condition == "dabtramtocis" & all_data$Lineage %in% fivecell_cDNA$DabTramtoCis)] <- 'Large Resistant to DabTramtoCis'
+filtered_meta[which(all_data$OG_condition == "cocl2" & all_data$Lineage %in% fivecell_cDNA$CoCl2)] <- 'Large Resistant to CoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2todabtram" & all_data$Lineage %in% fivecell_cDNA$CoCl2toDabTram)] <- 'Large Resistant to CoCl2toDabTram'
+filtered_meta[which(all_data$OG_condition == "cocl2tococl2" & all_data$Lineage %in% fivecell_cDNA$CoCl2toCoCl2)] <- 'Large Resistant to CoCl2toCoCl2'
+filtered_meta[which(all_data$OG_condition == "cocl2tocis" & all_data$Lineage %in% fivecell_cDNA$CoCl2toCis)] <- 'Large Resistant to CoCl2toCis'
+filtered_meta[which(all_data$OG_condition == "cis" & all_data$Lineage %in% fivecell_cDNA$Cis)] <- 'Large Resistant to Cis'
+filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %in% fivecell_cDNA$CistoDabTram)] <- 'Large Resistant to CistoDabTram'
+filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %in% fivecell_cDNA$CistoCoCl2)] <- 'Large Resistant to CistoCoCl2'
+filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %in% fivecell_cDNA$CistoCis)] <- 'Large Resistant to CistoCis'
+
+# filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTram'
+# filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] <- 'Maintained Resistant to DabTramtoDabTram'
+
+#specify which cells are in lineages that did not pass filtering
+filtered_meta[which(all_data$OG_condition == "dabtram" & all_data$Lineage %nin% combined_lins_list$DabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "dabtramtodabtram" & all_data$Lineage %nin% combined_lins_list$DabTramtoDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "dabtramtococl2" & all_data$Lineage %nin% combined_lins_list$DabTramtoCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "dabtramtocis" & all_data$Lineage %nin% combined_lins_list$DabTramtoCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2" & all_data$Lineage %nin% combined_lins_list$CoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2todabtram" & all_data$Lineage %nin% combined_lins_list$CoCl2toDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2tococl2" & all_data$Lineage %nin% combined_lins_list$CoCl2toCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cocl2tocis" & all_data$Lineage %nin% combined_lins_list$CoCl2toCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cis" & all_data$Lineage %nin% combined_lins_list$Cis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cistodabtram" & all_data$Lineage %nin% combined_lins_list$CistoDabTram & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cistococl2" & all_data$Lineage %nin% combined_lins_list$CistoCoCl2 & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+filtered_meta[which(all_data$OG_condition == "cistocis" & all_data$Lineage %nin% combined_lins_list$CistoCis & all_data$Lineage %nin% c("No Barcode", "Still multiple"))] <- 'Filtered out' 
+
+#specify which cells had zero or multiple barcodes
+filtered_meta[which(all_data$Lineage %in% c("No Barcode", "Still multiple"))] <- 'No Barcode'
+
+print(table(filtered_meta))
+
+```
+
+# Look at similarity within lineages based on pearson correlation
+## Look at whether lineages cluster together in each individual condition - Starting with DabTram
+```{r}
+rm(dabtram, cis, cocl2) # Remove old seurat objects that are no longer needed
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the dabtram object
+dabtram <- NormalizeData(dabtram)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
+ElbowPlot(dabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
+dabtram <- FindClusters(dabtram, resolution = 0.5)
+dabtram <- RunUMAP(dabtram, dims = 1:15)
+DimPlot(dabtram, reduction = 'umap', pt.size = 1)
+
+# Get the scaled data from the dabtram object
+dabtram_input_data <- GetAssayData(dabtram, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+dabtram_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$DabTram){
+  temp_pearson <- cor(dabtram_input_data[,colnames(dabtram)[dabtram$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  dabtram_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+dabtram_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  dabtram_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$DabTram){
+    set.seed(j)
+    num_cells <- length(dabtram$Lineage[dabtram$Lineage == i])
+    temp_pearson <- cor(dabtram_input_data[,sample(colnames(dabtram), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    dabtram_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the dabtram simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_dabtram <- mean(unlist(lapply(dabtram_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_dabtram_sim <- sapply(1:length(dabtram_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(dabtram_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_dabtram <- (mean_pearson_dabtram-mean(means_pearson_dabtram_sim))/sd(means_pearson_dabtram_sim) # Z score comparing mean to simulations
+pval_mean_pearson_dabtram <- pnorm(z_mean_pearson_dabtram, mean(means_pearson_dabtram_sim), sd(means_pearson_dabtram_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_dabtram <- weighted.mean(unlist(lapply(dabtram_lin_pearson_list, mean)),
+unlist(lapply(dabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtram_sim <- sapply(1:length(dabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_dabtram <- (weighted_mean_pearson_dabtram-mean(weighted_means_pearson_dabtram_sim))/sd(weighted_means_pearson_dabtram_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_dabtram <- pnorm(z_wmean_pearson_dabtram, mean(weighted_means_pearson_dabtram_sim), sd(weighted_means_pearson_dabtram_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_dabtram <- c()
+for (i in 1:length(dabtram_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(dabtram_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_dabtram <- cbind(wilcox_pval_dabtram, wilcox.test(x = unlist(lapply(dabtram_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtram, dabtram_lin_pearson_list, dabtram_lin_pearson_rand_list, z_mean_pearson_dabtram, pval_mean_pearson_dabtram, z_wmean_pearson_dabtram, pval_wmean_pearson_dabtram,  wilcox_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_pearson_sim_results.RData')
+rm(dabtram)
+```
+
+## Look at whether lineages cluster together in each individual condition - dabtramtodabtram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtodabtram
+dabtramtodabtram <- subset(all_data, idents = 'dabtramtodabtram') # Subset down to the dabtramtodabtram object
+dabtramtodabtram <- NormalizeData(dabtramtodabtram)
+dabtramtodabtram <- FindVariableFeatures(dabtramtodabtram, selection.method = 'vst', nFeatures = 20000)
+dabtramtodabtram <- ScaleData(dabtramtodabtram)
+dabtramtodabtram <- RunPCA(dabtramtodabtram)
+ElbowPlot(dabtramtodabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtramtodabtram <- FindNeighbors(dabtramtodabtram, dims = 1:15)
+dabtramtodabtram <- FindClusters(dabtramtodabtram, resolution = 0.5)
+dabtramtodabtram <- RunUMAP(dabtramtodabtram, dims = 1:15)
+DimPlot(dabtramtodabtram, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the dabtramtodabtram object
+dabtramtodabtram_input_data <- GetAssayData(dabtramtodabtram, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+dabtramtodabtram_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$dabtramtodabtram){
+  temp_pearson <- cor(dabtramtodabtram_input_data[,colnames(dabtramtodabtram)[dabtramtodabtram$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  dabtramtodabtram_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+dabtramtodabtram_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  dabtramtodabtram_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$dabtramtodabtram){
+    set.seed(j)
+    num_cells <- length(dabtramtodabtram$Lineage[dabtramtodabtram$Lineage == i])
+    temp_pearson <- cor(dabtramtodabtram_input_data[,sample(colnames(dabtramtodabtram), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    dabtramtodabtram_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the dabtramtodabtram simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_dabtramtodabtram <- mean(unlist(lapply(dabtramtodabtram_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_dabtramtodabtram_sim <- sapply(1:length(dabtramtodabtram_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_dabtramtodabtram <- (mean_pearson_dabtramtodabtram-mean(means_pearson_dabtramtodabtram_sim))/sd(means_pearson_dabtramtodabtram_sim) # Z score comparing mean to simulations
+pval_mean_pearson_dabtramtodabtram <- pnorm(z_mean_pearson_dabtramtodabtram, mean(means_pearson_dabtramtodabtram_sim), sd(means_pearson_dabtramtodabtram_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_dabtramtodabtram <- weighted.mean(unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)),
+unlist(lapply(dabtramtodabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtodabtram_sim <- sapply(1:length(dabtramtodabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_dabtramtodabtram <- (weighted_mean_pearson_dabtramtodabtram-mean(weighted_means_pearson_dabtramtodabtram_sim))/sd(weighted_means_pearson_dabtramtodabtram_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_dabtramtodabtram <- pnorm(z_wmean_pearson_dabtramtodabtram, mean(weighted_means_pearson_dabtramtodabtram_sim), sd(weighted_means_pearson_dabtramtodabtram_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_dabtramtodabtram <- c()
+for (i in 1:length(dabtramtodabtram_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_dabtramtodabtram <- cbind(wilcox_pval_dabtramtodabtram, wilcox.test(x = unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtramtodabtram, dabtramtodabtram_lin_pearson_list, dabtramtodabtram_lin_pearson_rand_list, z_mean_pearson_dabtramtodabtram, pval_mean_pearson_dabtramtodabtram, z_wmean_pearson_dabtramtodabtram, pval_wmean_pearson_dabtramtodabtram,  wilcox_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_pearson_sim_results.RData')
+rm(dabtramtodabtram)
+```
+
+## Look at whether lineages cluster together in each individual condition - dabtramtocis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtocis
+dabtramtocis <- subset(all_data, idents = 'dabtramtocis') # Subset down to the dabtramtocis object
+dabtramtocis <- NormalizeData(dabtramtocis)
+dabtramtocis <- FindVariableFeatures(dabtramtocis, selection.method = 'vst', nFeatures = 20000)
+dabtramtocis <- ScaleData(dabtramtocis)
+dabtramtocis <- RunPCA(dabtramtocis)
+ElbowPlot(dabtramtocis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtramtocis <- FindNeighbors(dabtramtocis, dims = 1:15)
+dabtramtocis <- FindClusters(dabtramtocis, resolution = 0.5)
+dabtramtocis <- RunUMAP(dabtramtocis, dims = 1:15)
+DimPlot(dabtramtocis, reduction = 'umap', pt.size = 1)
+
+# Get the scaled data from the dabtramtocis object
+dabtramtocis_input_data <- GetAssayData(dabtramtocis, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+dabtramtocis_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$dabtramtocis){
+  temp_pearson <- cor(dabtramtocis_input_data[,colnames(dabtramtocis)[dabtramtocis$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  dabtramtocis_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+dabtramtocis_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  dabtramtocis_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$dabtramtocis){
+    set.seed(j)
+    num_cells <- length(dabtramtocis$Lineage[dabtramtocis$Lineage == i])
+    temp_pearson <- cor(dabtramtocis_input_data[,sample(colnames(dabtramtocis), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    dabtramtocis_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the dabtramtocis simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_dabtramtocis <- mean(unlist(lapply(dabtramtocis_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_dabtramtocis_sim <- sapply(1:length(dabtramtocis_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_dabtramtocis <- (mean_pearson_dabtramtocis-mean(means_pearson_dabtramtocis_sim))/sd(means_pearson_dabtramtocis_sim) # Z score comparing mean to simulations
+pval_mean_pearson_dabtramtocis <- pnorm(z_mean_pearson_dabtramtocis, mean(means_pearson_dabtramtocis_sim), sd(means_pearson_dabtramtocis_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_dabtramtocis <- weighted.mean(unlist(lapply(dabtramtocis_lin_pearson_list, mean)),
+unlist(lapply(dabtramtocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtocis_sim <- sapply(1:length(dabtramtocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_dabtramtocis <- (weighted_mean_pearson_dabtramtocis-mean(weighted_means_pearson_dabtramtocis_sim))/sd(weighted_means_pearson_dabtramtocis_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_dabtramtocis <- pnorm(z_wmean_pearson_dabtramtocis, mean(weighted_means_pearson_dabtramtocis_sim), sd(weighted_means_pearson_dabtramtocis_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_dabtramtocis <- c()
+for (i in 1:length(dabtramtocis_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(dabtramtocis_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_dabtramtocis <- cbind(wilcox_pval_dabtramtocis, wilcox.test(x = unlist(lapply(dabtramtocis_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtramtocis, dabtramtocis_lin_pearson_list, dabtramtocis_lin_pearson_rand_list, z_mean_pearson_dabtramtocis, pval_mean_pearson_dabtramtocis, z_wmean_pearson_dabtramtocis, pval_wmean_pearson_dabtramtocis,  wilcox_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_pearson_sim_results.RData')
+rm(dabtramtocis)
+```
+
+## Look at whether lineages cluster together in each individual condition - dabtramtococl2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtramtococl2 <- subset(all_data, idents = 'dabtramtococl2') # Subset down to the dabtram object
+dabtramtococl2 <- NormalizeData(dabtramtococl2)
+dabtramtococl2 <- FindVariableFeatures(dabtramtococl2, selection.method = 'vst', nFeatures = 20000)
+dabtramtococl2 <- ScaleData(dabtramtococl2)
+dabtramtococl2 <- RunPCA(dabtramtococl2)
+ElbowPlot(dabtramtococl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtramtococl2 <- FindNeighbors(dabtramtococl2, dims = 1:15)
+dabtramtococl2 <- FindClusters(dabtramtococl2, resolution = 0.5)
+dabtramtococl2 <- RunUMAP(dabtramtococl2, dims = 1:15)
+DimPlot(dabtramtococl2, reduction = 'umap', pt.size = 1)
+
+# Get the scaled data from the dabtramtococl2 object
+dabtramtococl2_input_data <- GetAssayData(dabtramtococl2, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+dabtramtococl2_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$dabtramtococl2){
+  temp_pearson <- cor(dabtramtococl2_input_data[,colnames(dabtramtococl2)[dabtramtococl2$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  dabtramtococl2_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+dabtramtococl2_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  dabtramtococl2_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$dabtramtococl2){
+    set.seed(j)
+    num_cells <- length(dabtramtococl2$Lineage[dabtramtococl2$Lineage == i])
+    temp_pearson <- cor(dabtramtococl2_input_data[,sample(colnames(dabtramtococl2), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    dabtramtococl2_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the dabtramtococl2 simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_dabtramtococl2 <- mean(unlist(lapply(dabtramtococl2_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_dabtramtococl2_sim <- sapply(1:length(dabtramtococl2_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_dabtramtococl2 <- (mean_pearson_dabtramtococl2-mean(means_pearson_dabtramtococl2_sim))/sd(means_pearson_dabtramtococl2_sim) # Z score comparing mean to simulations
+pval_mean_pearson_dabtramtococl2 <- pnorm(z_mean_pearson_dabtramtococl2, mean(means_pearson_dabtramtococl2_sim), sd(means_pearson_dabtramtococl2_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_dabtramtococl2 <- weighted.mean(unlist(lapply(dabtramtococl2_lin_pearson_list, mean)),
+unlist(lapply(dabtramtococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtococl2_sim <- sapply(1:length(dabtramtococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_dabtramtococl2 <- (weighted_mean_pearson_dabtramtococl2-mean(weighted_means_pearson_dabtramtococl2_sim))/sd(weighted_means_pearson_dabtramtococl2_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_dabtramtococl2 <- pnorm(z_wmean_pearson_dabtramtococl2, mean(weighted_means_pearson_dabtramtococl2_sim), sd(weighted_means_pearson_dabtramtococl2_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_dabtramtococl2 <- c()
+for (i in 1:length(dabtramtococl2_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_dabtramtococl2 <- cbind(wilcox_pval_dabtramtococl2, wilcox.test(x = unlist(lapply(dabtramtococl2_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(dabtramtococl2, dabtramtococl2_lin_pearson_list, dabtramtococl2_lin_pearson_rand_list, z_mean_pearson_dabtramtococl2, pval_mean_pearson_dabtramtococl2, z_wmean_pearson_dabtramtococl2, pval_wmean_pearson_dabtramtococl2,  wilcox_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_pearson_sim_results.RData')
+rm(dabtramtococl2)
+```
+
+## Look at whether lineages cluster together in each individual condition - cocl2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+cocl2 <- subset(all_data, idents = 'cocl2') # Subset down to the cocl2 object
+cocl2 <- NormalizeData(cocl2)
+cocl2 <- FindVariableFeatures(cocl2, selection.method = 'vst', nFeatures = 20000)
+cocl2 <- ScaleData(cocl2)
+cocl2 <- RunPCA(cocl2)
+ElbowPlot(cocl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2 <- FindNeighbors(cocl2, dims = 1:15)
+cocl2 <- FindClusters(cocl2, resolution = 0.5)
+cocl2 <- RunUMAP(cocl2, dims = 1:15)
+DimPlot(cocl2, reduction = 'umap', pt.size = 1)
+
+# Get the scaled data from the cocl2 object
+cocl2_input_data <- GetAssayData(cocl2, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cocl2_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cocl2){
+  temp_pearson <- cor(cocl2_input_data[,colnames(cocl2)[cocl2$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cocl2_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cocl2_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cocl2_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cocl2){
+    set.seed(j)
+    num_cells <- length(cocl2$Lineage[cocl2$Lineage == i])
+    temp_pearson <- cor(cocl2_input_data[,sample(colnames(cocl2), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cocl2_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cocl2 simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cocl2 <- mean(unlist(lapply(cocl2_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cocl2_sim <- sapply(1:length(cocl2_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cocl2_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cocl2 <- (mean_pearson_cocl2-mean(means_pearson_cocl2_sim))/sd(means_pearson_cocl2_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cocl2 <- pnorm(z_mean_pearson_cocl2, mean(means_pearson_cocl2_sim), sd(means_pearson_cocl2_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cocl2 <- weighted.mean(unlist(lapply(cocl2_lin_pearson_list, mean)),
+unlist(lapply(cocl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2_sim <- sapply(1:length(cocl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cocl2 <- (weighted_mean_pearson_cocl2-mean(weighted_means_pearson_cocl2_sim))/sd(weighted_means_pearson_cocl2_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cocl2 <- pnorm(z_wmean_pearson_cocl2, mean(weighted_means_pearson_cocl2_sim), sd(weighted_means_pearson_cocl2_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cocl2 <- c()
+for (i in 1:length(cocl2_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cocl2_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cocl2 <- cbind(wilcox_pval_cocl2, wilcox.test(x = unlist(lapply(cocl2_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2, cocl2_lin_pearson_list, cocl2_lin_pearson_rand_list, z_mean_pearson_cocl2, pval_mean_pearson_cocl2, z_wmean_pearson_cocl2, pval_wmean_pearson_cocl2,  wilcox_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_pearson_sim_results.RData')
+rm(cocl2)
+```
+
+## Look at whether lineages cluster together in each individual condition - cocl2tococl2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2tococl2
+cocl2tococl2 <- subset(all_data, idents = 'cocl2tococl2') # Subset down to the cocl2tococl2 object
+cocl2tococl2 <- NormalizeData(cocl2tococl2)
+cocl2tococl2 <- FindVariableFeatures(cocl2tococl2, selection.method = 'vst', nFeatures = 20000)
+cocl2tococl2 <- ScaleData(cocl2tococl2)
+cocl2tococl2 <- RunPCA(cocl2tococl2)
+ElbowPlot(cocl2tococl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2tococl2 <- FindNeighbors(cocl2tococl2, dims = 1:15)
+cocl2tococl2 <- FindClusters(cocl2tococl2, resolution = 0.5)
+cocl2tococl2 <- RunUMAP(cocl2tococl2, dims = 1:15)
+DimPlot(cocl2tococl2, reduction = 'umap', pt.size = 1)
+
+# Get the scaled data from the cocl2tococl2 object
+cocl2tococl2_input_data <- GetAssayData(cocl2tococl2, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cocl2tococl2_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cocl2tococl2){
+  temp_pearson <- cor(cocl2tococl2_input_data[,colnames(cocl2tococl2)[cocl2tococl2$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cocl2tococl2_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cocl2tococl2_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cocl2tococl2_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cocl2tococl2){
+    set.seed(j)
+    num_cells <- length(cocl2tococl2$Lineage[cocl2tococl2$Lineage == i])
+    temp_pearson <- cor(cocl2tococl2_input_data[,sample(colnames(cocl2tococl2), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cocl2tococl2_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cocl2tococl2 simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cocl2tococl2 <- mean(unlist(lapply(cocl2tococl2_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cocl2tococl2_sim <- sapply(1:length(cocl2tococl2_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cocl2tococl2 <- (mean_pearson_cocl2tococl2-mean(means_pearson_cocl2tococl2_sim))/sd(means_pearson_cocl2tococl2_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cocl2tococl2 <- pnorm(z_mean_pearson_cocl2tococl2, mean(means_pearson_cocl2tococl2_sim), sd(means_pearson_cocl2tococl2_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cocl2tococl2 <- weighted.mean(unlist(lapply(cocl2tococl2_lin_pearson_list, mean)),
+unlist(lapply(cocl2tococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2tococl2_sim <- sapply(1:length(cocl2tococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cocl2tococl2 <- (weighted_mean_pearson_cocl2tococl2-mean(weighted_means_pearson_cocl2tococl2_sim))/sd(weighted_means_pearson_cocl2tococl2_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cocl2tococl2 <- pnorm(z_wmean_pearson_cocl2tococl2, mean(weighted_means_pearson_cocl2tococl2_sim), sd(weighted_means_pearson_cocl2tococl2_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cocl2tococl2 <- c()
+for (i in 1:length(cocl2tococl2_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cocl2tococl2 <- cbind(wilcox_pval_cocl2tococl2, wilcox.test(x = unlist(lapply(cocl2tococl2_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2tococl2, cocl2tococl2_lin_pearson_list, cocl2tococl2_lin_pearson_rand_list, z_mean_pearson_cocl2tococl2, pval_mean_pearson_cocl2tococl2, z_wmean_pearson_cocl2tococl2, pval_wmean_pearson_cocl2tococl2,  wilcox_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_pearson_sim_results.RData')
+rm(cocl2tococl2)
+```
+
+## Look at whether lineages cluster together in each individual condition - cocl2tocis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+cocl2tocis <- subset(all_data, idents = 'cocl2tocis') # Subset down to the cocl2 object
+cocl2tocis <- NormalizeData(cocl2tocis)
+cocl2tocis <- FindVariableFeatures(cocl2tocis, selection.method = 'vst', nFeatures = 20000)
+cocl2tocis <- ScaleData(cocl2tocis)
+cocl2tocis <- RunPCA(cocl2tocis)
+ElbowPlot(cocl2tocis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2tocis <- FindNeighbors(cocl2tocis, dims = 1:15)
+cocl2tocis <- FindClusters(cocl2tocis, resolution = 0.5)
+cocl2tocis <- RunUMAP(cocl2tocis, dims = 1:15)
+DimPlot(cocl2tocis, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the cocl2tocis object
+cocl2tocis_input_data <- GetAssayData(cocl2tocis, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cocl2tocis_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cocl2tocis){
+  temp_pearson <- cor(cocl2tocis_input_data[,colnames(cocl2tocis)[cocl2tocis$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cocl2tocis_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cocl2tocis_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cocl2tocis_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cocl2tocis){
+    set.seed(j)
+    num_cells <- length(cocl2tocis$Lineage[cocl2tocis$Lineage == i])
+    temp_pearson <- cor(cocl2tocis_input_data[,sample(colnames(cocl2tocis), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cocl2tocis_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cocl2tocis simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cocl2tocis <- mean(unlist(lapply(cocl2tocis_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cocl2tocis_sim <- sapply(1:length(cocl2tocis_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cocl2tocis <- (mean_pearson_cocl2tocis-mean(means_pearson_cocl2tocis_sim))/sd(means_pearson_cocl2tocis_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cocl2tocis <- pnorm(z_mean_pearson_cocl2tocis, mean(means_pearson_cocl2tocis_sim), sd(means_pearson_cocl2tocis_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cocl2tocis <- weighted.mean(unlist(lapply(cocl2tocis_lin_pearson_list, mean)),
+unlist(lapply(cocl2tocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2tocis_sim <- sapply(1:length(cocl2tocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cocl2tocis <- (weighted_mean_pearson_cocl2tocis-mean(weighted_means_pearson_cocl2tocis_sim))/sd(weighted_means_pearson_cocl2tocis_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cocl2tocis <- pnorm(z_wmean_pearson_cocl2tocis, mean(weighted_means_pearson_cocl2tocis_sim), sd(weighted_means_pearson_cocl2tocis_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cocl2tocis <- c()
+for (i in 1:length(cocl2tocis_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cocl2tocis_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cocl2tocis <- cbind(wilcox_pval_cocl2tocis, wilcox.test(x = unlist(lapply(cocl2tocis_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2tocis, cocl2tocis_lin_pearson_list, cocl2tocis_lin_pearson_rand_list, z_mean_pearson_cocl2tocis, pval_mean_pearson_cocl2tocis, z_wmean_pearson_cocl2tocis, pval_wmean_pearson_cocl2tocis,  wilcox_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_pearson_sim_results.RData')
+rm(cocl2tocis)
+```
+
+## Look at whether lineages cluster together in each individual condition - cocl2todabtram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2todabtram
+cocl2todabtram <- subset(all_data, idents = 'cocl2todabtram') # Subset down to the cocl2todabtram object
+cocl2todabtram <- NormalizeData(cocl2todabtram)
+cocl2todabtram <- FindVariableFeatures(cocl2todabtram, selection.method = 'vst', nFeatures = 20000)
+cocl2todabtram <- ScaleData(cocl2todabtram)
+cocl2todabtram <- RunPCA(cocl2todabtram)
+ElbowPlot(cocl2todabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cocl2todabtram <- FindNeighbors(cocl2todabtram, dims = 1:15)
+cocl2todabtram <- FindClusters(cocl2todabtram, resolution = 0.5)
+cocl2todabtram <- RunUMAP(cocl2todabtram, dims = 1:15)
+DimPlot(cocl2todabtram, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the cocl2todabtram object
+cocl2todabtram_input_data <- GetAssayData(cocl2todabtram, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cocl2todabtram_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cocl2todabtram){
+  temp_pearson <- cor(cocl2todabtram_input_data[,colnames(cocl2todabtram)[cocl2todabtram$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cocl2todabtram_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cocl2todabtram_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cocl2todabtram_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cocl2todabtram){
+    set.seed(j)
+    num_cells <- length(cocl2todabtram$Lineage[cocl2todabtram$Lineage == i])
+    temp_pearson <- cor(cocl2todabtram_input_data[,sample(colnames(cocl2todabtram), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cocl2todabtram_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cocl2todabtram simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cocl2todabtram <- mean(unlist(lapply(cocl2todabtram_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cocl2todabtram_sim <- sapply(1:length(cocl2todabtram_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cocl2todabtram <- (mean_pearson_cocl2todabtram-mean(means_pearson_cocl2todabtram_sim))/sd(means_pearson_cocl2todabtram_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cocl2todabtram <- pnorm(z_mean_pearson_cocl2todabtram, mean(means_pearson_cocl2todabtram_sim), sd(means_pearson_cocl2todabtram_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cocl2todabtram <- weighted.mean(unlist(lapply(cocl2todabtram_lin_pearson_list, mean)),
+unlist(lapply(cocl2todabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2todabtram_sim <- sapply(1:length(cocl2todabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cocl2todabtram <- (weighted_mean_pearson_cocl2todabtram-mean(weighted_means_pearson_cocl2todabtram_sim))/sd(weighted_means_pearson_cocl2todabtram_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cocl2todabtram <- pnorm(z_wmean_pearson_cocl2todabtram, mean(weighted_means_pearson_cocl2todabtram_sim), sd(weighted_means_pearson_cocl2todabtram_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cocl2todabtram <- c()
+for (i in 1:length(cocl2todabtram_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cocl2todabtram <- cbind(wilcox_pval_cocl2todabtram, wilcox.test(x = unlist(lapply(cocl2todabtram_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cocl2todabtram, cocl2todabtram_lin_pearson_list, cocl2todabtram_lin_pearson_rand_list, z_mean_pearson_cocl2todabtram, pval_mean_pearson_cocl2todabtram, z_wmean_pearson_cocl2todabtram, pval_wmean_pearson_cocl2todabtram,  wilcox_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_pearson_sim_results.RData')
+rm(cocl2todabtram)
+```
+
+## Look at whether lineages cluster together in each individual condition - cis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cis
+cis <- subset(all_data, idents = 'cis') # Subset down to the cis object
+cis <- NormalizeData(cis)
+cis <- FindVariableFeatures(cis, selection.method = 'vst', nFeatures = 20000)
+cis <- ScaleData(cis)
+cis <- RunPCA(cis)
+ElbowPlot(cis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cis <- FindNeighbors(cis, dims = 1:15)
+cis <- FindClusters(cis, resolution = 0.5)
+cis <- RunUMAP(cis, dims = 1:15)
+DimPlot(cis, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the cis object
+cis_input_data <- GetAssayData(cis, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cis_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cis){
+  temp_pearson <- cor(cis_input_data[,colnames(cis)[cis$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cis_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cis_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cis_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cis){
+    set.seed(j)
+    num_cells <- length(cis$Lineage[cis$Lineage == i])
+    temp_pearson <- cor(cis_input_data[,sample(colnames(cis), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cis_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cis simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cis <- mean(unlist(lapply(cis_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cis_sim <- sapply(1:length(cis_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cis_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cis <- (mean_pearson_cis-mean(means_pearson_cis_sim))/sd(means_pearson_cis_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cis <- pnorm(z_mean_pearson_cis, mean(means_pearson_cis_sim), sd(means_pearson_cis_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cis <- weighted.mean(unlist(lapply(cis_lin_pearson_list, mean)),
+unlist(lapply(cis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cis_sim <- sapply(1:length(cis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cis <- (weighted_mean_pearson_cis-mean(weighted_means_pearson_cis_sim))/sd(weighted_means_pearson_cis_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cis <- pnorm(z_wmean_pearson_cis, mean(weighted_means_pearson_cis_sim), sd(weighted_means_pearson_cis_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cis <- c()
+for (i in 1:length(cis_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cis_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cis <- cbind(wilcox_pval_cis, wilcox.test(x = unlist(lapply(cis_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cis, cis_lin_pearson_list, cis_lin_pearson_rand_list, z_mean_pearson_cis, pval_mean_pearson_cis, z_wmean_pearson_cis, pval_wmean_pearson_cis,  wilcox_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_pearson_sim_results.RData')
+rm(cis)
+```
+
+## Look at whether lineages cluster together in each individual condition - cistocis
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistocis
+cistocis <- subset(all_data, idents = 'cistocis') # Subset down to the cistocis object
+cistocis <- NormalizeData(cistocis)
+cistocis <- FindVariableFeatures(cistocis, selection.method = 'vst', nFeatures = 20000)
+cistocis <- ScaleData(cistocis)
+cistocis <- RunPCA(cistocis)
+ElbowPlot(cistocis) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cistocis <- FindNeighbors(cistocis, dims = 1:15)
+cistocis <- FindClusters(cistocis, resolution = 0.5)
+cistocis <- RunUMAP(cistocis, dims = 1:15)
+DimPlot(cistocis, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the cistocis object
+cistocis_input_data <- GetAssayData(cistocis, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cistocis_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cistocis){
+  temp_pearson <- cor(cistocis_input_data[,colnames(cistocis)[cistocis$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cistocis_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cistocis_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cistocis_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cistocis){
+    set.seed(j)
+    num_cells <- length(cistocis$Lineage[cistocis$Lineage == i])
+    temp_pearson <- cor(cistocis_input_data[,sample(colnames(cistocis), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cistocis_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cistocis simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cistocis <- mean(unlist(lapply(cistocis_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cistocis_sim <- sapply(1:length(cistocis_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cistocis_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cistocis <- (mean_pearson_cistocis-mean(means_pearson_cistocis_sim))/sd(means_pearson_cistocis_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cistocis <- pnorm(z_mean_pearson_cistocis, mean(means_pearson_cistocis_sim), sd(means_pearson_cistocis_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cistocis <- weighted.mean(unlist(lapply(cistocis_lin_pearson_list, mean)),
+unlist(lapply(cistocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistocis_sim <- sapply(1:length(cistocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cistocis <- (weighted_mean_pearson_cistocis-mean(weighted_means_pearson_cistocis_sim))/sd(weighted_means_pearson_cistocis_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cistocis <- pnorm(z_wmean_pearson_cistocis, mean(weighted_means_pearson_cistocis_sim), sd(weighted_means_pearson_cistocis_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cistocis <- c()
+for (i in 1:length(cistocis_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cistocis_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cistocis <- cbind(wilcox_pval_cistocis, wilcox.test(x = unlist(lapply(cistocis_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cistocis, cistocis_lin_pearson_list, cistocis_lin_pearson_rand_list, z_mean_pearson_cistocis, pval_mean_pearson_cistocis, z_wmean_pearson_cistocis, pval_wmean_pearson_cistocis,  wilcox_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_pearson_sim_results.RData')
+rm(cistocis)
+```
+
+## Look at whether lineages cluster together in each individual condition - cistodabtram
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistodabtram
+cistodabtram <- subset(all_data, idents = 'cistodabtram') # Subset down to the cistodabtram object
+cistodabtram <- NormalizeData(cistodabtram)
+cistodabtram <- FindVariableFeatures(cistodabtram, selection.method = 'vst', nFeatures = 20000)
+cistodabtram <- ScaleData(cistodabtram)
+cistodabtram <- RunPCA(cistodabtram)
+ElbowPlot(cistodabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cistodabtram <- FindNeighbors(cistodabtram, dims = 1:15)
+cistodabtram <- FindClusters(cistodabtram, resolution = 0.5)
+cistodabtram <- RunUMAP(cistodabtram, dims = 1:15)
+DimPlot(cistodabtram, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the cistodabtram object
+cistodabtram_input_data <- GetAssayData(cistodabtram, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cistodabtram_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cistodabtram){
+  temp_pearson <- cor(cistodabtram_input_data[,colnames(cistodabtram)[cistodabtram$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cistodabtram_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cistodabtram_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cistodabtram_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cistodabtram){
+    set.seed(j)
+    num_cells <- length(cistodabtram$Lineage[cistodabtram$Lineage == i])
+    temp_pearson <- cor(cistodabtram_input_data[,sample(colnames(cistodabtram), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cistodabtram_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cistodabtram simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cistodabtram <- mean(unlist(lapply(cistodabtram_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cistodabtram_sim <- sapply(1:length(cistodabtram_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cistodabtram <- (mean_pearson_cistodabtram-mean(means_pearson_cistodabtram_sim))/sd(means_pearson_cistodabtram_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cistodabtram <- pnorm(z_mean_pearson_cistodabtram, mean(means_pearson_cistodabtram_sim), sd(means_pearson_cistodabtram_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cistodabtram <- weighted.mean(unlist(lapply(cistodabtram_lin_pearson_list, mean)),
+unlist(lapply(cistodabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistodabtram_sim <- sapply(1:length(cistodabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cistodabtram <- (weighted_mean_pearson_cistodabtram-mean(weighted_means_pearson_cistodabtram_sim))/sd(weighted_means_pearson_cistodabtram_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cistodabtram <- pnorm(z_wmean_pearson_cistodabtram, mean(weighted_means_pearson_cistodabtram_sim), sd(weighted_means_pearson_cistodabtram_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cistodabtram <- c()
+for (i in 1:length(cistodabtram_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cistodabtram_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cistodabtram <- cbind(wilcox_pval_cistodabtram, wilcox.test(x = unlist(lapply(cistodabtram_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cistodabtram, cistodabtram_lin_pearson_list, cistodabtram_lin_pearson_rand_list, z_mean_pearson_cistodabtram, pval_mean_pearson_cistodabtram, z_wmean_pearson_cistodabtram, pval_wmean_pearson_cistodabtram,  wilcox_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_pearson_sim_results.RData')
+rm(cistodabtram)
+```
+
+## Look at whether lineages cluster together in each individual condition - cistococl2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cistococl2
+cistococl2 <- subset(all_data, idents = 'cistococl2') # Subset down to the cistococl2 object
+cistococl2 <- NormalizeData(cistococl2)
+cistococl2 <- FindVariableFeatures(cistococl2, selection.method = 'vst', nFeatures = 20000)
+cistococl2 <- ScaleData(cistococl2)
+cistococl2 <- RunPCA(cistococl2)
+ElbowPlot(cistococl2) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+cistococl2 <- FindNeighbors(cistococl2, dims = 1:15)
+cistococl2 <- FindClusters(cistococl2, resolution = 0.5)
+cistococl2 <- RunUMAP(cistococl2, dims = 1:15)
+DimPlot(cistococl2, reduction = 'umap', pt.size = 1)
+
+
+# Get the scaled data from the cistococl2 object
+cistococl2_input_data <- GetAssayData(cistococl2, assay = 'RNA', slot = 'scale.data')
+
+# Build list of lineages with at least 5 cells in dab tram and do pearson correlation
+cistococl2_lin_pearson_list <- list()
+
+for (i in fivecell_cDNA$cistococl2){
+  temp_pearson <- cor(cistococl2_input_data[,colnames(cistococl2)[cistococl2$Lineage == i]])
+  temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+  cistococl2_lin_pearson_list[[i]] <- temp_pearson_filt
+}
+
+# Need to do a random sampling of the same thing 
+cistococl2_lin_pearson_rand_list <- list()
+num_iter <- 1000 
+for(j in 1:num_iter){
+  cistococl2_lin_pearson_rand_list[[j]] <- list()
+  for (i in fivecell_cDNA$cistococl2){
+    set.seed(j)
+    num_cells <- length(cistococl2$Lineage[cistococl2$Lineage == i])
+    temp_pearson <- cor(cistococl2_input_data[,sample(colnames(cistococl2), num_cells, replace = F)])
+    temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
+    cistococl2_lin_pearson_rand_list[[j]][[i]] <- temp_pearson_filt
+    
+  }
+}
+```
+## Significance testing of the cistococl2 simulation
+```{r}
+# Find the mean of the average pearson correlation per lineage
+mean_pearson_cistococl2 <- mean(unlist(lapply(cistococl2_lin_pearson_list, mean))) # True mean of average correlations per lineage
+
+means_pearson_cistococl2_sim <- sapply(1:length(cistococl2_lin_pearson_rand_list), function (y)
+  mean(unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], mean)))) # list of mean of average correlations per lineage
+
+z_mean_pearson_cistococl2 <- (mean_pearson_cistococl2-mean(means_pearson_cistococl2_sim))/sd(means_pearson_cistococl2_sim) # Z score comparing mean to simulations
+pval_mean_pearson_cistococl2 <- pnorm(z_mean_pearson_cistococl2, mean(means_pearson_cistococl2_sim), sd(means_pearson_cistococl2_sim), lower.tail = F) # calculate p value from z score
+
+
+# Find the weighted means of the average pearson correlations per lineage
+weighted_mean_pearson_cistococl2 <- weighted.mean(unlist(lapply(cistococl2_lin_pearson_list, mean)),
+unlist(lapply(cistococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistococl2_sim <- sapply(1:length(cistococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+
+z_wmean_pearson_cistococl2 <- (weighted_mean_pearson_cistococl2-mean(weighted_means_pearson_cistococl2_sim))/sd(weighted_means_pearson_cistococl2_sim) # Z score comparing mean to simulations
+pval_wmean_pearson_cistococl2 <- pnorm(z_wmean_pearson_cistococl2, mean(weighted_means_pearson_cistococl2_sim), sd(weighted_means_pearson_cistococl2_sim), lower.tail = F) # calculate p value from z score
+
+# Compare each individual distribution of pearson correlations to the observed correlation by wilcoxon rank sum test and track pval
+wilcox_pval_cistococl2 <- c()
+for (i in 1:length(cistococl2_lin_pearson_rand_list)){
+  sim_means <- unlist(lapply(cistococl2_lin_pearson_rand_list[[i]], mean))
+  wilcox_pval_cistococl2 <- cbind(wilcox_pval_cistococl2, wilcox.test(x = unlist(lapply(cistococl2_lin_pearson_list, mean)),
+                                                                y = sim_means, alternative = 'greater')$p.value)
+}
+
+# Save outputs
+save(cistococl2, cistococl2_lin_pearson_list, cistococl2_lin_pearson_rand_list, z_mean_pearson_cistococl2, pval_mean_pearson_cistococl2, z_wmean_pearson_cistococl2, pval_wmean_pearson_cistococl2,  wilcox_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_pearson_sim_results.RData')
+rm(cistococl2)
+```
