@@ -294,6 +294,9 @@ save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering
 
 # Try pearson and other distance metrics - https://pubmed.ncbi.nlm.nih.gov/30137247/
 ```{r}
+
+#load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/workspace_v2.RData')
+
 rm(manhatten.distance, cocl2_first_manhatten_distance, dabtram_first_manhatten_distance, cis_first_manhatten_distance, cocl2_second_manhatten_distance, dabtram_second_manhatten_distance, cis_second_manhatten_distance)
 rm(cis, cistocis, cistococl2, cistodabtram, cocl2, cocl2tocis, cocl2tococl2, cocl2todabtram, dabtram, dabtramtocis, dabtramtococl2, dabtramtodabtram)
 gc()
@@ -382,7 +385,7 @@ save(cocl2_first_pearson, cocl2_first_pearson_rand, cocl2_first_subset, cocl2_fi
 rm(cocl2_first_pearson, cocl2_first_pearson_rand, cocl2_first_subset, cocl2_first_subset_rand, cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, cocl2_second_pearson, cocl2_second_pearson_rand, cocl2_second_subset, cocl2_second_subset_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand)
 
 # Save dabtram outputs
-save(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_results.RData')
+save(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_results.RData')
 rm(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand)
 
 # Save cis outputs
@@ -390,47 +393,112 @@ save(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subs
 rm(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subset_rand, cis_first_pearson_filt, cis_first_pearson_filt_rand, cis_second_pearson, cis_second_pearson_rand, cis_second_subset, cis_second_subset_rand, cis_second_pearson_filt, cis_second_pearson_filt_rand)
 ```
 
-# Statistical analysis and plotting of pearson metrics
+# Statistical analysis and plotting of pearson metrics - CoCl2
 ```{r}
-
-## Load in data one at a time and analyze
-
-#CoCl2
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_results.RData') # Load data
 pearson_ttest_cocl2_firstvsrand <- t.test(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, alternative = 'greater', paired = F)
 pearson_ttest_cocl2_secondvsrand <- t.test(cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_cocl2_firstvssecond <- t.test(cocl2_first_pearson_filt, cocl2_second_pearson_filt, alternative = 'greater', paired = F)
+pearson_ttest_cocl2_secondvsfirst <- t.test(cocl2_second_pearson_filt, cocl2_first_pearson_filt, alternative = 'greater', paired = F)
 
-plotting_df_pearson_cocl2 <- data.frame(Grouping = c(rep('first',2*length(c(cocl2_first_pearson_filt))),rep('second', 2*length(c(cocl2_second_pearson_filt)))),
-                          Pearson <- c(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand),
-                          Treatment = c(rep('CoCl2 first',length(cocl2_first_pearson_filt)), rep('CoCl2 first rand',rep('CoCl2 second',length(cocl2_second_pearson_filt)),rep('CoCl2 second rand',length(cocl2_second_pearson_filt_rand)))))
+rm(cocl2_first_pearson, cocl2_first_pearson_rand, cocl2_first_subset, cocl2_first_subset_rand, cocl2_second_pearson, cocl2_second_pearson_rand, cocl2_second_subset, cocl2_second_subset_rand)
+
+plotting_df_pearson_cocl2 <- data.frame(Grouping = c(rep('first',length(cocl2_first_pearson_filt)), rep('random',length(cocl2_first_pearson_filt)), rep('second', length(cocl2_second_pearson_filt)), rep('random', length(cocl2_second_pearson_filt))),
+                          Pearson = c(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand),
+                          Treatment = c(rep('CoCl2 first',length(cocl2_first_pearson_filt)), rep('CoCl2 first rand', length(cocl2_first_pearson_filt_rand)),rep('CoCl2 second',length(cocl2_second_pearson_filt)),rep('CoCl2 second rand',length(cocl2_second_pearson_filt_rand))))
 colnames(plotting_df_pearson_cocl2) <- c('Grouping','Pearson','Treatment')
 
-ggplot(plotting_df_pearson_cocl2, aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1)
+rm(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand)
+gc()
 
-#Dabtram
-load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_results.RData')
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_plot_subsampled.pdf')
+set.seed(1)
+ggplot(plotting_df_pearson_cocl2[sample(1:nrow(plotting_df_pearson_cocl2), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1) +
+  scale_fill_manual(values=c("#FF0000", "#D3D3D3", "#0000FF"))
+dev.off()
 
-#Cisplatin
-load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_results.RData')
+# Save outputs
+save(pearson_ttest_cocl2_firstvsrand, pearson_ttest_cocl2_secondvsfirst, pearson_ttest_cocl2_secondvsrand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_values.RData')
+rm(pearson_ttest_cocl2_firstvsrand, pearson_ttest_cocl2_secondvsfirst, pearson_ttest_cocl2_secondvsrand)
 
+save(plotting_df_pearson_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_plotting_df.RData')
+rm(plotting_df_pearson_cocl2)
 ```
 
-# Look at this excluding the cells that stayed in the same drug both times???
+# Statistical analysis and plotting of pearson metrics - dabtram
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_results.RData') # Load data
+pearson_ttest_dabtram_firstvsrand <- t.test(dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, alternative = 'greater', paired = F)
+pearson_ttest_dabtram_secondvsrand <- t.test(dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand, alternative = 'greater', paired = F)
+pearson_ttest_dabtram_secondvsfirst <- t.test(dabtram_second_pearson_filt, dabtram_first_pearson_filt, alternative = 'greater', paired = F)
 
-# plotting_df_pearson <- data.frame(Grouping = c(rep('first',2*length(c(cocl2_first_pearson_filt,dabtram_first_pearson,cis_first_pearson_filt))),rep('second', 2*length(c(cocl2_second_pearson_filt,dabtram_second_pearson_filt,cis_second_pearson_filt)))),
-#                           Pearson <- c(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, cis_first_pearson_filt, cis_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand, cis_second_pearson_filt, cis_second_pearson_filt_rand),
-#                           Treatment = c(rep('CoCl2 first',length(cocl2_first_pearson_filt)), rep('CoCl2 first rand',length(cocl2_first_pearson_filt_rand)),rep('Dab/Tram first',length(dabtram_first_pearson_filt)),rep('Dab/Tram first rand',length(dabtram_first_pearson_filt_rand)),rep('Cisplatin first',length(cis_first_pearson_filt)),rep('Cisplatin first rand',length(cis_first_pearson_filt_rand)),rep('CoCl2 second',length(cocl2_second_pearson_filt)),rep('CoCl2 second rand',length(cocl2_second_pearson_filt_rand)),rep('Dab/Tram second',length(dabtram_second_pearson_filt)),rep('Dab/Tram second rand',length(dabtram_second_pearson_filt_rand)),rep('Cisplatin second',length(cis_second_pearson_filt)),rep('Cisplatin second rand',length(cis_second_pearson_filt_rand))))
-# colnames(plotting_df_pearson) <- c('Grouping','Pearson','Treatment')
+rm(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand)
 
+plotting_df_pearson_dabtram <- data.frame(Grouping = c(rep('first',length(dabtram_first_pearson_filt)), rep('random',length(dabtram_first_pearson_filt)), rep('second', length(dabtram_second_pearson_filt)), rep('random', length(dabtram_second_pearson_filt))),
+                          Pearson = c(dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand),
+                          Treatment = c(rep('dabtram first',length(dabtram_first_pearson_filt)), rep('dabtram first rand', length(dabtram_first_pearson_filt_rand)),rep('dabtram second',length(dabtram_second_pearson_filt)),rep('dabtram second rand',length(dabtram_second_pearson_filt_rand))))
+colnames(plotting_df_pearson_dabtram) <- c('Grouping','Pearson','Treatment')
 
-plotting_df_pearson_cocl2 <- data.frame(Grouping = c(rep('first',2*length(c(cocl2_first_pearson_filt))),rep('second', 2*length(c(cocl2_second_pearson_filt)))),
-                          Pearson <- c(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand),
-                          Treatment = c(rep('CoCl2 first',length(cocl2_first_pearson_filt)), rep('CoCl2 first rand',length(cocl2_first_pearson_filt_rand)),rep('CoCl2 second',length(cocl2_second_pearson_filt)),rep('CoCl2 second rand',length(cocl2_second_pearson_filt_rand))))
-colnames(plotting_df_pearson_cocl2) <- c('Grouping','Pearson','Treatment')
+rm(dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand)
+gc()
 
-ggplot(plotting_df_pearson, aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_plot_subsampled.pdf')
+set.seed(1)
+ggplot(plotting_df_pearson_dabtram[sample(1:nrow(plotting_df_pearson_dabtram), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1) +
+  scale_fill_manual(values=c("#FF0000", "#D3D3D3", "#0000FF"))
+dev.off()
 
-pearson_ttest_cisplatin <- t.test(cis_first_pearson_filt, cis_second_pearson_filt, alternative = 'less', paired = F)
-pearson_ttest_cocl2 <- t.test(cocl2_first_pearson_filt, cocl2_second_pearson_filt, alternative = 'less', paired = F)
-pearson_ttest_dabtram <- t.test(dabtram_first_pearson_filt, dabtram_second_pearson_filt, alternative = 'less', paired = F)
+# Save outputs
+save(pearson_ttest_dabtram_firstvsrand, pearson_ttest_dabtram_secondvsfirst, pearson_ttest_dabtram_secondvsrand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_values.RData')
+rm(pearson_ttest_dabtram_firstvsrand, pearson_ttest_dabtram_secondvsfirst, pearson_ttest_dabtram_secondvsrand)
+
+save(plotting_df_pearson_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_plotting_df.RData')
+rm(plotting_df_pearson_dabtram)
+```
+
+# Statistical analysis and plotting of pearson metrics - cis
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_results.RData') # Load data
+pearson_ttest_cis_firstvsrand <- t.test(cis_first_pearson_filt, cis_first_pearson_filt_rand, alternative = 'greater', paired = F)
+pearson_ttest_cis_secondvsrand <- t.test(cis_second_pearson_filt, cis_second_pearson_filt_rand, alternative = 'greater', paired = F)
+pearson_ttest_cis_secondvsfirst <- t.test(cis_second_pearson_filt, cis_first_pearson_filt, alternative = 'greater', paired = F)
+
+rm(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subset_rand, cis_second_pearson, cis_second_pearson_rand, cis_second_subset, cis_second_subset_rand)
+
+plotting_df_pearson_cis <- data.frame(Grouping = c(rep('first',length(cis_first_pearson_filt)), rep('random',length(cis_first_pearson_filt)), rep('second', length(cis_second_pearson_filt)), rep('random', length(cis_second_pearson_filt))),
+                          Pearson = c(cis_first_pearson_filt, cis_first_pearson_filt_rand, cis_second_pearson_filt, cis_second_pearson_filt_rand),
+                          Treatment = c(rep('cis first',length(cis_first_pearson_filt)), rep('cis first rand', length(cis_first_pearson_filt_rand)),rep('cis second',length(cis_second_pearson_filt)),rep('cis second rand',length(cis_second_pearson_filt_rand))))
+colnames(plotting_df_pearson_cis) <- c('Grouping','Pearson','Treatment')
+
+rm(cis_first_pearson_filt, cis_first_pearson_filt_rand, cis_second_pearson_filt, cis_second_pearson_filt_rand)
+gc()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_plot_subsampled.pdf')
+set.seed(1)
+ggplot(plotting_df_pearson_cis[sample(1:nrow(plotting_df_pearson_cis), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1) +
+  scale_fill_manual(values=c("#FF0000", "#D3D3D3", "#0000FF"))
+dev.off()
+
+# Save outputs
+save(pearson_ttest_cis_firstvsrand, pearson_ttest_cis_secondvsfirst, pearson_ttest_cis_secondvsrand, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_values.RData')
+rm(pearson_ttest_cis_firstvsrand, pearson_ttest_cis_secondvsfirst, pearson_ttest_cis_secondvsrand)
+
+save(plotting_df_pearson_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_plotting_df.RData')
+rm(plotting_df_pearson_cis)
+```
+
+# Load in the ttest data and compile into excel sheet
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_values.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_values.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_values.RData')
+
+comparisons <-  c('dabtram_firstvsrand', 'dabtram_secondvsrand', 'dabtram_secondvsfirst','cocl2_firstvsrand', 'cocl2_secondvsrand', 'cocl2_secondvsfirst', 'cis_firstvsrand', 'cis_secondvsrand', 'cis_secondvsfirst')
+
+t_statistic <- c(pearson_ttest_dabtram_firstvsrand$statistic, pearson_ttest_dabtram_secondvsrand$statistic, pearson_ttest_dabtram_secondvsfirst$statistic, pearson_ttest_cocl2_firstvsrand$statistic, pearson_ttest_cocl2_secondvsrand$statistic, pearson_ttest_cocl2_secondvsfirst$statistic, pearson_ttest_cis_firstvsrand$statistic, pearson_ttest_cis_secondvsrand$statistic, pearson_ttest_cis_secondvsfirst$statistic)
+
+t_pval <- c(pearson_ttest_dabtram_firstvsrand$p.value, pearson_ttest_dabtram_secondvsrand$p.value, pearson_ttest_dabtram_secondvsfirst$p.value, pearson_ttest_cocl2_firstvsrand$p.value, pearson_ttest_cocl2_secondvsrand$p.value, pearson_ttest_cocl2_secondvsfirst$p.value, pearson_ttest_cis_firstvsrand$p.value, pearson_ttest_cis_secondvsrand$p.value, pearson_ttest_cis_secondvsfirst$p.value)
+
+ttest_df <- data.frame('Comparisons' = comparisons, 'T test statistic' = t_statistic, 'p value' = t_pval)
+
+write.xlsx(ttest_df, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/pearson_ttest_statistics.xlsx')
+```
