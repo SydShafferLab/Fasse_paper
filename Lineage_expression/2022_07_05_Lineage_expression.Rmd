@@ -319,7 +319,7 @@ for (i in fivecell_cDNA$DabTram){
 
 # Need to do a random sampling of the same thing 
 dabtram_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtram_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$DabTram){
@@ -392,7 +392,7 @@ for (i in fivecell_cDNA$DabTramtoDabTram){
 
 # Need to do a random sampling of the same thing 
 dabtramtodabtram_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtramtodabtram_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$DabTramtoDabTram){
@@ -466,7 +466,7 @@ for (i in fivecell_cDNA$DabTramtoCis){
 
 # Need to do a random sampling of the same thing 
 dabtramtocis_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtramtocis_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$DabTramtoCis){
@@ -540,7 +540,7 @@ for (i in fivecell_cDNA$DabTramtoCoCl2){
 
 # Need to do a random sampling of the same thing 
 dabtramtococl2_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtramtococl2_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$DabTramtoCoCl2){
@@ -614,7 +614,7 @@ for (i in fivecell_cDNA$CoCl2){
 
 # Need to do a random sampling of the same thing 
 cocl2_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CoCl2){
@@ -687,7 +687,7 @@ for (i in fivecell_cDNA$CoCl2toCoCl2){
 
 # Need to do a random sampling of the same thing 
 cocl2tococl2_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2tococl2_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CoCl2toCoCl2){
@@ -760,7 +760,7 @@ for (i in fivecell_cDNA$CoCl2toCis){
 
 # Need to do a random sampling of the same thing 
 cocl2tocis_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2tocis_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CoCl2toCis){
@@ -833,7 +833,7 @@ for (i in fivecell_cDNA$CoCl2toDabTram){
 
 # Need to do a random sampling of the same thing 
 cocl2todabtram_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2todabtram_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CoCl2toDabTram){
@@ -906,7 +906,7 @@ for (i in fivecell_cDNA$Cis){
 
 # Need to do a random sampling of the same thing 
 cis_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cis_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$Cis){
@@ -981,7 +981,7 @@ for (i in fivecell_cDNA$CistoCis){
 
 # Need to do a random sampling of the same thing 
 cistocis_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cistocis_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CistoCis){
@@ -1056,7 +1056,7 @@ for (i in fivecell_cDNA$CistoDabTram){
 
 # Need to do a random sampling of the same thing 
 cistodabtram_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cistodabtram_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CistoDabTram){
@@ -1130,7 +1130,7 @@ for (i in fivecell_cDNA$CistoCoCl2){
 
 # Need to do a random sampling of the same thing 
 cistococl2_lin_clust_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cistococl2_lin_clust_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$CistoCoCl2){

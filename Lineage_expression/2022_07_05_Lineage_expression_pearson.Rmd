@@ -131,7 +131,7 @@ for (i in fivecell_cDNA$DabTram){
 
 # Need to do a random sampling of the same thing 
 dabtram_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtram_lin_pearson_rand_list[[j]] <- list()
   for (i in fivecell_cDNA$DabTram){
@@ -145,7 +145,7 @@ for(j in 1:num_iter){
 }
 ```
 ## Significance testing of the dabtram simulation
-```{r}
+```{r include=FALSE}
 # Find the mean of the average pearson correlation per lineage
 mean_pearson_dabtram <- mean(unlist(lapply(dabtram_lin_pearson_list, mean))) # True mean of average correlations per lineage
 
@@ -177,7 +177,7 @@ for (i in 1:length(dabtram_lin_pearson_rand_list)){
 
 # Save outputs
 save(dabtram, dabtram_lin_pearson_list, dabtram_lin_pearson_rand_list, z_mean_pearson_dabtram, pval_mean_pearson_dabtram, z_wmean_pearson_dabtram, pval_wmean_pearson_dabtram,  wilcox_pval_dabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_pearson_sim_results.RData')
-rm(dabtram)
+rm(dabtram,dabtram_lin_pearson_list, dabtram_lin_pearson_rand_list, dabtram_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - dabtramtodabtram
@@ -203,7 +203,7 @@ dabtramtodabtram_input_data <- GetAssayData(dabtramtodabtram, assay = 'RNA', slo
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 dabtramtodabtram_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$dabtramtodabtram){
+for (i in fivecell_cDNA$DabTramtoDabTram){
   temp_pearson <- cor(dabtramtodabtram_input_data[,colnames(dabtramtodabtram)[dabtramtodabtram$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   dabtramtodabtram_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -211,10 +211,10 @@ for (i in fivecell_cDNA$dabtramtodabtram){
 
 # Need to do a random sampling of the same thing 
 dabtramtodabtram_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtramtodabtram_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$dabtramtodabtram){
+  for (i in fivecell_cDNA$DabTramtoDabTram){
     set.seed(j)
     num_cells <- length(dabtramtodabtram$Lineage[dabtramtodabtram$Lineage == i])
     temp_pearson <- cor(dabtramtodabtram_input_data[,sample(colnames(dabtramtodabtram), num_cells, replace = F)])
@@ -257,7 +257,7 @@ for (i in 1:length(dabtramtodabtram_lin_pearson_rand_list)){
 
 # Save outputs
 save(dabtramtodabtram, dabtramtodabtram_lin_pearson_list, dabtramtodabtram_lin_pearson_rand_list, z_mean_pearson_dabtramtodabtram, pval_mean_pearson_dabtramtodabtram, z_wmean_pearson_dabtramtodabtram, pval_wmean_pearson_dabtramtodabtram,  wilcox_pval_dabtramtodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_pearson_sim_results.RData')
-rm(dabtramtodabtram)
+rm(dabtramtodabtram, dabtramtodabtram_lin_pearson_list, dabtramtodabtram_lin_pearson_rand_list, dabtramtodabtram_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - dabtramtocis
@@ -282,7 +282,7 @@ dabtramtocis_input_data <- GetAssayData(dabtramtocis, assay = 'RNA', slot = 'sca
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 dabtramtocis_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$dabtramtocis){
+for (i in fivecell_cDNA$DabTramtoCis){
   temp_pearson <- cor(dabtramtocis_input_data[,colnames(dabtramtocis)[dabtramtocis$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   dabtramtocis_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -290,10 +290,10 @@ for (i in fivecell_cDNA$dabtramtocis){
 
 # Need to do a random sampling of the same thing 
 dabtramtocis_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtramtocis_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$dabtramtocis){
+  for (i in fivecell_cDNA$DabTramtoCis){
     set.seed(j)
     num_cells <- length(dabtramtocis$Lineage[dabtramtocis$Lineage == i])
     temp_pearson <- cor(dabtramtocis_input_data[,sample(colnames(dabtramtocis), num_cells, replace = F)])
@@ -336,7 +336,7 @@ for (i in 1:length(dabtramtocis_lin_pearson_rand_list)){
 
 # Save outputs
 save(dabtramtocis, dabtramtocis_lin_pearson_list, dabtramtocis_lin_pearson_rand_list, z_mean_pearson_dabtramtocis, pval_mean_pearson_dabtramtocis, z_wmean_pearson_dabtramtocis, pval_wmean_pearson_dabtramtocis,  wilcox_pval_dabtramtocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_pearson_sim_results.RData')
-rm(dabtramtocis)
+rm(dabtramtocis, dabtramtocis_lin_pearson_list, dabtramtocis_lin_pearson_rand_list, dabtramtocis_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - dabtramtococl2
@@ -361,7 +361,7 @@ dabtramtococl2_input_data <- GetAssayData(dabtramtococl2, assay = 'RNA', slot = 
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 dabtramtococl2_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$dabtramtococl2){
+for (i in fivecell_cDNA$DabTramtoCoCl2){
   temp_pearson <- cor(dabtramtococl2_input_data[,colnames(dabtramtococl2)[dabtramtococl2$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   dabtramtococl2_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -369,10 +369,10 @@ for (i in fivecell_cDNA$dabtramtococl2){
 
 # Need to do a random sampling of the same thing 
 dabtramtococl2_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   dabtramtococl2_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$dabtramtococl2){
+  for (i in fivecell_cDNA$DabTramtoCoCl2){
     set.seed(j)
     num_cells <- length(dabtramtococl2$Lineage[dabtramtococl2$Lineage == i])
     temp_pearson <- cor(dabtramtococl2_input_data[,sample(colnames(dabtramtococl2), num_cells, replace = F)])
@@ -415,7 +415,7 @@ for (i in 1:length(dabtramtococl2_lin_pearson_rand_list)){
 
 # Save outputs
 save(dabtramtococl2, dabtramtococl2_lin_pearson_list, dabtramtococl2_lin_pearson_rand_list, z_mean_pearson_dabtramtococl2, pval_mean_pearson_dabtramtococl2, z_wmean_pearson_dabtramtococl2, pval_wmean_pearson_dabtramtococl2,  wilcox_pval_dabtramtococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_pearson_sim_results.RData')
-rm(dabtramtococl2)
+rm(dabtramtococl2, dabtramtococl2_lin_pearson_list, dabtramtococl2_lin_pearson_rand_list, dabtramtococl2_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cocl2
@@ -440,7 +440,7 @@ cocl2_input_data <- GetAssayData(cocl2, assay = 'RNA', slot = 'scale.data')
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cocl2_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cocl2){
+for (i in fivecell_cDNA$CoCl2){
   temp_pearson <- cor(cocl2_input_data[,colnames(cocl2)[cocl2$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cocl2_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -448,10 +448,10 @@ for (i in fivecell_cDNA$cocl2){
 
 # Need to do a random sampling of the same thing 
 cocl2_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cocl2){
+  for (i in fivecell_cDNA$CoCl2){
     set.seed(j)
     num_cells <- length(cocl2$Lineage[cocl2$Lineage == i])
     temp_pearson <- cor(cocl2_input_data[,sample(colnames(cocl2), num_cells, replace = F)])
@@ -494,7 +494,7 @@ for (i in 1:length(cocl2_lin_pearson_rand_list)){
 
 # Save outputs
 save(cocl2, cocl2_lin_pearson_list, cocl2_lin_pearson_rand_list, z_mean_pearson_cocl2, pval_mean_pearson_cocl2, z_wmean_pearson_cocl2, pval_wmean_pearson_cocl2,  wilcox_pval_cocl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_pearson_sim_results.RData')
-rm(cocl2)
+rm(cocl2, cocl2_lin_pearson_list, cocl2_lin_pearson_rand_list, cocl2_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cocl2tococl2
@@ -519,7 +519,7 @@ cocl2tococl2_input_data <- GetAssayData(cocl2tococl2, assay = 'RNA', slot = 'sca
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cocl2tococl2_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cocl2tococl2){
+for (i in fivecell_cDNA$CoCl2toCoCl2){
   temp_pearson <- cor(cocl2tococl2_input_data[,colnames(cocl2tococl2)[cocl2tococl2$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cocl2tococl2_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -527,10 +527,10 @@ for (i in fivecell_cDNA$cocl2tococl2){
 
 # Need to do a random sampling of the same thing 
 cocl2tococl2_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2tococl2_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cocl2tococl2){
+  for (i in fivecell_cDNA$CoCl2toCoCl2){
     set.seed(j)
     num_cells <- length(cocl2tococl2$Lineage[cocl2tococl2$Lineage == i])
     temp_pearson <- cor(cocl2tococl2_input_data[,sample(colnames(cocl2tococl2), num_cells, replace = F)])
@@ -573,7 +573,7 @@ for (i in 1:length(cocl2tococl2_lin_pearson_rand_list)){
 
 # Save outputs
 save(cocl2tococl2, cocl2tococl2_lin_pearson_list, cocl2tococl2_lin_pearson_rand_list, z_mean_pearson_cocl2tococl2, pval_mean_pearson_cocl2tococl2, z_wmean_pearson_cocl2tococl2, pval_wmean_pearson_cocl2tococl2,  wilcox_pval_cocl2tococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_pearson_sim_results.RData')
-rm(cocl2tococl2)
+rm(cocl2tococl2, cocl2tococl2_lin_pearson_list, cocl2tococl2_lin_pearson_rand_list, cocl2tococl2_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cocl2tocis
@@ -599,7 +599,7 @@ cocl2tocis_input_data <- GetAssayData(cocl2tocis, assay = 'RNA', slot = 'scale.d
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cocl2tocis_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cocl2tocis){
+for (i in fivecell_cDNA$CoCl2toCis){
   temp_pearson <- cor(cocl2tocis_input_data[,colnames(cocl2tocis)[cocl2tocis$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cocl2tocis_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -607,10 +607,10 @@ for (i in fivecell_cDNA$cocl2tocis){
 
 # Need to do a random sampling of the same thing 
 cocl2tocis_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2tocis_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cocl2tocis){
+  for (i in fivecell_cDNA$CoCl2toCis){
     set.seed(j)
     num_cells <- length(cocl2tocis$Lineage[cocl2tocis$Lineage == i])
     temp_pearson <- cor(cocl2tocis_input_data[,sample(colnames(cocl2tocis), num_cells, replace = F)])
@@ -653,7 +653,7 @@ for (i in 1:length(cocl2tocis_lin_pearson_rand_list)){
 
 # Save outputs
 save(cocl2tocis, cocl2tocis_lin_pearson_list, cocl2tocis_lin_pearson_rand_list, z_mean_pearson_cocl2tocis, pval_mean_pearson_cocl2tocis, z_wmean_pearson_cocl2tocis, pval_wmean_pearson_cocl2tocis,  wilcox_pval_cocl2tocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_pearson_sim_results.RData')
-rm(cocl2tocis)
+rm(cocl2tocis, cocl2tocis_lin_pearson_list, cocl2tocis_lin_pearson_rand_lis, cocl2tocis_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cocl2todabtram
@@ -679,7 +679,7 @@ cocl2todabtram_input_data <- GetAssayData(cocl2todabtram, assay = 'RNA', slot = 
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cocl2todabtram_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cocl2todabtram){
+for (i in fivecell_cDNA$CoCl2toDabTram){
   temp_pearson <- cor(cocl2todabtram_input_data[,colnames(cocl2todabtram)[cocl2todabtram$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cocl2todabtram_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -687,10 +687,10 @@ for (i in fivecell_cDNA$cocl2todabtram){
 
 # Need to do a random sampling of the same thing 
 cocl2todabtram_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cocl2todabtram_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cocl2todabtram){
+  for (i in fivecell_cDNA$CoCl2toDabTram){
     set.seed(j)
     num_cells <- length(cocl2todabtram$Lineage[cocl2todabtram$Lineage == i])
     temp_pearson <- cor(cocl2todabtram_input_data[,sample(colnames(cocl2todabtram), num_cells, replace = F)])
@@ -733,7 +733,7 @@ for (i in 1:length(cocl2todabtram_lin_pearson_rand_list)){
 
 # Save outputs
 save(cocl2todabtram, cocl2todabtram_lin_pearson_list, cocl2todabtram_lin_pearson_rand_list, z_mean_pearson_cocl2todabtram, pval_mean_pearson_cocl2todabtram, z_wmean_pearson_cocl2todabtram, pval_wmean_pearson_cocl2todabtram,  wilcox_pval_cocl2todabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_pearson_sim_results.RData')
-rm(cocl2todabtram)
+rm(cocl2todabtram, cocl2todabtram_lin_pearson_list, cocl2todabtram_lin_pearson_rand_list, cocl2todabtram_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cis
@@ -759,7 +759,7 @@ cis_input_data <- GetAssayData(cis, assay = 'RNA', slot = 'scale.data')
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cis_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cis){
+for (i in fivecell_cDNA$Cis){
   temp_pearson <- cor(cis_input_data[,colnames(cis)[cis$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cis_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -767,10 +767,10 @@ for (i in fivecell_cDNA$cis){
 
 # Need to do a random sampling of the same thing 
 cis_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cis_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cis){
+  for (i in fivecell_cDNA$Cis){
     set.seed(j)
     num_cells <- length(cis$Lineage[cis$Lineage == i])
     temp_pearson <- cor(cis_input_data[,sample(colnames(cis), num_cells, replace = F)])
@@ -813,7 +813,7 @@ for (i in 1:length(cis_lin_pearson_rand_list)){
 
 # Save outputs
 save(cis, cis_lin_pearson_list, cis_lin_pearson_rand_list, z_mean_pearson_cis, pval_mean_pearson_cis, z_wmean_pearson_cis, pval_wmean_pearson_cis,  wilcox_pval_cis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_pearson_sim_results.RData')
-rm(cis)
+rm(cis, cis_lin_pearson_list, cis_lin_pearson_rand_list, cis_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cistocis
@@ -839,7 +839,7 @@ cistocis_input_data <- GetAssayData(cistocis, assay = 'RNA', slot = 'scale.data'
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cistocis_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cistocis){
+for (i in fivecell_cDNA$CistoCis){
   temp_pearson <- cor(cistocis_input_data[,colnames(cistocis)[cistocis$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cistocis_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -847,10 +847,10 @@ for (i in fivecell_cDNA$cistocis){
 
 # Need to do a random sampling of the same thing 
 cistocis_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cistocis_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cistocis){
+  for (i in fivecell_cDNA$CistoCis){
     set.seed(j)
     num_cells <- length(cistocis$Lineage[cistocis$Lineage == i])
     temp_pearson <- cor(cistocis_input_data[,sample(colnames(cistocis), num_cells, replace = F)])
@@ -893,7 +893,7 @@ for (i in 1:length(cistocis_lin_pearson_rand_list)){
 
 # Save outputs
 save(cistocis, cistocis_lin_pearson_list, cistocis_lin_pearson_rand_list, z_mean_pearson_cistocis, pval_mean_pearson_cistocis, z_wmean_pearson_cistocis, pval_wmean_pearson_cistocis,  wilcox_pval_cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_pearson_sim_results.RData')
-rm(cistocis)
+rm(cistocis, cistocis_lin_pearson_list, cistocis_lin_pearson_rand_list, cistocis_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cistodabtram
@@ -919,7 +919,7 @@ cistodabtram_input_data <- GetAssayData(cistodabtram, assay = 'RNA', slot = 'sca
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cistodabtram_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cistodabtram){
+for (i in fivecell_cDNA$CistoDabTram){
   temp_pearson <- cor(cistodabtram_input_data[,colnames(cistodabtram)[cistodabtram$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cistodabtram_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -927,10 +927,10 @@ for (i in fivecell_cDNA$cistodabtram){
 
 # Need to do a random sampling of the same thing 
 cistodabtram_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cistodabtram_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cistodabtram){
+  for (i in fivecell_cDNA$CistoDabTram){
     set.seed(j)
     num_cells <- length(cistodabtram$Lineage[cistodabtram$Lineage == i])
     temp_pearson <- cor(cistodabtram_input_data[,sample(colnames(cistodabtram), num_cells, replace = F)])
@@ -973,7 +973,7 @@ for (i in 1:length(cistodabtram_lin_pearson_rand_list)){
 
 # Save outputs
 save(cistodabtram, cistodabtram_lin_pearson_list, cistodabtram_lin_pearson_rand_list, z_mean_pearson_cistodabtram, pval_mean_pearson_cistodabtram, z_wmean_pearson_cistodabtram, pval_wmean_pearson_cistodabtram,  wilcox_pval_cistodabtram, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_pearson_sim_results.RData')
-rm(cistodabtram)
+rm(cistodabtram, cistodabtram_lin_pearson_list, cistodabtram_lin_pearson_rand_list, cistodabtram_input_data)
 ```
 
 ## Look at whether lineages cluster together in each individual condition - cistococl2
@@ -999,7 +999,7 @@ cistococl2_input_data <- GetAssayData(cistococl2, assay = 'RNA', slot = 'scale.d
 # Build list of lineages with at least 5 cells in dab tram and do pearson correlation
 cistococl2_lin_pearson_list <- list()
 
-for (i in fivecell_cDNA$cistococl2){
+for (i in fivecell_cDNA$CistoCoCl2){
   temp_pearson <- cor(cistococl2_input_data[,colnames(cistococl2)[cistococl2$Lineage == i]])
   temp_pearson_filt <- temp_pearson[lower.tri(temp_pearson, diag = FALSE)]
   cistococl2_lin_pearson_list[[i]] <- temp_pearson_filt
@@ -1007,10 +1007,10 @@ for (i in fivecell_cDNA$cistococl2){
 
 # Need to do a random sampling of the same thing 
 cistococl2_lin_pearson_rand_list <- list()
-num_iter <- 1000 
+num_iter <- 100 
 for(j in 1:num_iter){
   cistococl2_lin_pearson_rand_list[[j]] <- list()
-  for (i in fivecell_cDNA$cistococl2){
+  for (i in fivecell_cDNA$CistoCoCl2){
     set.seed(j)
     num_cells <- length(cistococl2$Lineage[cistococl2$Lineage == i])
     temp_pearson <- cor(cistococl2_input_data[,sample(colnames(cistococl2), num_cells, replace = F)])
@@ -1053,5 +1053,5 @@ for (i in 1:length(cistococl2_lin_pearson_rand_list)){
 
 # Save outputs
 save(cistococl2, cistococl2_lin_pearson_list, cistococl2_lin_pearson_rand_list, z_mean_pearson_cistococl2, pval_mean_pearson_cistococl2, z_wmean_pearson_cistococl2, pval_wmean_pearson_cistococl2,  wilcox_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_pearson_sim_results.RData')
-rm(cistococl2)
+rm(cistococl2, cistococl2_lin_pearson_list, cistococl2_lin_pearson_rand_list, cistococl2_input_data)
 ```
