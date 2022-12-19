@@ -292,7 +292,7 @@ save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering
 
 ```
 
-# Try pearson and other distance metrics - https://pubmed.ncbi.nlm.nih.gov/30137247/
+# Try pearson - https://pubmed.ncbi.nlm.nih.gov/30137247/
 ```{r}
 
 #load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/workspace_v2.RData')
@@ -412,7 +412,7 @@ gc()
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_plot_subsampled.pdf')
 set.seed(1)
-ggplot(plotting_df_pearson_cocl2[sample(1:nrow(plotting_df_pearson_cocl2), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1) +
+ggplot(plotting_df_pearson_cocl2[sample(1:nrow(plotting_df_pearson_cocl2), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1, outlier.shape = NA) +
   scale_fill_manual(values=c("#FF0000", "#D3D3D3", "#0000FF"))
 dev.off()
 
@@ -443,7 +443,7 @@ gc()
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_plot_subsampled.pdf')
 set.seed(1)
-ggplot(plotting_df_pearson_dabtram[sample(1:nrow(plotting_df_pearson_dabtram), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1) +
+ggplot(plotting_df_pearson_dabtram[sample(1:nrow(plotting_df_pearson_dabtram), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1, outlier.shape = NA) +
   scale_fill_manual(values=c("#FF0000", "#D3D3D3", "#0000FF"))
 dev.off()
 
@@ -474,7 +474,7 @@ gc()
 
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_plot_subsampled.pdf')
 set.seed(1)
-ggplot(plotting_df_pearson_cis[sample(1:nrow(plotting_df_pearson_cis), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1) +
+ggplot(plotting_df_pearson_cis[sample(1:nrow(plotting_df_pearson_cis), 10000000),], aes(x = Treatment, y = Pearson, fill = Grouping)) + geom_violin() + geom_boxplot(width = 0.1, outlier.shape = NA) +
   scale_fill_manual(values=c("#FF0000", "#D3D3D3", "#0000FF"))
 dev.off()
 

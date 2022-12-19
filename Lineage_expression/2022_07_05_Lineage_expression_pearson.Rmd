@@ -1055,3 +1055,545 @@ for (i in 1:length(cistococl2_lin_pearson_rand_list)){
 save(cistococl2, cistococl2_lin_pearson_list, cistococl2_lin_pearson_rand_list, z_mean_pearson_cistococl2, pval_mean_pearson_cistococl2, z_wmean_pearson_cistococl2, pval_wmean_pearson_cistococl2,  wilcox_pval_cistococl2, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_pearson_sim_results.RData')
 rm(cistococl2, cistococl2_lin_pearson_list, cistococl2_lin_pearson_rand_list, cistococl2_input_data)
 ```
+
+## Load the data back in and generate histograms showing the average of weighted mean per lineage acorss all sims vs the true val
+```{r}
+dir.create('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots')
+
+# DabTram first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_pearson_sim_results.RData')
+wilcox_pvals_df <- data.frame("DabTram" = as.numeric(wilcox_pval_dabtram))
+
+weighted_mean_pearson_dabtram <- weighted.mean(unlist(lapply(dabtram_lin_pearson_list, mean)),
+unlist(lapply(dabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtram_sim <- sapply(1:length(dabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtram.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtram_sim), aes(x = weighted_means_pearson_dabtram_sim))+geom_histogram(fill = '#623594', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtram+.03, label = round(weighted_mean_pearson_dabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTram simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_dabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtram_lin_pearson_list, mean)),unlist(lapply(dabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtram_lin_pearson_list)),rep('Simulation', length(dabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#623594","#999999")) + scale_fill_manual(values=c("#623594","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example DabTram plot')
+
+dev.off()
+
+rm(dabtram,dabtram_lin_pearson_list,dabtram_lin_pearson_rand_list, wilcox_pval_dabtram, plot_df)
+
+# dabtramtodabtram ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_pearson_sim_results.RData')
+wilcox_pvals_df$DabTramtoDabTram <- as.numeric(wilcox_pval_dabtramtodabtram)
+
+weighted_mean_pearson_dabtramtodabtramtodabtramtodabtram <- weighted.mean(unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)),
+unlist(lapply(dabtramtodabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtodabtram_sim <- sapply(1:length(dabtramtodabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtramtodabtram.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtramtodabtram_sim), aes(x = weighted_means_pearson_dabtramtodabtram_sim))+geom_histogram(fill = '#561e59', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtramtodabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtramtodabtram+.03, label = round(weighted_mean_pearson_dabtramtodabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTramtoDabTram simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_dabtramtodabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)),unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtramtodabtram_lin_pearson_list)),rep('Simulation', length(dabtramtodabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#561e59","#999999")) + scale_fill_manual(values=c("#561e59","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example DabTramtoDabTram plot')
+
+dev.off()
+
+rm(dabtramtodabtram,dabtramtodabtram_lin_pearson_list,dabtramtodabtram_lin_pearson_rand_list, wilcox_pval_dabtramtodabtram, plot_df)
+
+# dabtramtocis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_pearson_sim_results.RData')
+wilcox_pvals_df$DabTramtoCis <- as.numeric(wilcox_pval_dabtramtocis)
+
+weighted_mean_pearson_dabtramtocis <- weighted.mean(unlist(lapply(dabtramtocis_lin_pearson_list, mean)),
+unlist(lapply(dabtramtocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtocis_sim <- sapply(1:length(dabtramtocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtramtocis.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtramtocis_sim), aes(x = weighted_means_pearson_dabtramtocis_sim))+geom_histogram(fill = '#9685be', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtramtocis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtramtocis+.03, label = round(weighted_mean_pearson_dabtramtocis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTramtoCis simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_dabtramtocis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtramtocis_lin_pearson_list, mean)),unlist(lapply(dabtramtocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtramtocis_lin_pearson_list)),rep('Simulation', length(dabtramtocis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#9685be","#999999")) + scale_fill_manual(values=c("#9685be","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example dabtramtocis plot')
+
+dev.off()
+
+rm(dabtramtocis,dabtramtocis_lin_pearson_list,dabtramtocis_lin_pearson_rand_list, wilcox_pval_dabtramtocis,plot_df)
+
+# dabtramtococl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_pearson_sim_results.RData')
+wilcox_pvals_df$DabTramtoCoCl2 <- as.numeric(wilcox_pval_dabtramtococl2)
+
+weighted_mean_pearson_dabtramtococl2 <- weighted.mean(unlist(lapply(dabtramtococl2_lin_pearson_list, mean)),
+unlist(lapply(dabtramtococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtococl2_sim <- sapply(1:length(dabtramtococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtramtococl2.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtramtococl2_sim), aes(x = weighted_means_pearson_dabtramtococl2_sim))+geom_histogram(fill = '#a2248e', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtramtococl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtramtococl2+.03, label = round(weighted_mean_pearson_dabtramtococl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTramtoCoCl2 simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_dabtramtococl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtramtococl2_lin_pearson_list, mean)),unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtramtococl2_lin_pearson_list)),rep('Simulation', length(dabtramtococl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#a2248e","#999999")) + scale_fill_manual(values=c("#a2248e","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example DabTramtoCoCl2 plot')
+
+dev.off()
+
+rm(dabtramtococl2,dabtramtococl2_lin_pearson_list,dabtramtococl2_lin_pearson_rand_list, wilcox_pval_dabtramtococl2,plot_df)
+
+# cocl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2 <- as.numeric(wilcox_pval_cocl2)
+
+weighted_mean_pearson_cocl2 <- weighted.mean(unlist(lapply(cocl2_lin_pearson_list, mean)),
+unlist(lapply(cocl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2_sim <- sapply(1:length(cocl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2_sim), aes(x = weighted_means_pearson_cocl2_sim))+geom_histogram(fill = '#0f8241', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2+.03, label = round(weighted_mean_pearson_cocl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2 simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cocl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2_lin_pearson_list, mean)),unlist(lapply(cocl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2_lin_pearson_list)),rep('Simulation', length(cocl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#0f8241","#999999")) + scale_fill_manual(values=c("#0f8241","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example cocl2 plot')
+
+dev.off()
+
+rm(cocl2,cocl2_lin_pearson_list,cocl2_lin_pearson_rand_list, wilcox_pval_cocl2,plot_df)
+
+# cocl2tococl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2toCoCl2 <- as.numeric(wilcox_pval_cocl2tococl2)
+
+weighted_mean_pearson_cocl2tococl2 <- weighted.mean(unlist(lapply(cocl2tococl2_lin_pearson_list, mean)),
+unlist(lapply(cocl2tococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2tococl2_sim <- sapply(1:length(cocl2tococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2tococl2.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2tococl2_sim), aes(x = weighted_means_pearson_cocl2tococl2_sim))+geom_histogram(fill = '#6abd45', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2tococl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2tococl2+.03, label = round(weighted_mean_pearson_cocl2tococl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2toCoCl2 simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cocl2tococl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2tococl2_lin_pearson_list, mean)),unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2tococl2_lin_pearson_list)),rep('Simulation', length(cocl2tococl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#6abd45","#999999")) + scale_fill_manual(values=c("#6abd45","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CoCl2toCoCl2 plot')
+
+dev.off()
+
+rm(cocl2tococl2,cocl2tococl2_lin_pearson_list,cocl2tococl2_lin_pearson_rand_list, wilcox_pval_cocl2tococl2,plot_df)
+
+# cocl2todabtram ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2toDabTram <- as.numeric(wilcox_pval_cocl2todabtram)
+
+weighted_mean_pearson_cocl2todabtram <- weighted.mean(unlist(lapply(cocl2todabtram_lin_pearson_list, mean)),
+unlist(lapply(cocl2todabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2todabtram_sim <- sapply(1:length(cocl2todabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2todabtram.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2todabtram_sim), aes(x = weighted_means_pearson_cocl2todabtram_sim))+geom_histogram(fill = '#10413b', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2todabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2todabtram+.03, label = round(weighted_mean_pearson_cocl2todabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2toDabTram simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cocl2todabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2todabtram_lin_pearson_list, mean)),unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2todabtram_lin_pearson_list)),rep('Simulation', length(cocl2todabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#10413b","#999999")) + scale_fill_manual(values=c("#10413b","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CoCl2toDabTram plot')
+
+dev.off()
+
+rm(cocl2todabtram,cocl2todabtram_lin_pearson_list,cocl2todabtram_lin_pearson_rand_list, wilcox_pval_cocl2todabtram,plot_df)
+
+# cocl2tocis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2toCis <- as.numeric(wilcox_pval_cocl2tocis)
+
+weighted_mean_pearson_cocl2tocis <- weighted.mean(unlist(lapply(cocl2tocis_lin_pearson_list, mean)),
+unlist(lapply(cocl2tocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2tocis_sim <- sapply(1:length(cocl2tocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2tocis.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2tocis_sim), aes(x = weighted_means_pearson_cocl2tocis_sim))+geom_histogram(fill = '#6dc49c', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2tocis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2tocis+.03, label = round(weighted_mean_pearson_cocl2tocis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2toCis simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cocl2tocis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2tocis_lin_pearson_list, mean)),unlist(lapply(cocl2tocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2tocis_lin_pearson_list)),rep('Simulation', length(cocl2tocis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#6dc49c","#999999")) + scale_fill_manual(values=c("#6dc49c","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CoCl2toCis plot')
+
+dev.off()
+
+rm(cocl2tocis,cocl2tocis_lin_pearson_list,cocl2tocis_lin_pearson_rand_list, wilcox_pval_cocl2tocis,plot_df)
+
+# cis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_pearson_sim_results.RData')
+wilcox_pvals_df$Cis <- as.numeric(wilcox_pval_cis)
+
+weighted_mean_pearson_cis <- weighted.mean(unlist(lapply(cis_lin_pearson_list, mean)),
+unlist(lapply(cis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cis_sim <- sapply(1:length(cis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cis.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cis_sim), aes(x = weighted_means_pearson_cis_sim))+geom_histogram(fill = '#c96d29', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cis+.03, label = round(weighted_mean_pearson_cis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'Cis simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cis_lin_pearson_list, mean)),unlist(lapply(cis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cis_lin_pearson_list)),rep('Simulation', length(cis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#c96d29","#999999")) + scale_fill_manual(values=c("#c96d29","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example cis plot')
+
+dev.off()
+
+rm(cis,cis_lin_pearson_list,cis_lin_pearson_rand_list, wilcox_pval_cis,plot_df)
+
+# cistococl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_pearson_sim_results.RData')
+wilcox_pvals_df$CistoCoCl2 <- as.numeric(wilcox_pval_cistococl2)
+
+weighted_mean_pearson_cistococl2 <- weighted.mean(unlist(lapply(cistococl2_lin_pearson_list, mean)),
+unlist(lapply(cistococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistococl2_sim <- sapply(1:length(cistococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cistococl2.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cistococl2_sim), aes(x = weighted_means_pearson_cistococl2_sim))+geom_histogram(fill = '#f49129', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cistococl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cistococl2+.03, label = round(weighted_mean_pearson_cistococl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CistoCoCl2 simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cistococl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cistococl2_lin_pearson_list, mean)),unlist(lapply(cistococl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistococl2_lin_pearson_list)),rep('Simulation', length(cistococl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#f49129","#999999")) + scale_fill_manual(values=c("#f49129","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CistoCoCl2 plot')
+
+dev.off()
+
+rm(cistococl2,cistococl2_lin_pearson_list,cistococl2_lin_pearson_rand_list, wilcox_pval_cistococl2,plot_df)
+
+# cistodabtram ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_pearson_sim_results.RData')
+wilcox_pvals_df$CistoDabTram <- as.numeric(wilcox_pval_cistodabtram)
+
+weighted_mean_pearson_cistodabtram <- weighted.mean(unlist(lapply(cistodabtram_lin_pearson_list, mean)),
+unlist(lapply(cistodabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistodabtram_sim <- sapply(1:length(cistodabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cistodabtram.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cistodabtram_sim), aes(x = weighted_means_pearson_cistodabtram_sim))+geom_histogram(fill = '#a23622', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cistodabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cistodabtram+.03, label = round(weighted_mean_pearson_cistodabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CistoDabTram simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cistodabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cistodabtram_lin_pearson_list, mean)),unlist(lapply(cistodabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistodabtram_lin_pearson_list)),rep('Simulation', length(cistodabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#a23622","#999999")) + scale_fill_manual(values=c("#a23622","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CistoDabTram plot')
+
+dev.off()
+
+rm(cistodabtram,cistodabtram_lin_pearson_list,cistodabtram_lin_pearson_rand_list, wilcox_pval_cistodabtram,plot_df)
+
+# cistocis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_pearson_sim_results.RData')
+wilcox_pvals_df$CistoCis <- as.numeric(wilcox_pval_cistocis)
+
+weighted_mean_pearson_cistocis <- weighted.mean(unlist(lapply(cistocis_lin_pearson_list, mean)),
+unlist(lapply(cistocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistocis_sim <- sapply(1:length(cistocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cistocis.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cistocis_sim), aes(x = weighted_means_pearson_cistocis_sim))+geom_histogram(fill = '#fbd08c', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cistocis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cistocis+.03, label = round(weighted_mean_pearson_cistocis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CistoCis simulation summary') + xlim(-.2, .2) + ylim(0,100) + geom_text(aes(x = weighted_mean_pearson_cistocis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cistocis_lin_pearson_list, mean)),unlist(lapply(cistocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistocis_lin_pearson_list)),rep('Simulation', length(cistocis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + xlim(-.2, .5) + ylim(0,100) + scale_color_manual(values=c("#fdb08c","#999999")) + scale_fill_manual(values=c("#fbd08c","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CistoCis plot')
+
+dev.off()
+
+rm(cistocis,cistocis_lin_pearson_list,cistocis_lin_pearson_rand_list, wilcox_pval_cistocis,plot_df)
+
+write.csv(wilcox_pvals_df, '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/wilcox_pvals_sims.csv')
+
+num_sig_sims <- as.data.frame(sapply(as.data.frame(wilcox_pvals_df <0.05), sum))
+colnames(num_sig_sims) <- "Number_significant_simulations"
+write.csv(num_sig_sims, '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/wilcox_pvals_sims_numsig.csv')
+```
+
+## Load the data back in and generate histograms showing the average of weighted mean per lineage acorss all sims vs the true val --- free axes
+```{r}
+dir.create('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots')
+
+# DabTram first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_pearson_sim_results.RData')
+wilcox_pvals_df <- data.frame("DabTram" = as.numeric(wilcox_pval_dabtram))
+
+weighted_mean_pearson_dabtram <- weighted.mean(unlist(lapply(dabtram_lin_pearson_list, mean)),
+unlist(lapply(dabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtram_sim <- sapply(1:length(dabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtram_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtram_sim), aes(x = weighted_means_pearson_dabtram_sim))+geom_histogram(fill = '#623594', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtram+.03, label = round(weighted_mean_pearson_dabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTram simulation summary') + geom_text(aes(x = weighted_mean_pearson_dabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtram_lin_pearson_list, mean)),unlist(lapply(dabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtram_lin_pearson_list)),rep('Simulation', length(dabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#623594","#999999")) + scale_fill_manual(values=c("#623594","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example DabTram plot')
+
+dev.off()
+
+rm(dabtram,dabtram_lin_pearson_list,dabtram_lin_pearson_rand_list, wilcox_pval_dabtram, plot_df)
+
+# dabtramtodabtram ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_pearson_sim_results.RData')
+wilcox_pvals_df$DabTramtoDabTram <- as.numeric(wilcox_pval_dabtramtodabtram)
+
+weighted_mean_pearson_dabtramtodabtramtodabtramtodabtram <- weighted.mean(unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)),
+unlist(lapply(dabtramtodabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtodabtram_sim <- sapply(1:length(dabtramtodabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtramtodabtram_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtramtodabtram_sim), aes(x = weighted_means_pearson_dabtramtodabtram_sim))+geom_histogram(fill = '#561e59', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtramtodabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtramtodabtram+.03, label = round(weighted_mean_pearson_dabtramtodabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTramtoDabTram simulation summary') + geom_text(aes(x = weighted_mean_pearson_dabtramtodabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)),unlist(lapply(dabtramtodabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtramtodabtram_lin_pearson_list)),rep('Simulation', length(dabtramtodabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#561e59","#999999")) + scale_fill_manual(values=c("#561e59","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example DabTramtoDabTram plot')
+
+dev.off()
+
+rm(dabtramtodabtram,dabtramtodabtram_lin_pearson_list,dabtramtodabtram_lin_pearson_rand_list, wilcox_pval_dabtramtodabtram, plot_df)
+
+# dabtramtocis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_pearson_sim_results.RData')
+wilcox_pvals_df$DabTramtoCis <- as.numeric(wilcox_pval_dabtramtocis)
+
+weighted_mean_pearson_dabtramtocis <- weighted.mean(unlist(lapply(dabtramtocis_lin_pearson_list, mean)),
+unlist(lapply(dabtramtocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtocis_sim <- sapply(1:length(dabtramtocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtramtocis_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtramtocis_sim), aes(x = weighted_means_pearson_dabtramtocis_sim))+geom_histogram(fill = '#9685be', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtramtocis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtramtocis+.03, label = round(weighted_mean_pearson_dabtramtocis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTramtoCis simulation summary') + geom_text(aes(x = weighted_mean_pearson_dabtramtocis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtramtocis_lin_pearson_list, mean)),unlist(lapply(dabtramtocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtramtocis_lin_pearson_list)),rep('Simulation', length(dabtramtocis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#9685be","#999999")) + scale_fill_manual(values=c("#9685be","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example dabtramtocis plot')
+
+dev.off()
+
+rm(dabtramtocis,dabtramtocis_lin_pearson_list,dabtramtocis_lin_pearson_rand_list, wilcox_pval_dabtramtocis,plot_df)
+
+# dabtramtococl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_pearson_sim_results.RData')
+wilcox_pvals_df$DabTramtoCoCl2 <- as.numeric(wilcox_pval_dabtramtococl2)
+
+weighted_mean_pearson_dabtramtococl2 <- weighted.mean(unlist(lapply(dabtramtococl2_lin_pearson_list, mean)),
+unlist(lapply(dabtramtococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_dabtramtococl2_sim <- sapply(1:length(dabtramtococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/dabtramtococl2_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_dabtramtococl2_sim), aes(x = weighted_means_pearson_dabtramtococl2_sim))+geom_histogram(fill = '#a2248e', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_dabtramtococl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_dabtramtococl2+.03, label = round(weighted_mean_pearson_dabtramtococl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'DabTramtoCoCl2 simulation summary') + geom_text(aes(x = weighted_mean_pearson_dabtramtococl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(dabtramtococl2_lin_pearson_list, mean)),unlist(lapply(dabtramtococl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(dabtramtococl2_lin_pearson_list)),rep('Simulation', length(dabtramtococl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#a2248e","#999999")) + scale_fill_manual(values=c("#a2248e","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example DabTramtoCoCl2 plot')
+
+dev.off()
+
+rm(dabtramtococl2,dabtramtococl2_lin_pearson_list,dabtramtococl2_lin_pearson_rand_list, wilcox_pval_dabtramtococl2,plot_df)
+
+# cocl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2 <- as.numeric(wilcox_pval_cocl2)
+
+weighted_mean_pearson_cocl2 <- weighted.mean(unlist(lapply(cocl2_lin_pearson_list, mean)),
+unlist(lapply(cocl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2_sim <- sapply(1:length(cocl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2_sim), aes(x = weighted_means_pearson_cocl2_sim))+geom_histogram(fill = '#0f8241', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2+.03, label = round(weighted_mean_pearson_cocl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2 simulation summary') + geom_text(aes(x = weighted_mean_pearson_cocl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2_lin_pearson_list, mean)),unlist(lapply(cocl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2_lin_pearson_list)),rep('Simulation', length(cocl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#0f8241","#999999")) + scale_fill_manual(values=c("#0f8241","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example cocl2 plot')
+
+dev.off()
+
+rm(cocl2,cocl2_lin_pearson_list,cocl2_lin_pearson_rand_list, wilcox_pval_cocl2,plot_df)
+
+# cocl2tococl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2toCoCl2 <- as.numeric(wilcox_pval_cocl2tococl2)
+
+weighted_mean_pearson_cocl2tococl2 <- weighted.mean(unlist(lapply(cocl2tococl2_lin_pearson_list, mean)),
+unlist(lapply(cocl2tococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2tococl2_sim <- sapply(1:length(cocl2tococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2tococl2_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2tococl2_sim), aes(x = weighted_means_pearson_cocl2tococl2_sim))+geom_histogram(fill = '#6abd45', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2tococl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2tococl2+.03, label = round(weighted_mean_pearson_cocl2tococl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2toCoCl2 simulation summary') + geom_text(aes(x = weighted_mean_pearson_cocl2tococl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2tococl2_lin_pearson_list, mean)),unlist(lapply(cocl2tococl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2tococl2_lin_pearson_list)),rep('Simulation', length(cocl2tococl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#6abd45","#999999")) + scale_fill_manual(values=c("#6abd45","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CoCl2toCoCl2 plot')
+
+dev.off()
+
+rm(cocl2tococl2,cocl2tococl2_lin_pearson_list,cocl2tococl2_lin_pearson_rand_list, wilcox_pval_cocl2tococl2,plot_df)
+
+# cocl2todabtram ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2toDabTram <- as.numeric(wilcox_pval_cocl2todabtram)
+
+weighted_mean_pearson_cocl2todabtram <- weighted.mean(unlist(lapply(cocl2todabtram_lin_pearson_list, mean)),
+unlist(lapply(cocl2todabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2todabtram_sim <- sapply(1:length(cocl2todabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2todabtram_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2todabtram_sim), aes(x = weighted_means_pearson_cocl2todabtram_sim))+geom_histogram(fill = '#10413b', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2todabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2todabtram+.03, label = round(weighted_mean_pearson_cocl2todabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2toDabTram simulation summary') + geom_text(aes(x = weighted_mean_pearson_cocl2todabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2todabtram_lin_pearson_list, mean)),unlist(lapply(cocl2todabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2todabtram_lin_pearson_list)),rep('Simulation', length(cocl2todabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#10413b","#999999")) + scale_fill_manual(values=c("#10413b","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CoCl2toDabTram plot')
+
+dev.off()
+
+rm(cocl2todabtram,cocl2todabtram_lin_pearson_list,cocl2todabtram_lin_pearson_rand_list, wilcox_pval_cocl2todabtram,plot_df)
+
+# cocl2tocis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_pearson_sim_results.RData')
+wilcox_pvals_df$CoCl2toCis <- as.numeric(wilcox_pval_cocl2tocis)
+
+weighted_mean_pearson_cocl2tocis <- weighted.mean(unlist(lapply(cocl2tocis_lin_pearson_list, mean)),
+unlist(lapply(cocl2tocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cocl2tocis_sim <- sapply(1:length(cocl2tocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cocl2tocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cocl2tocis_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cocl2tocis_sim), aes(x = weighted_means_pearson_cocl2tocis_sim))+geom_histogram(fill = '#6dc49c', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cocl2tocis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cocl2tocis+.03, label = round(weighted_mean_pearson_cocl2tocis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CoCl2toCis simulation summary') + geom_text(aes(x = weighted_mean_pearson_cocl2tocis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cocl2tocis_lin_pearson_list, mean)),unlist(lapply(cocl2tocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cocl2tocis_lin_pearson_list)),rep('Simulation', length(cocl2tocis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#6dc49c","#999999")) + scale_fill_manual(values=c("#6dc49c","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CoCl2toCis plot')
+
+dev.off()
+
+rm(cocl2tocis,cocl2tocis_lin_pearson_list,cocl2tocis_lin_pearson_rand_list, wilcox_pval_cocl2tocis,plot_df)
+
+# cis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_pearson_sim_results.RData')
+wilcox_pvals_df$Cis <- as.numeric(wilcox_pval_cis)
+
+weighted_mean_pearson_cis <- weighted.mean(unlist(lapply(cis_lin_pearson_list, mean)),
+unlist(lapply(cis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cis_sim <- sapply(1:length(cis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cis_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cis_sim), aes(x = weighted_means_pearson_cis_sim))+geom_histogram(fill = '#c96d29', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cis+.03, label = round(weighted_mean_pearson_cis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'Cis simulation summary') + geom_text(aes(x = weighted_mean_pearson_cis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cis_lin_pearson_list, mean)),unlist(lapply(cis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cis_lin_pearson_list)),rep('Simulation', length(cis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#c96d29","#999999")) + scale_fill_manual(values=c("#c96d29","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example cis plot')
+
+dev.off()
+
+rm(cis,cis_lin_pearson_list,cis_lin_pearson_rand_list, wilcox_pval_cis,plot_df)
+
+# cistococl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_pearson_sim_results.RData')
+wilcox_pvals_df$CistoCoCl2 <- as.numeric(wilcox_pval_cistococl2)
+
+weighted_mean_pearson_cistococl2 <- weighted.mean(unlist(lapply(cistococl2_lin_pearson_list, mean)),
+unlist(lapply(cistococl2_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistococl2_sim <- sapply(1:length(cistococl2_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistococl2_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cistococl2_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cistococl2_sim), aes(x = weighted_means_pearson_cistococl2_sim))+geom_histogram(fill = '#f49129', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cistococl2, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cistococl2+.03, label = round(weighted_mean_pearson_cistococl2, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CistoCoCl2 simulation summary') + geom_text(aes(x = weighted_mean_pearson_cistococl2+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cistococl2_lin_pearson_list, mean)),unlist(lapply(cistococl2_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistococl2_lin_pearson_list)),rep('Simulation', length(cistococl2_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#f49129","#999999")) + scale_fill_manual(values=c("#f49129","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CistoCoCl2 plot')
+
+dev.off()
+
+rm(cistococl2,cistococl2_lin_pearson_list,cistococl2_lin_pearson_rand_list, wilcox_pval_cistococl2,plot_df)
+
+# cistodabtram ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_pearson_sim_results.RData')
+wilcox_pvals_df$CistoDabTram <- as.numeric(wilcox_pval_cistodabtram)
+
+weighted_mean_pearson_cistodabtram <- weighted.mean(unlist(lapply(cistodabtram_lin_pearson_list, mean)),
+unlist(lapply(cistodabtram_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistodabtram_sim <- sapply(1:length(cistodabtram_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistodabtram_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cistodabtram_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cistodabtram_sim), aes(x = weighted_means_pearson_cistodabtram_sim))+geom_histogram(fill = '#a23622', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cistodabtram, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cistodabtram+.03, label = round(weighted_mean_pearson_cistodabtram, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CistoDabTram simulation summary') + geom_text(aes(x = weighted_mean_pearson_cistodabtram+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cistodabtram_lin_pearson_list, mean)),unlist(lapply(cistodabtram_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistodabtram_lin_pearson_list)),rep('Simulation', length(cistodabtram_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#a23622","#999999")) + scale_fill_manual(values=c("#a23622","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CistoDabTram plot')
+
+dev.off()
+
+rm(cistodabtram,cistodabtram_lin_pearson_list,cistodabtram_lin_pearson_rand_list, wilcox_pval_cistodabtram,plot_df)
+
+# cistocis ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_pearson_sim_results.RData')
+wilcox_pvals_df$CistoCis <- as.numeric(wilcox_pval_cistocis)
+
+weighted_mean_pearson_cistocis <- weighted.mean(unlist(lapply(cistocis_lin_pearson_list, mean)),
+unlist(lapply(cistocis_lin_pearson_list, length))) # true weighted mean of average correlations per lineage
+
+weighted_means_pearson_cistocis_sim <- sapply(1:length(cistocis_lin_pearson_rand_list), function(y)
+  weighted.mean(unlist(lapply(cistocis_lin_pearson_rand_list[[y]], mean)),
+                unlist(lapply(cistocis_lin_pearson_rand_list[[y]], length)))) # List of weighted means of pearson correlations
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/pearson_hist_plots/cistocis_freeaxes.pdf')
+#Summary of all simulations
+ggplot(data = as.data.frame(weighted_means_pearson_cistocis_sim), aes(x = weighted_means_pearson_cistocis_sim))+geom_histogram(fill = '#fbd08c', color = 'black', binwidth = 0.005) + geom_vline(xintercept = weighted_mean_pearson_cistocis, linetype = 'dashed', color = 'red') + geom_text(aes(x = weighted_mean_pearson_cistocis+.03, label = round(weighted_mean_pearson_cistocis, 3), y = 50), color = 'red') + labs(y = 'Number of simulations', x = 'Average weighted mean of correlations of cells within a lineage across 100 simulations', title = 'CistoCis simulation summary') + geom_text(aes(x = weighted_mean_pearson_cistocis+.03, label = 'Observed', y = 70), color = 'red') + theme_classic()
+
+# One example simulation
+plot_df <- data.frame('Pearson' = c(unlist(lapply(cistocis_lin_pearson_list, mean)),unlist(lapply(cistocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistocis_lin_pearson_list)),rep('Simulation', length(cistocis_lin_pearson_rand_list[[1]]))))
+ggplot(plot_df, aes(x = Pearson, fill = Condition, color = Condition)) + geom_histogram(position="identity", alpha = 0.5, binwidth = 0.005) + scale_color_manual(values=c("#fdb08c","#999999")) + scale_fill_manual(values=c("#fbd08c","#999999")) + labs(y = 'Number of lineages', x = 'Mean of pearson correlations per lineage', title = 'Example CistoCis plot')
+
+dev.off()
+```
