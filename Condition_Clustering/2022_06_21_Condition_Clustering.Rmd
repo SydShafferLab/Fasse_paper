@@ -528,5 +528,14 @@ DimPlot(second_timepoint, cells.highlight = names(second_timepoint$orig.ident)[s
 DimPlot(second_timepoint, cells.highlight = names(second_timepoint$orig.ident)[second_timepoint$Lineage != dabtramtococl2_largest_lin & second_timepoint$OG_condition == 'dabtramtococl2'], cols.highlight = 'darkblue')
 
 DimPlot(second_timepoint, cells.highlight= list(names(second_timepoint$orig.ident)[second_timepoint$Lineage == dabtramtococl2_largest_lin & second_timepoint$OG_condition == 'dabtramtococl2'], names(second_timepoint$orig.ident)[second_timepoint$Lineage != dabtramtococl2_largest_lin & second_timepoint$OG_condition == 'dabtramtococl2']), cols.highlight = c("darkblue", "darkred"), cols= "grey")
+
+#Find lineage sizes cistococl2
+cistococl2_lin_sizes <- table(second_timepoint$Lineage[second_timepoint$OG_condition == 'cistococl2'])
+cistococl2_largest_lin <- names(which.max(cistococl2_lin_sizes[names(cistococl2_lin_sizes) != c('No Barcode') & names(cistococl2_lin_sizes) != c('Still multiple')]))
+
+DimPlot(second_timepoint, cells.highlight = names(second_timepoint$orig.ident)[second_timepoint$Lineage == cistococl2_largest_lin & second_timepoint$OG_condition == 'cistococl2'], cols.highlight = 'darkred')
+DimPlot(second_timepoint, cells.highlight = names(second_timepoint$orig.ident)[second_timepoint$Lineage != cistococl2_largest_lin & second_timepoint$OG_condition == 'cistococl2'], cols.highlight = 'darkblue')
+
+DimPlot(second_timepoint, cells.highlight= list(names(second_timepoint$orig.ident)[second_timepoint$Lineage == cistococl2_largest_lin & second_timepoint$OG_condition == 'cistococl2'], names(second_timepoint$orig.ident)[second_timepoint$Lineage != cistococl2_largest_lin & second_timepoint$OG_condition == 'cistococl2']), cols.highlight = c("darkblue", "darkred"), cols= "grey")
 ```
 
