@@ -191,7 +191,7 @@ DimPlot(dabtram ,cols = c("dabtram:dabtramtococl2" = "#FF0000",
                           "dabtram:cocl2:cocl2todabtram" = "#D7DBDD",
                           "cocl2:cocl2todabtram" = "#D7DBDD",
                           "NA" = "#D7DBDD"),
-        pt.size = 2) + NoLegend() + labs(title = 'Induced and non-induced')
+        pt.size = 3) + NoLegend() + labs(title = 'Induced and non-induced')
 FeaturePlot(dabtram, features = c("IGFBP5","COL1A1","CAV1","BASP1",'CTSK', "IL6ST"))
 dev.off()
 write.xlsx(dabtram_inducedto_cocl2_markers_sig_p,'2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cocl2.xlsx', sheetName = 'p_sig', append = F)
