@@ -41,16 +41,7 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/a
 
 ```
 
-
-# Look at markers of induced resistant lineages (versus all? versus sensitive? difference is lineages that were resistant to both independently)
-# expression of end resistant state markers in the induced resistant lineages
-# do cells from these lineages cluster together?
-# are cells from these lineages resistant to many or few conditions?
-# how else do these lineages distinguish themselves?
-# do we want to do a pathway analysis here?
-
-# Build new object that defines induced resistance from gDNA_collapsed
-# cross check against gDNA_cDNA_collapsed to look at things with cDNA representation
+# Build new object that defines induced resistance from gDNA_collapsed cross check against gDNA_cDNA_collapsed to look at things with cDNA representation
 ```{r}
 
 nofilter_gDNA_lins <- list()
