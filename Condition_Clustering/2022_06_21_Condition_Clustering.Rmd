@@ -8,7 +8,7 @@ output: html_notebook
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
 #knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/ is additional path for outputs
 
@@ -21,6 +21,7 @@ library(dplyr)
 library(Seurat)
 library(ggplot2)
 library(RColorBrewer)
+library(xlsx)
 ```
 
 # Load data
@@ -396,9 +397,11 @@ rm(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subset
 # Statistical analysis and plotting of pearson metrics - CoCl2
 ```{r}
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2_pearson_results.RData') # Load data
-pearson_ttest_cocl2_firstvsrand <- t.test(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_cocl2_secondvsrand <- t.test(cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_cocl2_secondvsfirst <- t.test(cocl2_second_pearson_filt, cocl2_first_pearson_filt, alternative = 'greater', paired = F)
+
+pearson_ttest_cocl2_firstvsrand <- t.test(cocl2_first_pearson_filt, cocl2_first_pearson_filt_rand,  paired = F)
+pearson_ttest_cocl2_secondvsrand <- t.test(cocl2_second_pearson_filt, cocl2_second_pearson_filt_rand,  paired = F)
+pearson_ttest_cocl2_secondvsfirst <- t.test(cocl2_second_pearson_filt, cocl2_first_pearson_filt,  paired = F)
+pearson_ttest_cocl2_randvsrand <- t.test(cocl2_second_pearson_filt_rand, cocl2_first_pearson_filt_rand,  paired = F)
 
 rm(cocl2_first_pearson, cocl2_first_pearson_rand, cocl2_first_subset, cocl2_first_subset_rand, cocl2_second_pearson, cocl2_second_pearson_rand, cocl2_second_subset, cocl2_second_subset_rand)
 
@@ -427,9 +430,11 @@ rm(plotting_df_pearson_cocl2)
 # Statistical analysis and plotting of pearson metrics - dabtram
 ```{r}
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_results.RData') # Load data
-pearson_ttest_dabtram_firstvsrand <- t.test(dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_dabtram_secondvsrand <- t.test(dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_dabtram_secondvsfirst <- t.test(dabtram_second_pearson_filt, dabtram_first_pearson_filt, alternative = 'greater', paired = F)
+
+pearson_ttest_dabtram_firstvsrand <- t.test(dabtram_first_pearson_filt, dabtram_first_pearson_filt_rand,  paired = F)
+pearson_ttest_dabtram_secondvsrand <- t.test(dabtram_second_pearson_filt, dabtram_second_pearson_filt_rand,  paired = F)
+pearson_ttest_dabtram_secondvsfirst <- t.test(dabtram_second_pearson_filt, dabtram_first_pearson_filt,  paired = F)
+pearson_ttest_dabtram_randvsrand <- t.test(dabtram_second_pearson_filt_rand, dabtram_first_pearson_filt_rand,  paired = F)
 
 rm(dabtram_first_pearson, dabtram_first_pearson_rand, dabtram_first_subset, dabtram_first_subset_rand, dabtram_second_pearson, dabtram_second_pearson_rand, dabtram_second_subset, dabtram_second_subset_rand)
 
@@ -458,9 +463,11 @@ rm(plotting_df_pearson_dabtram)
 # Statistical analysis and plotting of pearson metrics - cis
 ```{r}
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_results.RData') # Load data
-pearson_ttest_cis_firstvsrand <- t.test(cis_first_pearson_filt, cis_first_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_cis_secondvsrand <- t.test(cis_second_pearson_filt, cis_second_pearson_filt_rand, alternative = 'greater', paired = F)
-pearson_ttest_cis_secondvsfirst <- t.test(cis_second_pearson_filt, cis_first_pearson_filt, alternative = 'greater', paired = F)
+
+pearson_ttest_cis_firstvsrand <- t.test(cis_first_pearson_filt, cis_first_pearson_filt_rand,  paired = F)
+pearson_ttest_cis_secondvsrand <- t.test(cis_second_pearson_filt, cis_second_pearson_filt_rand,  paired = F)
+pearson_ttest_cis_secondvsfirst <- t.test(cis_second_pearson_filt, cis_first_pearson_filt,  paired = F)
+pearson_ttest_cis_randvsrand <- t.test(cis_second_pearson_filt_rand, cis_first_pearson_filt_rand,  paired = F)
 
 rm(cis_first_pearson, cis_first_pearson_rand, cis_first_subset, cis_first_subset_rand, cis_second_pearson, cis_second_pearson_rand, cis_second_subset, cis_second_subset_rand)
 
@@ -492,11 +499,17 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cocl2
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/dabtram_pearson_values.RData')
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/cis_pearson_values.RData')
 
-comparisons <-  c('dabtram_firstvsrand', 'dabtram_secondvsrand', 'dabtram_secondvsfirst','cocl2_firstvsrand', 'cocl2_secondvsrand', 'cocl2_secondvsfirst', 'cis_firstvsrand', 'cis_secondvsrand', 'cis_secondvsfirst')
+comparisons <-  c('dabtram_firstvsrand', 'dabtram_secondvsrand', 'dabtram_randvsrand', 'dabtram_secondvsfirst',
+                  'cocl2_firstvsrand', 'cocl2_secondvsrand', 'cocl2_randvsrand', 'cocl2_secondvsfirst',
+                  'cis_firstvsrand', 'cis_secondvsrand', 'cis_randvsrand', 'cis_secondvsfirst')
 
-t_statistic <- c(pearson_ttest_dabtram_firstvsrand$statistic, pearson_ttest_dabtram_secondvsrand$statistic, pearson_ttest_dabtram_secondvsfirst$statistic, pearson_ttest_cocl2_firstvsrand$statistic, pearson_ttest_cocl2_secondvsrand$statistic, pearson_ttest_cocl2_secondvsfirst$statistic, pearson_ttest_cis_firstvsrand$statistic, pearson_ttest_cis_secondvsrand$statistic, pearson_ttest_cis_secondvsfirst$statistic)
+t_statistic <- c(pearson_ttest_dabtram_firstvsrand$statistic, pearson_ttest_dabtram_secondvsrand$statistic, pearson_ttest_dabtram_randvsrand$statistic, pearson_ttest_dabtram_secondvsfirst$statistic,
+                 pearson_ttest_cocl2_firstvsrand$statistic, pearson_ttest_cocl2_secondvsrand$statistic,pearson_ttest_cocl2_randvsrand$statistic, pearson_ttest_cocl2_secondvsfirst$statistic,
+                 pearson_ttest_cis_firstvsrand$statistic, pearson_ttest_cis_secondvsrand$statistic, pearson_ttest_cis_randvsrand$statistic, pearson_ttest_cis_secondvsfirst$statistic)
 
-t_pval <- c(pearson_ttest_dabtram_firstvsrand$p.value, pearson_ttest_dabtram_secondvsrand$p.value, pearson_ttest_dabtram_secondvsfirst$p.value, pearson_ttest_cocl2_firstvsrand$p.value, pearson_ttest_cocl2_secondvsrand$p.value, pearson_ttest_cocl2_secondvsfirst$p.value, pearson_ttest_cis_firstvsrand$p.value, pearson_ttest_cis_secondvsrand$p.value, pearson_ttest_cis_secondvsfirst$p.value)
+t_pval <- c(pearson_ttest_dabtram_firstvsrand$p.value, pearson_ttest_dabtram_secondvsrand$p.value, pearson_ttest_dabtram_randvsrand$p.value, pearson_ttest_dabtram_secondvsfirst$p.value,
+            pearson_ttest_cocl2_firstvsrand$p.value, pearson_ttest_cocl2_secondvsrand$p.value, pearson_ttest_cocl2_randvsrand$p.value, pearson_ttest_cocl2_secondvsfirst$p.value,
+            pearson_ttest_cis_firstvsrand$p.value, pearson_ttest_cis_secondvsrand$p.value, pearson_ttest_cis_randvsrand$p.value, pearson_ttest_cis_secondvsfirst$p.value)
 
 ttest_df <- data.frame('Comparisons' = comparisons, 'T test statistic' = t_statistic, 'p value' = t_pval)
 
