@@ -41,16 +41,7 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/a
 
 ```
 
-
-# Look at markers of induced resistant lineages (versus all? versus sensitive? difference is lineages that were resistant to both independently)
-# expression of end resistant state markers in the induced resistant lineages
-# do cells from these lineages cluster together?
-# are cells from these lineages resistant to many or few conditions?
-# how else do these lineages distinguish themselves?
-# do we want to do a pathway analysis here?
-
-# Build new object that defines induced resistance from gDNA_collapsed
-# cross check against gDNA_cDNA_collapsed to look at things with cDNA representation
+# Build new object that defines induced resistance from gDNA_collapsed cross check against gDNA_cDNA_collapsed to look at things with cDNA representation
 ```{r}
 
 nofilter_gDNA_lins <- list()
@@ -191,7 +182,7 @@ DimPlot(dabtram ,cols = c("dabtram:dabtramtococl2" = "#FF0000",
                           "dabtram:cocl2:cocl2todabtram" = "#D7DBDD",
                           "cocl2:cocl2todabtram" = "#D7DBDD",
                           "NA" = "#D7DBDD"),
-        pt.size = 2) + NoLegend() + labs(title = 'Induced and non-induced')
+        pt.size = 3) + NoLegend() + labs(title = 'Induced and non-induced')
 FeaturePlot(dabtram, features = c("IGFBP5","COL1A1","CAV1","BASP1",'CTSK', "IL6ST"))
 dev.off()
 write.xlsx(dabtram_inducedto_cocl2_markers_sig_p,'2022_01_14_analysis_scripts/2022_05_27_analysis/Induced_Resistance/dabtram_inducedto_cocl2.xlsx', sheetName = 'p_sig', append = F)
