@@ -127,45 +127,12 @@ Idents(all_data) <- all_data$Resistant_filtered
 ```
 
 
-```{r}
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/test_violin.pdf', height = 10, width = 30)
-
-VlnPlot(all_data, features = 'NGFR', idents = 'Maintained Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-VlnPlot(all_data, features = 'EGFR', idents = 'Maintained Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-VlnPlot(all_data, features = 'NGFR', idents = 'Maintained Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-VlnPlot(all_data, features = 'EGFR', idents = 'Maintained Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-
-VlnPlot(all_data, features = 'NGFR', idents = 'Large Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-VlnPlot(all_data, features = 'NGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-VlnPlot(all_data, features = 'EGFR', idents = 'Large Resistant to DabTramtoDabTram', group.by = "Lineage") + theme(legend.position = 'none') + geom_boxplot(fill = 'white', width = 0.1)
-
-
-dev.off()
-```
-
-<!-- #Looking into the one lineage that switches ngfr -> egfr -->
-<!-- ```{r} -->
-
-<!-- switch_lin_dabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtram']) -->
-<!-- switch_lin_dabtramtodabtram <- names(all_data$orig.ident[all_data$Lineage == "Lin171516" & all_data$OG_condition == 'dabtramtodabtram']) -->
-
-<!-- DimPlot(all_data, group.by = "OG_condition", cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')) -->
-<!-- DimPlot(all_data, cells.highlight = list(switch_lin_dabtram), cols.highlight = c('red')) -->
-<!-- DimPlot(all_data, cells.highlight = list(switch_lin_dabtram, switch_lin_dabtramtodabtram), cols.highlight = c('blue', 'red')) -->
-
-<!-- switch_lin <- names(dabtram$orig.ident[dabtram$Lineage == "Lin171516"]) -->
-<!-- DimPlot(dabtram) -->
-<!-- DimPlot(dabtram, cells.highlight = list(switch_lin)) -->
-
-<!-- ``` -->
-
 #from dabtram_both_times, force 2 clusters in umap, plot vs ngfr egfr, find markers of these 2
 ```{r}
 
 dabtram_both_times_markers <- FindAllMarkers(dabtram_both_times, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
 DimPlot(dabtram_both_times)
-pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_both_times.pdf',)
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_both_times.pdf')
 DimPlot(dabtram_both_times, group.by = 'OG_condition', pt.size = 2, cols = c('dabtram' = '#623594','dabtramtodabtram' = '#561E59'))
 DimPlot(dabtram_both_times, pt.size = 2)
 FeaturePlot(dabtram_both_times, features = c('NGFR'), pt.size = 2)+

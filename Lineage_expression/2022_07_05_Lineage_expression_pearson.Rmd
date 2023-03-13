@@ -6,7 +6,7 @@ output: html_notebook
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
 #knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
 
@@ -143,6 +143,31 @@ for(j in 1:num_iter){
     
   }
 }
+
+
+#Plot the first simulation on UMAP, pairwise correlations, and the correlations of two cells for figure
+Idents(dabtram) <- dabtram$Lineage
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_examples_for_fig.pdf')
+lineage_for_fig <- "Lin236163"
+num_cells <- length(dabtram$Lineage[dabtram$Lineage == lineage_for_fig])
+set.seed(1)
+rand_cells <- sample(colnames(dabtram), num_cells, replace = F)
+actual_cells <- WhichCells(dabtram, idents = c(lineage_for_fig))
+DimPlot(dabtram,  cells.highlight= list("actual" = actual_cells, "rand" = rand_cells), cols.highlight = c( "rand" = "black", "actual" = "#623594"), pt.size  =2, sizes.highlight = 2)
+corrplot::corrplot.mixed(cor(dabtram_input_data[,actual_cells]), title = 'actual',mar=c(0,0,1,0))
+corrplot::corrplot.mixed(cor(dabtram_input_data[,rand_cells]), title = 'rand',mar=c(0,0,1,0))
+scatterplot_df <- data.frame("real1" = dabtram_input_data[,actual_cells[1]],
+                             "real2" = dabtram_input_data[,actual_cells[2]],
+                             "rand1" = dabtram_input_data[,rand_cells[1]],
+                             "rand2" = dabtram_input_data[,rand_cells[2]])
+
+real_cor <- cor.test(scatterplot_df$real1,scatterplot_df$real2)
+rand_cor <- cor.test(scatterplot_df$rand1,scatterplot_df$rand2)
+
+ggplot(scatterplot_df, aes(x = real1, y = real2)) + geom_point(color = "#623594") + geom_smooth(method=lm, se=FALSE, linetype = 'dashed', color = 'darkred') + lims(x=c(-3,12), y=c(-3,12)) + ggtitle(paste('Real data - pearson =', round(real_cor$estimate,2) , '- pval =' , real_cor$p.value))+ coord_fixed()
+ggplot(scatterplot_df, aes(x = rand1, y = rand2)) + geom_point(color = 'black')+ geom_smooth(method=lm, se=FALSE, linetype = 'dashed', color = 'darkred') + lims(x=c(-3,12), y=c(-3,12)) + ggtitle(paste('Random data - pearson =', round(rand_cor$estimate,2) , '- pval =' , rand_cor$p.value))+ coord_fixed()
+dev.off() 
+
 ```
 ## Significance testing of the dabtram simulation
 ```{r include=FALSE}
