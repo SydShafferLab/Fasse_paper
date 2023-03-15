@@ -8,7 +8,7 @@ output: html_notebook
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
 #knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/ is additional path for outputs
 

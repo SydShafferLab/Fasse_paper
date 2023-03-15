@@ -153,9 +153,9 @@ num_cells <- length(dabtram$Lineage[dabtram$Lineage == lineage_for_fig])
 set.seed(1)
 rand_cells <- sample(colnames(dabtram), num_cells, replace = F)
 actual_cells <- WhichCells(dabtram, idents = c(lineage_for_fig))
-DimPlot(dabtram,  cells.highlight= list("actual" = actual_cells, "rand" = rand_cells), cols.highlight = c( "rand" = "black", "actual" = "#623594"), pt.size  =2, sizes.highlight = 2)
-corrplot::corrplot.mixed(cor(dabtram_input_data[,actual_cells]), title = 'actual',mar=c(0,0,1,0))
-corrplot::corrplot.mixed(cor(dabtram_input_data[,rand_cells]), title = 'rand',mar=c(0,0,1,0))
+DimPlot(dabtram,  cells.highlight= list("actual" = actual_cells, "rand" = rand_cells), cols.highlight = c( "rand" = "black", "actual" = "#623594"), pt.size  =2, sizes.highlight = 4)
+corrplot::corrplot.mixed(cor(dabtram_input_data[,actual_cells]), title = 'actual',mar=c(0,0,1,0), upper = 'color', lower = 'number')
+corrplot::corrplot.mixed(cor(dabtram_input_data[,rand_cells]), title = 'rand',mar=c(0,0,1,0), upper = 'color', lower = 'number')
 scatterplot_df <- data.frame("real1" = dabtram_input_data[,actual_cells[1]],
                              "real2" = dabtram_input_data[,actual_cells[2]],
                              "rand1" = dabtram_input_data[,rand_cells[1]],
