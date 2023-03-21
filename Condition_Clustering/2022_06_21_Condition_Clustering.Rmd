@@ -300,7 +300,7 @@ save.image('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering
 
 ```
 
-# Try pearson - https://pubmed.ncbi.nlm.nih.gov/30137247/
+# Run pearson - https://pubmed.ncbi.nlm.nih.gov/30137247/
 ```{r}
 
 #load('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_Clustering/workspace_v2.RData')
@@ -317,7 +317,7 @@ second_timepoint$second_treatment <- sapply(strsplit(second_timepoint$OG_conditi
 input_data <- GetAssayData(second_timepoint, assay = 'RNA', slot = 'scale.data')
 
 
-# Look at grouping based on first sample
+# Look at grouping based on first sample - does not actually subset.
 Idents(second_timepoint) <- second_timepoint$first_treatment
 DimPlot(second_timepoint)
 
