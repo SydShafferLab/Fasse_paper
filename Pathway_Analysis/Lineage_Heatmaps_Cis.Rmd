@@ -69,6 +69,11 @@ library(reshape2)
 
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
 
+
+#Load data to eliminate further barcodes based on cDNA:
+load("2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData") 
+
+
 #Change idents to conditions:
 Idents(all_data) <- all_data$OG_condition
 
@@ -77,35 +82,8 @@ Idents(all_data) <- all_data$OG_condition
 #Get list of relevant lineages for cis:
 ```{r include = FALSE}
 
-number_of_cells_threshold <- 5
+cis_and_cistocis_lineages <- intersect(fivecell_cDNA$Cis, fivecell_cDNA$CistoCis)
 
-#Get number of cells per lineage:
-cis_lineages <- table(all_data$Lineage[all_data$OG_condition == "cis"])
-
-#Remove still multiple and no barcode:
-cis_lineages <- cis_lineages[!(row.names(cis_lineages) %in% c("Still multiple","No Barcode"))]
-
-#Keep lineages with more than 5 cells:
-cis_lineages_thresholded <- cis_lineages[cis_lineages>=number_of_cells_threshold]
-
-
-
-
-#Get number of cells per lineage:
-cistocis_lineages <- table(all_data$Lineage[all_data$OG_condition == "cistocis"])
-
-#Remove still multiple and no barcode:
-cistocis_lineages <- cistocis_lineages[!(row.names(cistocis_lineages) %in% c("Still multiple","No Barcode"))]
-
-#Keep lineages with more than 5 cells:
-cistocis_lineages_thresholded <- cistocis_lineages[cistocis_lineages>=number_of_cells_threshold]
-
-
-
-
-cis_and_cistocis_lineages <- Reduce(intersect,list(names(cis_lineages_thresholded)
-,names(cistocis_lineages_thresholded)
-))
 
 ```
 
