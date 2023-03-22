@@ -5,8 +5,8 @@ output: html_notebook
 
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
-knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/ is additional path for outputs
 
@@ -230,7 +230,7 @@ dev.off()
 # now making a similar filtered_lins_list_cDNA for all lineages passing filtering for each cDNA sample
 # will add these lists together so that anything passing filtering in gDNA OR cDNA is kept as a resistant lineage
 
-#cDNA_collapsed num_cells greater than 50 for each condition
+#cDNA_collapsed num_cells greater than 50 for a condition and its subsequent timepoints
 
 cis_condition_lins <- unique(c(gDNA_cDNA_collapsed$Cis$Lineage[gDNA_cDNA_collapsed$Cis$Num_Cells > 50], 
                             gDNA_cDNA_collapsed$CistoCis$Lineage[gDNA_cDNA_collapsed$CistoCis$Num_Cells > 50], 
