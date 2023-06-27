@@ -1,0 +1,402 @@
+---
+title: "enrichGO_Continuing_Changes"
+output: html_document
+date: "2023-01-10"
+---
+
+#Install enrichGO (only need to do once):
+```{r setup, eval=FALSE}
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("clusterProfiler")
+
+if(!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("AnnotationDbi")
+
+if(!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("org.Hs.eg.db")
+
+#BiocManager::install("clusterProfiler", version = "3.16")
+
+#For new versions of mac, into terminal:
+#xcode-select --install
+
+```
+
+
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/.shortcut-targets-by-id/1oE5MtumTfVN3grZH0AkMj2NoxkqZO12W/AJF009') #for robert's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+
+#Initialize:
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(reshape)
+library(reshape2)
+library(colorRamps)
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(pheatmap)
+
+```
+
+#Load data and use conditions as idents
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
+
+#Change idents to conditions:
+Idents(all_data) <- all_data$OG_condition
+
+```
+
+#Dabtram:
+```{r include = FALSE}
+
+#Find gene markers
+dabtram_vs_dabtramtodabtram_markers <- FindMarkers(all_data, ident.1 = "dabtramtodabtram", ident.2 = "dabtram", only.pos = TRUE)
+dabtramtodabtram_vs_dabtram_markers <- FindMarkers(all_data, ident.1 = "dabtram", ident.2 = "dabtramtodabtram", only.pos = TRUE)
+
+#Get info for significant enrichGO terms:
+dabtram_vs_dabtramtodabtram_GO_sig <- enrichGO(rownames(dabtram_vs_dabtramtodabtram_markers), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+dabtramtodabtram_vs_dabtram_GO_sig <- enrichGO(rownames(dabtramtodabtram_vs_dabtram_markers), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+
+write.csv(dabtram_vs_dabtramtodabtram_GO_sig, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_dabtram_vs_dabtramTodabtram.csv")
+
+write.csv(dabtramtodabtram_vs_dabtram_GO_sig, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_dabtramTodabtram_Vs_dabtram.csv")
+
+
+```
+
+#Cis:
+```{r include = FALSE}
+
+#Find gene markers
+cis_vs_cistocis_markers <- FindMarkers(all_data, ident.1 = "cistocis", ident.2 = "cis", only.pos = TRUE)
+cistocis_vs_cis_markers <- FindMarkers(all_data, ident.1 = "cis", ident.2 = "cistocis", only.pos = TRUE)
+
+#Get info for significant enrichGO terms:
+cis_vs_cistocis_GO_sig <- enrichGO(rownames(cis_vs_cistocis_markers), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+cistocis_vs_cis_GO_sig <- enrichGO(rownames(cistocis_vs_cis_markers), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+
+write.csv(cis_vs_cistocis_GO_sig, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_cis_Vs_cisTocis.csv")
+
+write.csv(cistocis_vs_cis_GO_sig, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_cisTocis_Vs_cis.csv")
+
+```
+
+
+#CoCl2:
+```{r include = FALSE}
+
+#Find gene markers
+cocl2_vs_cocl2tococl2_markers <- FindMarkers(all_data, ident.1 = "cocl2tococl2", ident.2 = "cocl2", only.pos = TRUE)
+cocl2tococl2_vs_cocl2_markers <- FindMarkers(all_data, ident.1 = "cocl2", ident.2 = "cocl2tococl2", only.pos = TRUE)
+
+#Get info for significant enrichGO terms:
+cocl2_vs_cocl2tococl2_GO_sig <- enrichGO(rownames(cocl2_vs_cocl2tococl2_markers), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+cocl2tococl2_vs_cocl2_GO_sig <- enrichGO(rownames(cocl2tococl2_vs_cocl2_markers), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+
+write.csv(cocl2_vs_cocl2tococl2_GO_sig, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_cocl2_Vs_cocl2Tococl2.csv")
+
+write.csv(cocl2tococl2_vs_cocl2_GO_sig, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_cocl2Tococl2_Vs_cocl2.csv")
+
+```
+
+#Create dataframe for heatmap:
+```{r include = FALSE}
+
+#Make dataframe with 3 columns for different qvalues:
+#df <- data.frame(matrix(ncol = 4, nrow = 0))
+#colnames(df) <- c("Description", "Cis", "CoCl2", "DabTram")
+
+#Make dataframes with all descriptions:
+
+#Make long dataframe:
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c("Description", "log(q-value)", "Condition")
+
+#Create positive dabtram dataframe:
+df_temp <- data.frame(dabtram_vs_dabtramtodabtram_GO_sig$Description,-log10(dabtram_vs_dabtramtodabtram_GO_sig$qvalue))
+colnames(df_temp) <-  c("Description", "log(q-value)")
+df_temp$Condition <- "DabTram"
+
+#Add to dataframe:
+df <- rbind(df, df_temp)
+
+#Create negative dabtram dataframe:
+df_temp <- data.frame(dabtramtodabtram_vs_dabtram_GO_sig$Description,log10(dabtramtodabtram_vs_dabtram_GO_sig$qvalue))
+colnames(df_temp) <-  c("Description", "log(q-value)")
+df_temp$Condition <- "DabTram"
+
+#Add to dataframe:
+df <- rbind(df, df_temp)
+
+#Create positive cis dataframe:
+df_temp <- data.frame(cis_vs_cistocis_GO_sig$Description,-log10(cis_vs_cistocis_GO_sig$qvalue))
+colnames(df_temp) <-  c("Description", "log(q-value)")
+df_temp$Condition <- "Cis"
+
+#Add to dataframe:
+df <- rbind(df, df_temp)
+
+#Create negative cis dataframe:
+df_temp <- data.frame(cistocis_vs_cis_GO_sig$Description,log10(cistocis_vs_cis_GO_sig$qvalue))
+colnames(df_temp) <-  c("Description", "log(q-value)")
+df_temp$Condition <- "Cis"
+
+#Add to dataframe:
+df <- rbind(df, df_temp)
+
+#Create positive cocl2 dataframe:
+df_temp <- data.frame(cocl2_vs_cocl2tococl2_GO_sig$Description,-log10(cocl2_vs_cocl2tococl2_GO_sig$qvalue))
+colnames(df_temp) <-  c("Description", "log(q-value)")
+
+#Skip since empty:
+#df_temp$Condition <- "Cocl2"
+
+#Add to dataframe:
+df <- rbind(df, df_temp)
+
+#Create negative cocl2 dataframe:
+df_temp <- data.frame(cocl2tococl2_vs_cocl2_GO_sig$Description,log10(cocl2tococl2_vs_cocl2_GO_sig$qvalue))
+colnames(df_temp) <-  c("Description", "log(q-value)")
+df_temp$Condition <- "Cocl2"
+
+#Add to dataframe:
+df <- rbind(df, df_temp)
+
+```
+
+#Cast dataframe:
+```{r include = FALSE}
+
+#Since cis has tau in both directions, we need to find both and change one:
+#Fix this:
+df[(df$Description=="tau protein binding")&(df$Condition=="Cis"),]
+df[161,]$Description <- "tau protein binding 2"
+
+
+
+df_casted <- dcast(df, `Description`~Condition, value.var = "log(q-value)" , fill = NA)
+row.names(df_casted) <- df_casted$Description
+df_casted <- df_casted[,!names(df_casted) %in% "Description"]
+df_casted["tau protein binding 2","DabTram"] <- df_casted["tau protein binding","DabTram"]
+
+
+```
+
+#Create heatmap:
+```{r}
+
+heatmapRange <- 30
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Heatmap.pdf', height =  0.2*length(df_casted$Cis))
+
+pheatmap(df_casted, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"))
+#pheatmap(df_casted, cluster_rows=FALSE, cluster_cols=FALSE, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"))
+
+
+dev.off()
+
+```
+
+#Create cellular respiration heatmap:
+```{r}
+cellular_respiration_list <- c("2 iron, 2 sulfur cluster binding","ATPase activity, coupled to transmembrane movement of ions, rotational mechanism","ATPase binding","cytochrome-c oxidase activity","electron transfer activity","iron-sulfur cluster binding","NAD(P)H dehydrogenase (quinone) activity","NADH dehydrogenase (quinone) activity","NADH dehydrogenase (ubiquinone) activity","NADH dehydrogenase activity","oxidoreductase activity, acting on a heme group of donors","oxidoreductase activity, acting on a sulfur group of donors","oxidoreductase activity, acting on a sulfur group of donors, NAD(P) as acceptor","oxidoreductase activity, acting on NAD(P)H","oxidoreductase activity, acting on NAD(P)H, quinone or similar compound as acceptor","oxidoreductase activity, acting on peroxide as acceptor","oxidoreduction-driven active transmembrane transporter activity","proton channel activity","proton transmembrane transporter activity","proton-transporting ATP synthase activity, rotational mechanism","proton-transporting ATPase activity, rotational mechanism")
+
+df_cellular_respiration <- df_casted[cellular_respiration_list,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/cellular_respiration.pdf', family = "ArialMT")
+
+pheatmap(df_cellular_respiration, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+#Create cell-cell communication heatmap:
+```{r}
+
+cell_cell_communication_list <- c("chemokine receptor binding","frizzled binding","G protein activity","G protein-coupled receptor binding","growth factor binding","insulin-like growth factor I binding","nuclear androgen receptor binding","nuclear retinoic acid receptor binding","Wnt-protein binding")
+
+df_cell_cell_communication <- df_casted[cell_cell_communication_list,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', family = "ArialMT")
+
+pheatmap(df_cell_cell_communication, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+#Create extra-cellular binding heatmap:
+```{r}
+
+extracellular_binding_list <- c("cadherin binding","cadherin binding involved in cell-cell adhesion","collagen binding","extracellular matrix structural constituent","extracellular matrix structural constituent conferring tensile strength","fibronectin binding","glycosaminoglycan binding","heparan sulfate proteoglycan binding","heparin binding","proteoglycan binding")
+
+df_extracellular_binding <- df_casted[extracellular_binding_list,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/extracellular_binding.pdf', family = "ArialMT")
+
+pheatmap(df_extracellular_binding, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+#Create transcription-translation heatmap:
+```{r}
+
+transcription_translation_list <- c("5'-3' RNA polymerase activity"
+,"basal RNA polymerase II transcription machinery binding","basal transcription machinery binding","DNA-binding transcription factor binding","DNA-directed 5'-3' RNA polymerase activity","eukaryotic initiation factor 4E binding","general transcription initiation factor binding","poly(A) binding","ribosomal small subunit binding","ribosome binding","RNA polymerase activity","RNA polymerase II general transcription initiation factor binding","RNA polymerase II-specific DNA-binding transcription factor binding","rRNA binding","transcription coactivator activity","transcription corepressor activity","translation elongation factor activity","translation factor activity, RNA binding","translation initiation factor activity","translation initiation factor binding","translation regulator activity","translation regulator activity, nucleic acid binding")
+
+df_transcription_translation <- df_casted[transcription_translation_list,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/transcription_translation.pdf', family = "ArialMT")
+
+pheatmap(df_transcription_translation, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+#Create MHC-binding heatmap:
+```{r}
+
+MHC_list <- c("MHC class I protein binding","MHC class II protein complex binding","MHC protein binding","MHC protein complex binding")
+
+df_MHC <- df_casted[MHC_list,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/MHC_heatmap.pdf', family = "ArialMT")
+
+pheatmap(df_MHC, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+
+#Create ubiquitin heatmap:
+```{r}
+
+ubiquitin_terms <- c("polyubiquitin modification-dependent protein binding", "ubiquitin conjugating enzyme activity","ubiquitin protein ligase binding","ubiquitin-like protein binding","ubiquitin-like protein conjugating enzyme activity","ubiquitin-like protein ligase binding","ubiquitin-specific protease binding")
+
+df_ubiquitin <- df_casted[ubiquitin_terms,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/ubiquitin.pdf', family = "ArialMT")
+
+pheatmap(df_ubiquitin, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+#Create enzymes heatmap:
+```{r}
+
+enzyme_terms <- c("ATP hydrolysis activity", "ATPase-coupled ion transmembrane transporter activity", "carbon-oxygen lyase activity", "catalytic activity, acting on DNA", "catalytic activity, acting on RNA", "cis-trans isomerase activity", "disulfide oxidoreductase activity", "endopeptidase inhibitor activity", "endopeptidase regulator activity", "enzyme inhibitor activity", "GTPase activity", "GTPase binding", "isomerase activity", "ligase activity", "nucleoside triphosphate diphosphatase activity", "peptidase activator activity", "peptidase inhibitor activity", "peptidase regulator activity", "peroxidase activity", "phosphatase binding", "protease binding", "protein phosphatase binding", "protein-disulfide reductase (NAD(P)) activity", "protein-disulfide reductase activity", "small GTPase binding")
+
+df_enzyme <- df_casted[enzyme_terms,]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/enzyme.pdf', family = "ArialMT")
+
+pheatmap(df_enzyme, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+Make heatmap for remaining GO terms:
+```{r}
+
+total_list <- c(cellular_respiration_list,  cell_cell_communication_list, extracellular_binding_list, transcription_translation_list, MHC_list, ubiquitin_terms, enzyme_terms)
+
+df_other <- df_casted[!(row.names(df_casted) %in% total_list),]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+#pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/Cell_cell_communication.pdf', height = 0.2*length(df_cell_cell_communication$Cis))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/other_heatmap.pdf', family = "ArialMT")
+
+pheatmap(df_other, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, labels_col = c("Cisplatin",expression("CoCl"[2]),"DabTram"), cellwidth = 20, cellheight = 6, legend_breaks = myLegendBreaks, fontsize = 6, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+
+
+```
+

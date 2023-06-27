@@ -1,0 +1,455 @@
+---
+title: "Lineage_Heatmaps_dabtram"
+author: "Robert"
+date: "2023-02-27"
+output: html_document
+---
+
+
+#Install enrichGO (only need to do once):
+```{r setup, eval=FALSE}
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("clusterProfiler")
+
+if(!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("AnnotationDbi")
+
+if(!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("org.Hs.eg.db")
+
+#BiocManager::install("clusterProfiler", version = "3.16")
+
+#For new versions of mac, into terminal:
+#xcode-select --install
+
+```
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/.shortcut-targets-by-id/1oE5MtumTfVN3grZH0AkMj2NoxkqZO12W/AJF009') #for robert's computer
+
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+
+#Initialize:
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(viridis)
+library(reshape2)
+library(colorRamps)
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(pheatmap)
+
+library(janitor)
+library(reshape2)
+
+
+```
+
+#Load data:
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
+
+#Load data to eliminate further barcodes based on cDNA:
+load("2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData") 
+
+#Change idents to conditions:
+Idents(all_data) <- all_data$OG_condition
+
+```
+
+#Get list of relevant lineages for dabtram:
+```{r include = FALSE}
+
+dabtram_and_dabtramtodabtram_lineages <- intersect(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram)
+
+```
+
+
+#Run FindMarkers and enrichGO for each lineage:
+```{r include = FALSE}
+
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+
+
+colnames(df) <- c('Lineage','GO_Term','log10_qvalue')
+
+for (current_lineage in dabtram_and_dabtramtodabtram_lineages){
+  
+  #Subset to current lineage:
+  data_for_current_lineage <- subset(x = all_data, subset = Lineage == current_lineage)
+  
+  #Find markers higher in dabtramtodabtram:
+  markers_dabtramtodabtram_high <- FindMarkers(data_for_current_lineage, ident.1 = 'dabtramtodabtram', ident.2 = 'dabtram', only.pos = TRUE)
+  
+  #Find markers higher in dabtram:
+  markers_dabtram_high <- FindMarkers(data_for_current_lineage, ident.1 = 'dabtram', ident.2 = 'dabtramtodabtram', only.pos = TRUE)
+  
+  #Find go terms:
+  go_dabtramtodabtram_high <- enrichGO(rownames(markers_dabtramtodabtram_high), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+  go_dabtram_high <- enrichGO(rownames(markers_dabtram_high), OrgDb = org.Hs.eg.db, keyType = "SYMBOL")
+  
+  #Make temporary dataframes, if no go terms make the temporary dataframes empty (so they have the correct number of columns):
+  if (length(go_dabtramtodabtram_high$qvalue) > 0){
+    temp_df_dabtramtodabtram_high <- data.frame(rep(current_lineage, times = length(go_dabtramtodabtram_high$qvalue)), go_dabtramtodabtram_high$Description, -log10(go_dabtramtodabtram_high$qvalue))
+  }else{
+    temp_df_dabtramtodabtram_high <- data.frame(matrix(ncol = 3, nrow = 0))
+  }
+  
+  if (length(go_dabtram_high$qvalue) > 0){
+    temp_df_dabtram_high <- data.frame(rep(current_lineage, times = length(go_dabtram_high$qvalue)), go_dabtram_high$Description, log10(go_dabtram_high$qvalue))
+  }else{
+    temp_df_dabtram_high <- data.frame(matrix(ncol = 3, nrow = 0))
+  }
+  
+  colnames(temp_df_dabtramtodabtram_high) <- c('Lineage','GO_Term','log10_qvalue')
+  colnames(temp_df_dabtram_high) <- c('Lineage','GO_Term','log10_qvalue')
+
+  
+  df <- rbind(df,temp_df_dabtramtodabtram_high,temp_df_dabtram_high)
+  
+}
+
+#Save dataframe:
+write.csv(df, "2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/MultipleLineages_GO_dabtram.csv")
+
+```
+
+
+#Cast dataframe, make bi-directional GO-terms 0's, to save time start here:
+```{r include = FALSE}
+
+#Reload as to not repeat GO-terms:
+df <- read.csv("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/MultipleLineages_GO_dabtram.csv", row.names = 1)
+
+#Add overall GO-terms:
+
+overall_df_up <- read.csv("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_dabtram_Vs_dabtramTodabtram.csv")
+
+overall_df_down <- read.csv("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/GO_dabtramTodabtram_Vs_dabtram.csv")
+
+#Add overall GO_terms to dataframe:
+if(length(overall_df_up$Description)>0){
+  df_temp <- data.frame(rep("All_Cells",length(overall_df_up$Description)),overall_df_up$Description,-log10(overall_df_up$qvalue))
+  colnames(df_temp) <- c('Lineage','GO_Term','log10_qvalue')
+  df <- rbind(df,df_temp)
+}
+
+if(length(overall_df_down$Description)>0){
+  df_temp <- data.frame(rep("All_Cells",length(overall_df_down$Description)),overall_df_down$Description,log10(overall_df_down$qvalue))
+  colnames(df_temp) <- c('Lineage','GO_Term','log10_qvalue')
+  df <- rbind(df,df_temp)
+}
+
+
+#Find duplicates to remove:
+list_duplicates_in_df <- duplicated(df[,1:2])
+
+#Get all terms that are not duplicates:
+no_duplicates <- df[!duplicated(df[,1:2]),]
+
+#Get all negative (not sure why it's only negative, maybe just first terms are counted) duplicated terms:
+duplicates <- df[duplicated(df[,1:2]),]
+
+altered_df <- no_duplicates
+#Find terms in duplicates and no_duplicates
+match_index <- match(paste(no_duplicates$Lineage, no_duplicates$GO_Term), paste(duplicates$Lineage, duplicates$GO_Term), nomatch = 0)
+
+#Replace those from no_duplicates with 0's
+altered_df$log10_qvalue[match_index != 0] <- 0
+
+df_casted <- dcast(altered_df, GO_Term~Lineage, value.var = "log10_qvalue", fill = NA)
+row.names(df_casted) <- df_casted$GO_Term
+df_casted <- df_casted[,-1]
+
+```
+
+
+#Get cell numbers for lineages, and add overall (not lineage specific) changes:
+```{r include = FALSE}
+
+#load Seurat object:
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+
+
+#Get number of cells per lineage, dabtram:
+dabtram_lineages <- table(all_data$Lineage[all_data$OG_condition == "dabtram"])
+
+
+#Get number of cells per lineage, dabtramtodabtram:
+dabtramtodabtram_lineages <- table(all_data$Lineage[all_data$OG_condition == "dabtramtodabtram"])
+
+#make dataframe pasting cell numbers (old now doing percentages):
+#for(lineage in colnames(df_casted)){
+  #if(lineage != "All_Cells"){
+    #colnames(df_casted)[colnames(df_casted) == lineage] <- paste(lineage,", ",dabtram_lineages[lineage],"->",dabtramtodabtram_lineages[lineage], sep = "")
+  #}
+#}
+
+#make dataframe pasting cell percentages (from single cell data):
+for(lineage in colnames(df_casted)){
+  if(lineage != "All_Cells"){
+    colnames(df_casted)[colnames(df_casted) == lineage] <- paste(round(dabtram_lineages[lineage]*100.0/sum(dabtram_lineages),2),"->",round(dabtramtodabtram_lineages[lineage]*100.0/sum(dabtramtodabtram_lineages),2), sep = "")
+  }
+}
+
+```
+
+#Create cellular respiration heatmap:
+```{r}
+
+cellular_respiration_list <- c("2 iron, 2 sulfur cluster binding","ATPase activity, coupled to transmembrane movement of ions, rotational mechanism","ATPase binding","cytochrome-c oxidase activity","electron transfer activity","iron-sulfur cluster binding","NAD(P)H dehydrogenase (quinone) activity","NADH dehydrogenase (quinone) activity","NADH dehydrogenase (ubiquinone) activity","NADH dehydrogenase activity","oxidoreductase activity, acting on a heme group of donors","oxidoreductase activity, acting on a sulfur group of donors","oxidoreductase activity, acting on a sulfur group of donors, NAD(P) as acceptor","oxidoreductase activity, acting on NAD(P)H","oxidoreductase activity, acting on NAD(P)H, quinone or similar compound as acceptor","oxidoreductase activity, acting on peroxide as acceptor","oxidoreduction-driven active transmembrane transporter activity","proton channel activity","proton transmembrane transporter activity","proton-transporting ATP synthase activity, rotational mechanism","proton-transporting ATPase activity, rotational mechanism")
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in cellular_respiration_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_cellular_respiration <- df_casted_added[cellular_respiration_list,]
+
+#Make alphabetical again:
+df_cellular_respiration <- df_cellular_respiration[order(row.names(df_cellular_respiration)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_Cellular_Respiration.pdf', family = "ArialMT")
+
+pheatmap(df_cellular_respiration, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+#Create cell-cell communication heatmap:
+```{r}
+
+cell_cell_communication_list <- c("chemokine receptor binding","frizzled binding","G protein activity","G protein-coupled receptor binding","growth factor binding","insulin-like growth factor I binding","nuclear androgen receptor binding","nuclear retinoic acid receptor binding","Wnt-protein binding")
+
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in cell_cell_communication_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_cell_cell_communication <- df_casted_added[cell_cell_communication_list,]
+
+#Make alphabetical again:
+df_cell_cell_communication <- df_cell_cell_communication[order(row.names(df_cell_cell_communication)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_cell_cell_communication.pdf', family = "ArialMT")
+
+pheatmap(df_cell_cell_communication, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+#Create extra-cellular binding heatmap:
+```{r}
+
+extracellular_binding_list <- c("cadherin binding","cadherin binding involved in cell-cell adhesion","collagen binding","extracellular matrix structural constituent","extracellular matrix structural constituent conferring tensile strength","fibronectin binding","glycosaminoglycan binding","heparan sulfate proteoglycan binding","heparin binding","proteoglycan binding")
+
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in extracellular_binding_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_extracellular_binding <- df_casted_added[extracellular_binding_list,]
+
+#Make alphabetical again:
+df_extracellular_binding <- df_extracellular_binding[order(row.names(df_extracellular_binding)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_extracellular_binding.pdf', family = "ArialMT")
+
+pheatmap(df_extracellular_binding, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+#Create transcription-translation heatmap:
+```{r}
+
+transcription_translation_list <- c("5'-3' RNA polymerase activity"
+,"basal RNA polymerase II transcription machinery binding","basal transcription machinery binding","DNA-binding transcription factor binding","DNA-directed 5'-3' RNA polymerase activity","eukaryotic initiation factor 4E binding","general transcription initiation factor binding","poly(A) binding","ribosomal small subunit binding","ribosome binding","RNA polymerase activity","RNA polymerase II general transcription initiation factor binding","RNA polymerase II-specific DNA-binding transcription factor binding","rRNA binding","transcription coactivator activity","transcription corepressor activity","translation elongation factor activity","translation factor activity, RNA binding","translation initiation factor activity","translation initiation factor binding","translation regulator activity","translation regulator activity, nucleic acid binding")
+
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in transcription_translation_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_transcription_translation <- df_casted_added[transcription_translation_list,]
+
+#Make alphabetical again:
+df_transcription_translation <- df_transcription_translation[order(row.names(df_transcription_translation)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_transcription_translation.pdf', family = "ArialMT")
+
+pheatmap(df_transcription_translation, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+#Create MHC-binding heatmap:
+```{r}
+
+MHC_list <- c("MHC class I protein binding","MHC class II protein complex binding","MHC protein binding","MHC protein complex binding")
+
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in MHC_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_MHC <- df_casted_added[MHC_list,]
+
+#Make alphabetical again:
+df_MHC <- df_MHC[order(row.names(df_MHC)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_MHC.pdf', family = "ArialMT")
+
+pheatmap(df_MHC, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+#Create ubiquitin heatmap:
+```{r}
+
+ubiquitin_list <- c("polyubiquitin modification-dependent protein binding", "ubiquitin conjugating enzyme activity","ubiquitin protein ligase binding","ubiquitin-like protein binding","ubiquitin-like protein conjugating enzyme activity","ubiquitin-like protein ligase binding","ubiquitin-specific protease binding")
+
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in ubiquitin_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_ubiquitin <- df_casted_added[ubiquitin_list,]
+
+#Make alphabetical again:
+df_ubiquitin <- df_ubiquitin[order(row.names(df_ubiquitin)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_ubiquitin.pdf', family = "ArialMT")
+
+pheatmap(df_ubiquitin, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+
+
+
+#Create enzymes heatmap:
+```{r}
+
+enzyme_list <- c("ATP hydrolysis activity", "ATPase-coupled ion transmembrane transporter activity", "carbon-oxygen lyase activity", "catalytic activity, acting on DNA", "catalytic activity, acting on RNA", "dabtram-trans isomerase activity", "disulfide oxidoreductase activity", "endopeptidase inhibitor activity", "endopeptidase regulator activity", "enzyme inhibitor activity", "GTPase activity", "GTPase binding", "isomerase activity", "ligase activity", "nucleoside triphosphate diphosphatase activity", "peptidase activator activity", "peptidase inhibitor activity", "peptidase regulator activity", "peroxidase activity", "phosphatase binding", "protease binding", "protein phosphatase binding", "protein-disulfide reductase (NAD(P)) activity", "protein-disulfide reductase activity", "small GTPase binding")
+
+
+df_casted_added <- df_casted
+
+#Add any missing terms as NA:
+for(term in enzyme_list){
+  if(!term %in% row.names(df_casted)){
+    df_casted_added[term, ] <- NA
+  }
+}
+
+#Make alphabetical again:
+df_enzyme <- df_casted_added[enzyme_list,]
+
+#Make alphabetical again:
+df_enzyme <- df_enzyme[order(row.names(df_enzyme)), ]
+
+heatmapRange <- 5
+myBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = -heatmapRange, to = heatmapRange, by = 1.0)
+
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/dabtram_Lineage_Heatmap_enzyme.pdf', family = "ArialMT")
+
+pheatmap(df_enzyme, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("navy", "white", "red"))(1000))
+
+dev.off()
+
+```
+

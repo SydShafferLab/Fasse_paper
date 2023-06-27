@@ -1,0 +1,238 @@
+---
+title: "2022_06_14_test_barcode_assignment of cDNA into GEX"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/ is additional path for outputs
+```
+
+# Initialize ----
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(kit)
+```
+
+# Load in the merged dataset for all data
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/all_data_merged.RData')
+reference <- read.delim('2022_05_19_Barcode_outputs/CellRanger_inputs/FeatureReference_filtered.csv')
+
+```
+
+# Build counts object
+```{r include = FALSE}
+
+counts <- GetAssayData(all_data, assay = 'lineage')
+num_lin_orig <- nrow(counts)
+
+```
+
+# Remove lineages with only one count across all cells
+```{r}
+
+counts_filt <- counts[which(rowSums(counts) > 1),] # Only care about lineages that have greater than one total count
+num_lin_filt <- nrow(counts_filt)
+percent_lin_filt <- num_lin_filt/num_lin_orig*100
+
+df_counts <- as.data.frame(counts_filt)
+
+```
+
+# Find number of barcodes per cell
+```{r}
+
+barcodes_per_cell <- apply(counts_filt,2, function(x) sum(x>0))
+barcodes_per_cell_table <- table(barcodes_per_cell)
+barcodes_per_cell_table
+
+```
+
+# Plotting cells per lineage for each condition
+```{r}
+
+plot_df_list <- list() 
+for (k in unique(all_data$OG_condition)){
+  print(k)
+  plot_df <- data.frame()
+  for (i in 1:50){ # 1:20
+    temp_fam_list <- list()
+    print(i)
+    count <- 1
+    for (j in grep(k,colnames(counts_filt))){
+      temp_fam_list[[count]] <- which(counts_filt[,j] > i)
+      count <- count+1
+    }
+    table <- table(lengths(temp_fam_list))
+    temp <- data.frame(zero = as.numeric(table[1]), one = as.numeric(table[2]), two_or_more = length(temp_fam_list) - as.numeric(table[1]) - as.numeric(table[2]))
+    plot_df <- rbind(plot_df,temp)
+  }
+  plot_df_list[[k]] <- plot_df
+}
+
+```
+
+# Build plot list of count cutoffs which give # of cells with either no, 1, many barcodes and plot to pdf
+```{r}
+plot_df_list2 <- list()
+for (i in names(plot_df_list)){
+  plot_df_list2[[i]] <- data.frame(
+    count_filt = rep(1:50,3),
+    num_cells = unlist(plot_df_list[[i]]),
+    barcode_num = c(rep('zero',50),rep('one',50), rep('multiple',50))
+  )
+}
+
+# Write the plots to a PDF
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/threshold_sweep.pdf')
+for (i in names(plot_df_list2)){
+  print(ggplot(data = plot_df_list2[[i]], aes(x = count_filt, y = num_cells, group = barcode_num, color = barcode_num)) + geom_point()+geom_line() + labs(title = i))
+}
+dev.off()
+```
+
+# Finding best ways to threshold
+```{r}
+cutoffs <- data.frame()
+for(i in names(plot_df_list2)){
+  zero <- plot_df_list2[[i]][plot_df_list2[[i]]$barcode_num == 'zero',]
+  one <- plot_df_list2[[i]][plot_df_list2[[i]]$barcode_num == 'one',]
+  multiple <- plot_df_list2[[i]][plot_df_list2[[i]]$barcode_num == 'multiple',]
+  cutoffs <- rbind(cutoffs, data.frame(Max_single = which.max(one$num_cells), Max_ratio = which.max(one$num_cells/multiple$num_cells), Max_difference = which.max(one$num_cells - multiple$num_cells)))
+}
+rownames(cutoffs) <- names(plot_df_list2)
+
+# Export the cutoffs so that it can be loaded in for final barcode assignment script
+save(cutoffs, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/lineage_count_cutoffs.RData')
+
+```
+
+# Filter based on reads cutoff that results in max # of cells with single barcode assignment
+```{r}
+# filter based on the Max_single
+filter_max_single <- cutoffs$Max_single
+names(filter_max_single) <- names(plot_df_list)
+
+# filter based on decided threshold
+fam_max_single <- list()
+for (k in names(filter_max_single)){
+  for (i in grep(k,colnames(df_counts))){
+    fam_max_single[[i]] <- rownames(df_counts)[which(df_counts[,i] > filter_max_single[k])]
+  }
+}
+# See how many cells still have reads from how many barcodes
+table_fam_max_single <- table(lengths(fam_max_single))
+```
+
+# Filter based on max difference in # cells assigned one and multiple barcodes
+```{r}
+# filter based on the Max_difference
+filter_max_difference <- cutoffs$Max_difference
+names(filter_max_difference) <- names(plot_df_list)
+
+# filter based on decided threshold
+fam_max_difference <- list()
+for (k in names(filter_max_difference)){
+  for (i in grep(k,colnames(df_counts))){
+    fam_max_difference[[i]] <- rownames(df_counts)[which(df_counts[,i] > filter_max_difference[k])]
+  }
+}
+# See how many cells still have reads from how many barcodes
+table_fam_max_difference <- table(lengths(fam_max_difference))
+```
+
+#write to csv
+```{r}
+write.csv(table_fam_max_single, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/table_fam_max_single.csv")
+write.csv(table_fam_max_difference, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/table_fam_max_difference.csv")
+```
+
+# Build a boolean of the cells that still have multiple barcodes - max_single
+```{r}
+boolean_multi_lin_single <- lengths(fam_max_single)>1
+```
+
+# Assign dominant barcode if one is highly more expressed, write to csv
+```{r}
+fixed_multi_single <- list()
+for (i in (1:ncol(df_counts))){ 
+  if ( boolean_multi_lin_single[i] == T) {
+    if(df_counts[topn(as.numeric(df_counts[,i]),2),i][1] >= 3*df_counts[topn(as.numeric(df_counts[,i]),2),i][2]){
+      fixed_multi_single[[i]] <- rownames(df_counts)[topn(as.numeric(df_counts[,i]),2)][1]
+    }else{
+      fixed_multi_single[[i]] <- "Still multiple"
+    }
+  } else{ fixed_multi_single[[i]] <- "Single"
+  }
+}
+
+# Build a boolean of the cells that still have multiple barcodes - max_difference
+boolean_multi_lin_difference <- lengths(fam_max_difference)>1
+
+# Assign dominant barcode if the number of counts in the highest expressed barcodes is >triple that of second highest barcode
+fixed_multi_difference <- list()
+for (i in (1:ncol(df_counts))){ 
+  if ( boolean_multi_lin_difference[i] == T) {
+    if(df_counts[topn(as.numeric(df_counts[,i]),2),i][1] >= 3*df_counts[topn(as.numeric(df_counts[,i]),2),i][2]){
+      fixed_multi_difference[[i]] <- rownames(df_counts)[topn(as.numeric(df_counts[,i]),2)][1]
+    }else{
+      fixed_multi_difference[[i]] <- "Still multiple"
+    }
+  } else{ fixed_multi_difference[[i]] <- "Single"
+  }
+}
+
+# Replace the values in fam that had 2+ barcodes with with either the dominant barcode if found or say that its still multiple - max single
+fam_multi_collapse_single <- fam_max_single
+fam_multi_collapse_single[boolean_multi_lin_single] <- fixed_multi_single[boolean_multi_lin_single]
+
+# Replace the values in fam that had 2+ barcodes with with either the dominant barcode if found or say that its still multiple - max difference
+fam_multi_collapse_difference <- fam_max_difference
+fam_multi_collapse_difference[boolean_multi_lin_difference] <- fixed_multi_difference[boolean_multi_lin_difference]
+
+# Give cells without a barcode the label 'No barcode'
+fam_multi_collapse_single[lengths(fam_multi_collapse_single) == 0] <- 'No Barcode'
+fam_multi_collapse_difference[lengths(fam_multi_collapse_difference) == 0] <- 'No Barcode'
+
+# Format into metadata so that final lineage determinations can be added to the seurat object
+lin_meta_single <- t(as.data.frame(fam_multi_collapse_single))
+colnames(lin_meta_single) <- 'final_lineage_single'
+rownames(lin_meta_single) <- colnames(df_counts)
+all_data$final_lineage_single <- lin_meta_single
+
+lin_meta_difference <- t(as.data.frame(fam_multi_collapse_difference))
+colnames(lin_meta_difference) <- 'final_lineage_difference'
+rownames(lin_meta_difference) <- colnames(df_counts)
+all_data$final_lineage_difference <- lin_meta_difference
+
+```
+
+#Write above to csv
+```{r}
+table_collapse_single <- table(unlist(fam_multi_collapse_single))
+table_collapse_difference <- table(unlist(fam_multi_collapse_difference))
+
+collapse_single_nobarcode <- table_collapse_single[names(table_collapse_single) == 'No Barcode']
+collapse_single_stillmultiple <- table_collapse_single[names(table_collapse_single) == 'Still multiple']
+collapse_single_single <- length(fam_multi_collapse_single) - collapse_single_nobarcode - collapse_single_stillmultiple
+collapse_single <- list(collapse_single_nobarcode, collapse_single_single, collapse_single_stillmultiple)
+
+collapse_difference_nobarcode <- table_collapse_difference[names(table_collapse_difference) == 'No Barcode']
+collapse_difference_stillmultiple <- table_collapse_difference[names(table_collapse_difference) == 'Still multiple']
+collapse_difference_single <- length(fam_multi_collapse_difference) - collapse_difference_nobarcode - collapse_difference_stillmultiple
+collapse_difference <- list(collapse_difference_nobarcode, collapse_difference_single, collapse_difference_stillmultiple)
+
+write.csv(collapse_single, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/table_collapse_single.csv")
+write.csv(collapse_difference, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Test_barcode_assignment/    table_collapse_difference.csv")
+
+```
+# Seelected collapse_single as the method which keeps highest # of single barcode cells (39011)

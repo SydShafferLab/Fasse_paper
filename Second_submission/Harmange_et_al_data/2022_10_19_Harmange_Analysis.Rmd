@@ -1,0 +1,120 @@
+---
+title: "2022_10_19_Harmange_Analysis"
+output: html_document
+---
+
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(xlsx)
+```
+
+# Load data
+```{r}
+scdata <- readRDS('2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/10X1_Filterd_BatchCor_unnorm_sctrans.rds')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+```
+
+# Subset to have unsorted naive cells, normaalize
+```{r}
+Idents(scdata) <- scdata$well
+scdata <- subset(scdata, idents = c(3,4,7,8))
+scdata <- NormalizeData(scdata)
+scdata <- FindVariableFeatures(scdata, selection.method = 'vst', nFeatures = 20000)
+scdata <- ScaleData(scdata)
+scdata <- RunPCA(scdata)
+
+ElbowPlot(scdata)
+
+scdata <- FindNeighbors(scdata, dims = 1:15)
+scdata <- FindClusters(scdata, resolution = 0.5)
+scdata <- RunUMAP(scdata, dims = 1:15)
+
+DimPlot(scdata)
+```
+
+# Load in the all_data, subset DabTram, and normalize
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtram <- subset(all_data, idents = 'dabtram') # Subset down to the dabtram object
+dabtram <- NormalizeData(dabtram)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
+ElbowPlot(dabtram) # The standard deviation seems to really level off at 10
+
+# Recluster with the appropriate number of dimensions
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
+dabtram <- FindClusters(dabtram, resolution = 0.5)
+dabtram <- RunUMAP(dabtram, dims = 1:15)
+DimPlot(dabtram, reduction = 'umap', pt.size = 1)
+```
+
+
+# Make necessary plots from Harmange Data
+```{r}
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/naive_plots.pdf')
+Idents(scdata) <- scdata$seurat_clusters
+DimPlot(scdata, pt.size = 2)
+Idents(scdata) <- scdata$rep
+DimPlot(scdata, pt.size = 2)
+FeaturePlot(scdata, feature = 'IL6ST', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'MITF', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'SOX10', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'EGFR', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+FeaturePlot(scdata, feature = 'NGFR', pt.size = 2) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))) &  DarkTheme()
+dev.off()
+```
+
+# Function for calculating percentage of cells expressing a gene
+```{r}
+# Adapted from https://github.com/satijalab/seurat/issues/371#issuecomment-486384854
+
+PrctCellExpringGene <- function(object, genes, thresh){
+        prct = unlist(lapply(genes,calc_helper, object=object, thresh = thresh))
+        result = data.frame(Markers = genes, Cell_proportion = prct)
+        return(result)
+}
+
+calc_helper <- function(object,genes,thresh){
+    counts = object[['RNA']]@data
+    ncells = ncol(counts)
+    if(genes %in% row.names(counts)){
+    sum(counts[genes,]>thresh)/ncells
+    }else{return(NA)}
+}
+```
+
+# Calculate the number of IL6ST positive cells
+```{r}
+il6st_percentages <- c()
+
+hist(scdata[['RNA']]@counts['IL6ST',])
+hist(scdata[['RNA']]@data['IL6ST',])
+hist(scdata[['RNA']]@scale.data['IL6ST',])
+il6st_percentages <- as.character(cbind(il6st_percentages,PrctCellExpringGene(scdata, 'IL6ST', 1)$Cell_proportion*100))
+
+hist(dabtram[['RNA']]@counts['IL6ST',])
+hist(dabtram[['RNA']]@data['IL6ST',])
+hist(dabtram[['RNA']]@scale.data['IL6ST',])
+il6st_percentages <- cbind(il6st_percentages,PrctCellExpringGene(dabtram, 'IL6ST', 1)$Cell_proportion*100)
+
+names(il6st_percentages) <- c('Naive', 'Dabrafenib_resistant')
+
+write.csv(il6st_percentages,'2022_01_14_analysis_scripts/2022_05_27_analysis/Harmange_et_al_data/il6st_percentages.csv')
+
+```
+
