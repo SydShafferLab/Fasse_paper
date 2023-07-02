@@ -68,6 +68,9 @@ library(reshape2)
 
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
 
+#Load data to eliminate further barcodes based on cDNA:
+load("2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData") 
+
 #Change idents to conditions:
 Idents(all_data) <- all_data$OG_condition
 
@@ -76,35 +79,7 @@ Idents(all_data) <- all_data$OG_condition
 #Get list of relevant lineages for CoCl2:
 ```{r include = FALSE}
 
-number_of_cells_threshold <- 5
-
-#Get number of cells per lineage:
-cocl2_lineages <- table(all_data$Lineage[all_data$OG_condition == "cocl2"])
-
-#Remove still multiple and no barcode:
-cocl2_lineages <- cocl2_lineages[!(row.names(cocl2_lineages) %in% c("Still multiple","No Barcode"))]
-
-#Keep lineages with more than 5 cells:
-cocl2_lineages_thresholded <- cocl2_lineages[cocl2_lineages>=number_of_cells_threshold]
-
-
-
-
-#Get number of cells per lineage:
-cocl2tococl2_lineages <- table(all_data$Lineage[all_data$OG_condition == "cocl2tococl2"])
-
-#Remove still multiple and no barcode:
-cocl2tococl2_lineages <- cocl2tococl2_lineages[!(row.names(cocl2tococl2_lineages) %in% c("Still multiple","No Barcode"))]
-
-#Keep lineages with more than 5 cells:
-cocl2tococl2_lineages_thresholded <- cocl2tococl2_lineages[cocl2tococl2_lineages>=number_of_cells_threshold]
-
-
-
-
-cocl2_and_cocl2tococl2_lineages <- Reduce(intersect,list(names(cocl2_lineages_thresholded)
-,names(cocl2tococl2_lineages_thresholded)
-))
+cocl2_and_cocl2tococl2_lineages <- intersect(fivecell_cDNA$CoCl2, fivecell_cDNA$CoCl2toCoCl2)
 
 ```
 

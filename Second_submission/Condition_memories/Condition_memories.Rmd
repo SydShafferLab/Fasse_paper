@@ -1,0 +1,143 @@
+---
+title: "condition_memories"
+output: html_document
+date: "2023-06-28"
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
+```
+
+# Initialize
+```{r include=FALSE}
+rm(list = ls())
+gc()
+library(pheatmap)
+library(RColorBrewer)
+library(ggplot2)
+library(venn)
+library(dplyr)
+```
+
+# Load in the files
+```{r}
+# Load in all of the gDNA files
+temp <- list.files(path='2021_05_21_DLS005_DLS004_gDNA_BCs_analysis/repo/analyzed/',recursive = T, pattern='*.txt', full.names = T)
+myfiles <- lapply(temp, read.delim, header = F)
+list_names <- list.files(path='2021_05_21_DLS005_DLS004_gDNA_BCs_analysis/repo/analyzed/')
+names(myfiles) <- list_names
+
+# Filter out the other experiment and unnecessary conditions
+myfiles_filt <- myfiles[grepl('Cis|Dab|Tram|CoCl2', list_names) & grepl('DLS004', list_names)]
+list_names_filt <- list_names[grepl('Cis|Dab|Tram|CoCl2', list_names) & grepl('DLS004', list_names)]
+
+```
+
+# Get initial stats of each condition
+```{r}
+# Want to know the total # of barcodes with any reads in each condition and the total number of reads per conditon
+
+basic_stats_df <- data.frame()
+for (i in names(myfiles_filt)){
+  temp_df <- data.frame(Cond = i, Num_BCs = nrow(myfiles[[i]]), Num_reads = sum(myfiles[[i]]$V2))
+  basic_stats_df <- rbind(basic_stats_df,temp_df)
+}
+
+```
+
+# Generate rank ordered barcode plots
+```{r}
+
+# Make list of plots
+plot_list <- list()
+for (i in names(myfiles_filt)){
+  plot.new()
+  p <- ggplot(data = myfiles_filt[[i]], aes(reorder(V1,-V2), log2(V2)))+geom_bar(stat='identity') +  
+    theme(axis.text.x=element_blank()) + labs(x = 'Rank ordered barcodes', y = 'Log(reads per barcode)', title = i)
+  plot_list[[i]] <- p
+}
+
+# Save plots into a single pdf
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_memories/unnorm_rank_order_BC_plots.pdf')
+for (i in names(myfiles)) {
+  print(plot_list[[i]])
+}
+dev.off()
+
+```
+
+# combine the replicates for the DLS004 splits
+```{r}
+
+# Also making a stats sheet that gives me confidence to be able to combine these two technical replicates
+
+is.odd <- function(x) x %% 2 != 0
+myfiles_filt_comb <- list() # New object with combined technical replicates
+between_rep_stats <- data.frame() # Stats on how much overlap there was after a VERY liberal filter for expression of a BC
+for (i in which(is.odd(which(substr(names(myfiles_filt),1,6) %in% 'DLS004')) == T)){
+  print(i)
+  temp_df <-merge(myfiles_filt[[i]],myfiles_filt[[i+1]], by='V1', all.x = T, all.y = T)
+  temp_df[is.na(temp_df)] <- 0
+  myfiles_filt_comb[[strsplit(names(myfiles_filt[i]), '_R')[[1]][1]]] <- data.frame(V1 = temp_df$V1, V2=temp_df$V2.x+temp_df$V2.y)
+  
+  rep1_greater1 <- myfiles_filt[[i]]$V1[myfiles_filt[[i]]$V2>1]
+  rep2_greater1 <- myfiles_filt[[i+1]]$V1[myfiles_filt[[i+1]]$V2>1]
+  num_int_reps <- length(intersect(rep1_greater1,rep2_greater1))
+  frac_rep1_int <- num_int_reps/length(rep1_greater1)
+  frac_rep2_int <- num_int_reps/length(rep2_greater1)
+  
+  rep1_greater1000 <- myfiles_filt[[i]]$V1[myfiles_filt[[i]]$V2>1000]
+  rep2_greater1000 <- myfiles_filt[[i+1]]$V1[myfiles_filt[[i+1]]$V2>1000]
+  num_int_reps_1000 <- length(intersect(rep1_greater1000,rep2_greater1000))
+  frac_rep1_int_1000 <- num_int_reps_1000/length(rep1_greater1000)
+  frac_rep2_int_1000 <- num_int_reps_1000/length(rep2_greater1000)
+  
+  temp_df2 <- data.frame(Condition = strsplit(names(myfiles_filt[i]), '_R')[[1]][1],
+                                       Number_intersecting_BCs = num_int_reps, 
+                                       Fraction_Rep1_BCs_intersecting = frac_rep1_int, 
+                                       Fraction_Rep2_BCs_intersecting = frac_rep2_int,
+                         Number_intersecting_BCs_1000 = num_int_reps_1000, 
+                         Fraction_Rep1_BCs_intersecting_1000 = frac_rep1_int_1000, 
+                         Fraction_Rep2_BCs_intersecting_1000 = frac_rep2_int_1000
+                         )
+  between_rep_stats <- rbind(between_rep_stats, temp_df2)
+}
+```
+
+# Plot scatterplots of the split replicates
+```{r}
+# define rpm_norm function  
+rpm_norm <- function(sample){
+  scaling_factor <- sum(sample)/1000000
+  reads_per_million <- as.numeric(sample/scaling_factor)
+  return(reads_per_million)
+}
+
+# Define plotting colors
+colors = c(Cis = '#C96D29',
+           CoCl2 = '#0F8241',
+           Dab = 'darkred',
+           Tram = 'darkblue')
+
+# split reps 
+plot_list2 <- list()
+count <- 1
+for (i in which(is.odd(1:length(myfiles_filt_comb)))){
+  plot.new()
+  temp_df <-merge(myfiles_filt_comb[[i]],myfiles_filt_comb[[i+1]], by='V1', all.x = T, all.y = T)
+  temp_df[is.na(temp_df)] <- 0
+  plot <- ggplot(temp_df, aes(x = rpm_norm(V2.x), y = rpm_norm(V2.y))) + geom_point(color = colors[strsplit(strsplit(names(myfiles_filt_comb[i]), '_S')[[1]][1], '_')[[1]][2]]) + labs(x = 'Split Rep 1', y = 'Split Rep 2', title = paste(strsplit(names(myfiles_filt_comb[i]), '_S')[[1]][1], '- pearson correlation:', round(cor(temp_df$V2.x, temp_df$V2.y, method = 'pearson'),3)))
+  plot_list2[[count]] <- plot
+  count <- count + 1
+}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Condition_memories/scatter_split_reps.pdf')
+for (i in 1:length(plot_list2)) {
+  print(plot_list2[[i]])
+}
+```

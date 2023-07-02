@@ -34,9 +34,10 @@ BiocManager::install("org.Hs.eg.db")
 #Set working directory to appropriate folder for inputs and outputs on Google Drive
 ```{r, setup, include=FALSE}
 #knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
-knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
 
-#knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/.shortcut-targets-by-id/1oE5MtumTfVN3grZH0AkMj2NoxkqZO12W/AJF009') #for robert's computer
+knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/.shortcut-targets-by-id/1oE5MtumTfVN3grZH0AkMj2NoxkqZO12W/AJF009') #for robert's computer
+
 
 #2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
 ```
@@ -69,6 +70,9 @@ library(reshape2)
 
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
 
+#Load data to eliminate further barcodes based on cDNA:
+load("2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData") 
+
 #Change idents to conditions:
 Idents(all_data) <- all_data$OG_condition
 
@@ -77,33 +81,7 @@ Idents(all_data) <- all_data$OG_condition
 #Get list of relevant lineages for dabtram:
 ```{r include = FALSE}
 
-number_of_cells_threshold <- 5
-
-#Get number of cells per lineage:
-dabtram_lineages <- table(all_data$Lineage[all_data$OG_condition == "dabtram"])
-
-#Remove still multiple and no barcode:
-dabtram_lineages <- dabtram_lineages[!(row.names(dabtram_lineages) %in% c("Still multiple","No Barcode"))]
-
-#Keep lineages with more than 5 cells:
-dabtram_lineages_thresholded <- dabtram_lineages[dabtram_lineages>=number_of_cells_threshold]
-
-
-#Get number of cells per lineage:
-dabtramtodabtram_lineages <- table(all_data$Lineage[all_data$OG_condition == "dabtramtodabtram"])
-
-#Remove still multiple and no barcode:
-dabtramtodabtram_lineages <- dabtramtodabtram_lineages[!(row.names(dabtramtodabtram_lineages) %in% c("Still multiple","No Barcode"))]
-
-#Keep lineages with 5 or more cells:
-dabtramtodabtram_lineages_thresholded <- dabtramtodabtram_lineages[dabtramtodabtram_lineages>=number_of_cells_threshold]
-
-
-
-
-dabtram_and_dabtramtodabtram_lineages <- Reduce(intersect,list(names(dabtram_lineages_thresholded)
-,names(dabtramtodabtram_lineages_thresholded)
-))
+dabtram_and_dabtramtodabtram_lineages <- intersect(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram)
 
 ```
 

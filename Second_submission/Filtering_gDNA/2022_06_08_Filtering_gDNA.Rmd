@@ -1,0 +1,413 @@
+---
+title: "2022_06_08_Filtering_gDNA"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/ is additional path for outputs
+
+```
+
+# Initialize
+```{r}
+rm(list = ls())
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/preprocessed_gDNA.RData')
+
+library(tidyverse)
+library(venn)
+library(ggplot2)
+library(ggpolypath)
+`%nin%` = Negate(`%in%`)
+
+```
+
+
+#deal with spike ins
+```{r}
+spikes = list()
+spikes_cutoffs = list()
+
+# identify the spike-in lineages within each sample -- these were found by searching for the known barcode sequence of each in the gDNA_anno object and finding the lineage name for each
+# this can be used to make regression plots of reads vs cells for each sample
+
+for (i in names(gDNA_collapsed)){
+  temp = data.frame(Condition = i, 
+                    CellNumber = c(1000, 1000, 500, 500, 50, 50), 
+                    Reads = c(gDNA_collapsed[[i]]$Reads[gDNA_collapsed[[i]]$Lineage == "Lin413102"], 
+                              gDNA_collapsed[[i]]$Reads[gDNA_collapsed[[i]]$Lineage == "Lin236236"], 
+                              gDNA_collapsed[[i]]$Reads[gDNA_collapsed[[i]]$Lineage == "Lin196617"], 
+                              gDNA_collapsed[[i]]$Reads[gDNA_collapsed[[i]]$Lineage == "Lin305777"], 
+                              gDNA_collapsed[[i]]$Reads[gDNA_collapsed[[i]]$Lineage == "Lin312030"], 
+                              gDNA_collapsed[[i]]$Reads[gDNA_collapsed[[i]]$Lineage == "Lin390707"]))
+  
+  #run linear regression and plot
+  spikes.lm <- lm(formula = CellNumber ~ Reads, data = temp)
+  spikes_cutoffs[[i]] <- spikes.lm$coefficients
+  spikes_cutoffs[[i]]$ten_cell_reads <- ((10 - spikes_cutoffs[[i]][1]) / spikes_cutoffs[[i]][2])
+  spikes[[i]] <- temp
+   
+  pdf(paste('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/', i, 'spike-in plot.pdf'))
+  print(ggplot(temp, mapping = aes(x = CellNumber, y = Reads)) + geom_point() + geom_smooth(method='lm') + ggtitle(i))
+  dev.off()
+}
+```
+
+#Highlight spikes on rank order plots
+```{r}
+#Make temp copy of gDNA_collapsed to add color value to each spike: green for 50, blue for 500, red for 1000
+
+gDNA_collapsed_colors <- list()
+for (i in names(gDNA_collapsed)){
+  temp <- gDNA_collapsed[[i]] %>% mutate(color = case_when(
+              gDNA_collapsed[[i]]$Lineage == "Lin413102" ~ "red",
+              gDNA_collapsed[[i]]$Lineage == "Lin236236" ~ "red",
+              gDNA_collapsed[[i]]$Lineage == "Lin196617" ~ "blue",
+              gDNA_collapsed[[i]]$Lineage == "Lin305777" ~ "blue",
+              gDNA_collapsed[[i]]$Lineage == "Lin312030" ~ "green",
+              gDNA_collapsed[[i]]$Lineage == "Lin390707" ~ "green",
+              ## all other lineages should be gray
+              TRUE ~ "gray70")
+  )
+  gDNA_collapsed_colors[[i]] <- temp
+}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/spikes_RPM.pdf', height = 20, width = 20)
+for (i in names(gDNA_collapsed_colors)){
+print(ggplot(data = gDNA_collapsed_colors[[i]][gDNA_collapsed_colors[[i]]$Reads > 2,], aes(x = reorder(Lineage, -Reads), y = log2(Reads), fill = color)) + geom_bar(stat = 'identity') + scale_fill_identity(guide = "none") + labs(title = paste(i, 'num bcs = ',nrow(gDNA_collapsed_colors[[i]][gDNA_collapsed_colors[[i]]$Reads > 2,]))))
+}
+dev.off()
+
+```
+
+
+#make list of real lineages per condition, above 50 cell reads number
+```{r}
+# find the lowest # of reads (but not zero) associated with 50 cells for each sample, add these to a list, to find big lineages across each condition
+fifty_cell_spikes = list()
+
+# also look at half this # of reads for a less stringent filtering option
+half_fifty_spikes = list()
+
+for (i in names(spikes)){
+  lin_cutoff <- min(spikes[[i]]$Reads[spikes[[i]]$CellNumber == 50])
+  fifty_cell_spikes[[i]] <- lin_cutoff
+  half_fifty_spikes[[i]] <- (0.5*lin_cutoff)
+}
+
+# make list of lineages that pass this reads threshold in each condition
+big_lins <- list()
+temp <- gDNA_collapsed
+
+for (i in names(temp)){
+  temp[[i]]$Lineage[temp[[i]]$Reads < fifty_cell_spikes[[i]]] <- NA
+}
+
+big_lins <- temp
+big_lins$FirstSample$Lineage[big_lins$FirstSample$Reads < 2] <- NA # can't threshold the baseline sample in the same way, so just using at least 2 reads as real
+rm(temp)
+
+# make list of lineages that pass this reads threshold in each condition
+half_lins <- list()
+temp <- gDNA_collapsed
+
+for (i in names(temp)){
+  temp[[i]]$Lineage[temp[[i]]$Reads < half_fifty_spikes[[i]]] <- NA
+}
+
+half_lins <- temp
+half_lins$FirstSample$Lineage[half_lins$FirstSample$Reads < 2] <- NA
+rm(temp)
+
+```
+
+#now use this list to make different sets of lineages for filtering
+```{r}
+#lineages that had more than 50 cells in any condition
+big_lins_unique <- unique(c(big_lins$Cis$Lineage, 
+                            big_lins$CistoCis$Lineage, 
+                            big_lins$CistoCoCl2$Lineage, 
+                            big_lins$CistoDabTram$Lineage, 
+                            big_lins$CoCl2$Lineage, 
+                            big_lins$CoCl2toCis$Lineage, 
+                            big_lins$CoCl2toCoCl2$Lineage, 
+                            big_lins$CoCl2toDabTram$Lineage, 
+                            big_lins$DabTram$Lineage, 
+                            big_lins$DabTramtoCis$Lineage, 
+                            big_lins$DabTramtoCoCl2$Lineage, 
+                            big_lins$DabTramtoDabTram$Lineage, 
+                            big_lins$FirstSample$Lineage))
+
+#lineages that had more than 50 cells in any condition that started in cisplatin
+cis_condition_lins <- unique(c(big_lins$Cis$Lineage, 
+                            big_lins$CistoCis$Lineage, 
+                            big_lins$CistoCoCl2$Lineage, 
+                            big_lins$CistoDabTram$Lineage))
+
+#above plus anything that had more than 2 reads in first sample
+cis_condition_plus <- unique(c(big_lins$Cis$Lineage, 
+                            big_lins$CistoCis$Lineage, 
+                            big_lins$CistoCoCl2$Lineage, 
+                            big_lins$CistoDabTram$Lineage,
+                            big_lins$FirstSample$Lineage))
+
+#lineages that had more than 50 cells in any condition that started in cocl2
+cocl2_condition_lins <- unique(c(big_lins$CoCl2$Lineage, 
+                            big_lins$CoCl2toCis$Lineage, 
+                            big_lins$CoCl2toCoCl2$Lineage, 
+                            big_lins$CoCl2toDabTram$Lineage))
+
+#above plus anything that had more than 2 reads in first sample
+cocl2_condition_plus <- unique(c(big_lins$CoCl2$Lineage, 
+                            big_lins$CoCl2toCis$Lineage, 
+                            big_lins$CoCl2toCoCl2$Lineage, 
+                            big_lins$CoCl2toDabTram$Lineage,
+                            big_lins$FirstSample$Lineage))
+
+#lineages that had more than 50 cells in any condition that started in dabtram
+dabtram_condition_lins <- unique(c(big_lins$DabTram$Lineage, 
+                            big_lins$DabTramtoCis$Lineage, 
+                            big_lins$DabTramtoCoCl2$Lineage, 
+                            big_lins$DabTramtoDabTram$Lineage))
+
+dabtram_condition_plus <- unique(c(big_lins$DabTram$Lineage, 
+                            big_lins$DabTramtoCis$Lineage, 
+                            big_lins$DabTramtoCoCl2$Lineage, 
+                            big_lins$DabTramtoDabTram$Lineage,
+                            big_lins$FirstSample$Lineage))
+
+```
+
+# different options of filtering based on spike ins
+```{r}
+#here we want to take any lineages that are in the big lins unique list and count those as "real" lineages for all conditions
+
+temp <- gDNA_collapsed
+all50 <- list()
+for (i in names (temp)){
+  all50[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% big_lins_unique & temp[[i]]$Reads != 0)
+}
+
+#now any lineages that are big lins for any subsequent condition -- ie lins that must have existed in the first sample too
+firstcondition50 <- list()
+
+for (i in c("Cis", "CistoCis", "CistoCoCl2", "CistoDabTram")){
+  firstcondition50[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% cis_condition_lins & temp[[i]]$Reads != 0)
+} 
+for (i in c("CoCl2", "CoCl2toCis", "CoCl2toCoCl2", "CoCl2toDabTram")){
+  firstcondition50[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% cocl2_condition_lins & temp[[i]]$Reads != 0) 
+}
+for (i in c("DabTram", "DabTramtoCis", "DabTramtoCoCl2", "DabTramtoDabTram")){
+  firstcondition50[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% dabtram_condition_lins & temp[[i]]$Reads != 0)
+}
+firstcondition50$FirstSample <- filter(temp$FirstSample, temp$FirstSample$Reads > 1)
+
+
+#now the above plus whitelist lins
+firstcondition50plus <- list()
+
+for (i in c("Cis", "CistoCis", "CistoCoCl2", "CistoDabTram")){
+  firstcondition50plus[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% cis_condition_plus & temp[[i]]$Reads != 0)
+} 
+for (i in c("CoCl2", "CoCl2toCis", "CoCl2toCoCl2", "CoCl2toDabTram")){
+  firstcondition50plus[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% cocl2_condition_plus & temp[[i]]$Reads != 0) 
+}
+for (i in c("DabTram", "DabTramtoCis", "DabTramtoCoCl2", "DabTramtoDabTram")){
+  firstcondition50plus[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% dabtram_condition_plus & temp[[i]]$Reads != 0)
+}
+
+#now just the lins above 50 cells in a particular condition
+sample50 <- list()
+for (i in names(temp)){
+  sample50[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% big_lins[[i]]$Lineage)
+}
+
+#and half the reads # associated with 50 cells for each condition
+halfsample50 <- list()
+for (i in names(temp)){
+  halfsample50[[i]] <- filter(temp[[i]], temp[[i]]$Lineage %in% half_lins[[i]]$Lineage)
+}
+
+rm(temp)
+```
+
+#Venn diagrams to see how many lineages from second conditions are missing from first for each filtering option
+```{r}
+
+cis_all50_overlap <- list(cis = all50$Cis$Lineage,
+                          cistocis = all50$CistoCis$Lineage,
+                          cistococl2 = all50$CistoCoCl2$Lineage,
+                          cistodabtram = all50$CistoDabTram$Lineage)
+
+cis_conditionplus_overlap <- list(cis = firstcondition50plus$Cis$Lineage,
+                                  cistocis = firstcondition50plus$CistoCis$Lineage,
+                                  cistococl2 = firstcondition50plus$CistoCoCl2$Lineage,
+                                  cistodabtram = firstcondition50plus$CistoDabTram$Lineage)
+
+cis_condition_overlap <- list(cis = firstcondition50$Cis$Lineage,
+                              cistocis = firstcondition50$CistoCis$Lineage,
+                              cistococl2 = firstcondition50$CistoCoCl2$Lineage,
+                              cistodabtram = firstcondition50$CistoDabTram$Lineage)
+
+cis_sample_overlap <- list(cis = sample50$Cis$Lineage,
+                           cistocis = sample50$CistoCis$Lineage,
+                           cistococl2 = sample50$CistoCoCl2$Lineage,
+                           cistodabtram = sample50$CistoDabTram$Lineage)
+
+cis_halfsample_overlap <- list(cis = halfsample50$Cis$Lineage,
+                               cistocis = halfsample50$CistoCis$Lineage,
+                               cistococl2 = halfsample50$CistoCoCl2$Lineage,
+                               cistodabtram = halfsample50$CistoDabTram$Lineage)
+
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/cis_filtering_venns.pdf')
+cis_all50_overlap_venn <- venn(cis_all50_overlap)
+cis_conditionplus_overlap_venn <- venn(cis_conditionplus_overlap)
+cis_condition_overlap_venn <- venn(cis_condition_overlap)
+cis_sample_overlap_venn <- venn(cis_sample_overlap)
+cis_halfsample_overlap_venn <- venn(cis_halfsample_overlap)
+dev.off()
+
+rm(cis_all50_overlap, cis_all50_overlap_venn, cis_conditionplus_overlap, cis_conditionplus_overlap_venn, cis_condition_overlap, cis_sample_overlap, cis_halfsample_overlap, cis_condition_overlap_venn, cis_sample_overlap_venn, cis_halfsample_overlap_venn)
+```
+
+#Venn diagrams to see how many lineages from second conditions are missing from first
+```{r}
+
+cocl2_all50_overlap <- list(cocl2 = all50$CoCl2$Lineage,
+                          CoCl2toCis = all50$CoCl2toCis$Lineage,
+                          CoCl2toCoCl2 = all50$CoCl2toCoCl2$Lineage,
+                          CoCl2toDabTram = all50$CoCl2toDabTram$Lineage)
+
+cocl2_conditionplus_overlap <- list(CoCl2 = firstcondition50plus$CoCl2$Lineage,
+                                  CoCl2toCis = firstcondition50plus$CoCl2toCis$Lineage,
+                                  CoCl2toCoCl2 = firstcondition50plus$CoCl2toCoCl2$Lineage,
+                                  CoCl2toDabTram = firstcondition50plus$CoCl2toDabTram$Lineage)
+
+cocl2_condition_overlap <- list(CoCl2 = firstcondition50$CoCl2$Lineage,
+                              CoCl2toCis = firstcondition50$CoCl2toCis$Lineage,
+                              CoCl2toCoCl2 = firstcondition50$CoCl2toCoCl2$Lineage,
+                              CoCl2toDabTram = firstcondition50$CoCl2toDabTram$Lineage)
+
+cocl2_sample_overlap <- list(CoCl2 = sample50$CoCl2$Lineage,
+                           CoCl2toCis = sample50$CoCl2toCis$Lineage,
+                           CoCl2toCoCl2 = sample50$CoCl2toCoCl2$Lineage,
+                           CoCl2toDabTram = sample50$CoCl2toDabTram$Lineage)
+
+cocl2_halfsample_overlap <- list(CoCl2 = halfsample50$CoCl2$Lineage,
+                               CoCl2toCis = halfsample50$CoCl2toCis$Lineage,
+                               CoCl2toCoCl2 = halfsample50$CoCl2toCoCl2$Lineage,
+                               CoCl2toDabTram = halfsample50$CoCl2toDabTram$Lineage)
+
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/cocl2_filtering_venns.pdf')
+cocl2_all50_overlap_venn <- venn(cocl2_all50_overlap)
+cocl2_conditionplus_overlap_venn <- venn(cocl2_conditionplus_overlap)
+cocl2_condition_overlap_venn <- venn(cocl2_condition_overlap)
+cocl2_sample_overlap_venn <- venn(cocl2_sample_overlap)
+cocl2_halfsample_overlap_venn <- venn(cocl2_halfsample_overlap)
+dev.off()
+
+rm(cocl2_all50_overlap, cocl2_conditionplus_overlap, cocl2_condition_overlap, cocl2_sample_overlap, cocl2_halfsample_overlap, cocl2_all50_overlap_venn, cocl2_conditionplus_overlap_venn, cocl2_condition_overlap_venn, cocl2_sample_overlap_venn, cocl2_halfsample_overlap_venn)
+```
+
+#Venn diagrams to see how many lineages from second conditions are missing from first
+```{r}
+
+dabtram_all50_overlap <- list(DabTram = all50$DabTram$Lineage,
+                          DabTramtoCis = all50$DabTramtoCis$Lineage,
+                          DabTramtoCoCl2 = all50$DabTramtoCoCl2$Lineage,
+                          DabTramtoDabTram = all50$DabTramtoDabTram$Lineage)
+
+dabtram_conditionplus_overlap <- list(DabTram = firstcondition50plus$DabTram$Lineage,
+                                  DabTramtoCis = firstcondition50plus$DabTramtoCis$Lineage,
+                                  DabTramtoCoCl2 = firstcondition50plus$DabTramtoCoCl2$Lineage,
+                                  DabTramtoDabTram = firstcondition50plus$DabTramtoDabTram$Lineage)
+
+dabtram_condition_overlap <- list(DabTram = firstcondition50$DabTram$Lineage,
+                              DabTramtoCis = firstcondition50$DabTramtoCis$Lineage,
+                              DabTramtoCoCl2 = firstcondition50$DabTramtoCoCl2$Lineage,
+                              DabTramtoDabTram = firstcondition50$DabTramtoDabTram$Lineage)
+
+dabtram_sample_overlap <- list(DabTram = sample50$DabTram$Lineage,
+                           DabTramtoCis = sample50$DabTramtoCis$Lineage,
+                           DabTramtoCoCl2 = sample50$DabTramtoCoCl2$Lineage,
+                           DabTramtoDabTram = sample50$DabTramtoDabTram$Lineage)
+
+dabtram_halfsample_overlap <- list(DabTram = halfsample50$DabTram$Lineage,
+                               DabTramtoCis = halfsample50$DabTramtoCis$Lineage,
+                               DabTramtoCoCl2 = halfsample50$DabTramtoCoCl2$Lineage,
+                               DabTramtoDabTram = halfsample50$DabTramtoDabTram$Lineage)
+
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/dabtram_filtering_venns.pdf')
+dabtram_all50_overlap_venn <- venn(dabtram_all50_overlap)
+dabtram_conditionplus_overlap_venn <- venn(dabtram_conditionplus_overlap)
+dabtram_condition_overlap_venn <- venn(dabtram_condition_overlap)
+dabtram_sample_overlap_venn <- venn(dabtram_sample_overlap)
+dabtram_halfsample_overlap_venn <- venn(dabtram_halfsample_overlap)
+dev.off()
+
+rm(dabtram_all50_overlap, dabtram_conditionplus_overlap, dabtram_condition_overlap, dabtram_sample_overlap, dabtram_halfsample_overlap, dabtram_all50_overlap_venn, dabtram_conditionplus_overlap_venn, dabtram_condition_overlap_venn, dabtram_sample_overlap_venn, dabtram_halfsample_overlap_venn)
+```
+
+#how do the condition50 samples look look vs first sample
+```{r}
+
+condition_overlap_first <- list(baseline = all50$FirstSample$Lineage,
+                                Cis = firstcondition50$Cis$Lineage,
+                                CoCl2 = firstcondition50$CoCl2$Lineage,
+                                DabTram = firstcondition50$DabTram$Lineage)
+
+condition_overlap_first_venn <- venn(condition_overlap_first)
+
+rm(condition_overlap_first, condition_overlap_first_venn)
+
+```
+
+# choosing to filter by 50 cell + lineages in first condition group, plus all baseline lineages with more than 2 reads
+# this keeps a really high degree of overlap between lineages found in 1st and 2nd conditions but reduces apparent noise
+
+# make lists of filtered lineages for each condition, and matrix including RPM for these
+```{r}
+
+filtered_lins_list <- list()
+for (i in names(firstcondition50)){
+  filtered_lins_list[[i]] <- firstcondition50[[i]]$Lineage
+}
+
+# for heatmaps we want these lists to have the same dimensions but not for gene expression -- so here's a separate matrix with consistent dimensions for plotting
+# matrix of filtered lins that we can plot from
+
+filtered_matrix <- data.frame(matrix(ncol = length(filtered_lins_list), nrow = length(unique(unlist(filtered_lins_list)))))
+colnames(filtered_matrix) <- names(filtered_lins_list)
+rownames(filtered_matrix) <- unique(unlist(filtered_lins_list))
+
+for (i in colnames(filtered_matrix)){
+  filtered_matrix[filtered_lins_list[[i]],i] <- firstcondition50[[i]]$RPM
+}
+
+```
+
+#filtering statistics-- # of unique barcodes before and after filtering for each condition
+```{r}
+gDNA_filtered_stats <- data.frame()
+for (i in names(gDNA_collapsed)){
+  temp_df <- data.frame(Cond = i, 
+                        Num_BCs_unfiltered = nrow(gDNA_collapsed[[i]][gDNA_collapsed[[i]]$Reads > 0,]), 
+                        Num_BCs_filtered = length(filtered_lins_list[[i]]))
+  
+  gDNA_filtered_stats <- rbind(gDNA_filtered_stats, temp_df)
+}
+```
+
+#save!!
+```{r}
+save(spikes, fifty_cell_spikes, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/spikes.RData')
+save(filtered_lins_list, filtered_matrix, firstcondition50, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/filtered_gDNA.RData')
+write.csv(gDNA_filtered_stats, '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/gDNA_filtered_stats.csv')
+```

@@ -1,0 +1,223 @@
+---
+title: "lineage heatmaps"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+
+# Initialize
+rm(list = ls())
+gc()
+`%nin%` = Negate(`%in%`)
+library(RColorBrewer)
+library(pheatmap)
+
+# Load in the linage data
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/preprocessed_gDNA.RData') # new gDNA data
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/filtered_gDNA.RData') #filtered matrix and lineage lists
+
+```
+
+#Heatplot of resistant lineages
+```{r}
+# heatmap based on prevalence in filtered whitelist sample, colored by prevalence in first drug state
+
+#set order of matrix based on descending lineage size in first sample 
+filtered_matrix <- filtered_matrix[order(-filtered_matrix$FirstSample),]
+
+#make matrix of the correct dimensions, add names to row and columns
+first_sorted <- matrix(0, length(filtered_matrix$Cis), 4)
+colnames(first_sorted) <- c('pretreatment', 'dabtram', 'cocl2', 'cis')
+rownames(first_sorted) <- rownames(filtered_matrix)
+
+#fill each matrix column, matching the rownames, with the RPM for that lineage 
+first_sorted[rownames(filtered_matrix),'pretreatment'] <- filtered_matrix$FirstSample
+first_sorted[rownames(filtered_matrix), 'dabtram'] <- filtered_matrix$DabTram
+first_sorted[rownames(filtered_matrix), 'cocl2'] <- filtered_matrix$CoCl2
+first_sorted[rownames(filtered_matrix), 'cis'] <- filtered_matrix$Cis
+
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/firstsorted_full_greys.pdf', height = 10, width = 10)
+first_plot <- first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]
+first_plot[is.na(first_plot)] <- 0
+pheatmap(log(first_plot+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale, sampling only 100 clones
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/firstsorted_100clones_greys.pdf', height = 10, width = 10)
+set.seed(0)
+rand_inds <- sample(which(rowSums(first_sorted, na.rm = TRUE) > 0),100)
+rand_inds <- rand_inds[order(rand_inds)]
+first_subsample <- first_sorted[rand_inds,]
+first_subsample[is.na(first_subsample)] <- 0
+pheatmap(log(first_subsample+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+
+
+```
+
+```{r}
+# heatmap based on prevalence in dabtram sample, colored by prevalence in end drug state
+
+filtered_matrix <- filtered_matrix[order(-filtered_matrix$DabTram),]
+
+dabtram_sorted <- matrix(0, length(filtered_matrix$DabTram), 4)
+colnames(dabtram_sorted) <- c('dabtram', 'dabtramtodabtram', 'dabtramtococl2', 'dabtramtocis')
+rownames(dabtram_sorted) <- rownames(filtered_matrix)
+
+dabtram_sorted[rownames(filtered_matrix),'dabtram'] <- filtered_matrix$DabTram
+dabtram_sorted[rownames(filtered_matrix), 'dabtramtodabtram'] <- filtered_matrix$DabTramtoDabTram
+dabtram_sorted[rownames(filtered_matrix), 'dabtramtocis'] <- filtered_matrix$DabTramtoCis
+dabtram_sorted[rownames(filtered_matrix), 'dabtramtococl2'] <- filtered_matrix$DabTramtoCoCl2
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/dabtramsorted_full_greys.pdf', height = 10, width = 10)
+dabtram_plot <- dabtram_sorted
+dabtram_plot[is.na(dabtram_plot)] <- 0
+pheatmap(log(dabtram_plot+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale, sampling only 100 clones
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/dabtramsorted_100clones_greys.pdf', height = 10, width = 10)
+set.seed(0)
+rand_inds <- sample(which(rowSums(dabtram_sorted, na.rm = TRUE) > 0),100)
+rand_inds <- rand_inds[order(rand_inds)]
+dabtram_subsample <- dabtram_sorted[rand_inds,]
+dabtram_subsample[is.na(dabtram_subsample)] <- 0
+pheatmap(log(dabtram_subsample+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+```
+
+```{r}
+# heatmap based on prevalence in cocl2 sample, colored by prevalence in end drug state
+
+filtered_matrix <- filtered_matrix[order(-filtered_matrix$CoCl2),]
+
+cocl2_sorted <- matrix(0, length(filtered_matrix$CoCl2), 4)
+colnames(cocl2_sorted) <- c('cocl2', 'cocl2todabtram', 'cocl2tococl2', 'cocl2tocis')
+rownames(cocl2_sorted) <- rownames(filtered_matrix)
+
+cocl2_sorted[rownames(filtered_matrix),'cocl2'] <- filtered_matrix$CoCl2
+cocl2_sorted[rownames(filtered_matrix), 'cocl2tococl2'] <- filtered_matrix$CoCl2toCoCl2
+cocl2_sorted[rownames(filtered_matrix), 'cocl2tocis'] <- filtered_matrix$CoCl2toCis
+cocl2_sorted[rownames(filtered_matrix), 'cocl2todabtram'] <- filtered_matrix$CoCl2toDabTram
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cocl2sorted_full_greys.pdf', height = 10, width = 10)
+cocl2_plot <- cocl2_sorted
+cocl2_plot[is.na(cocl2_plot)] <- 0
+pheatmap(log(cocl2_plot+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale, sampling only 100 clones
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cocl2sorted_100clones_greys.pdf', height = 10, width = 10)
+set.seed(0)
+rand_inds <- sample(which(rowSums(cocl2_sorted, na.rm = TRUE) > 0),100)
+rand_inds <- rand_inds[order(rand_inds)]
+cocl2_subsample <- cocl2_sorted[rand_inds,]
+cocl2_subsample[is.na(cocl2_subsample)] <- 0
+pheatmap(log(cocl2_subsample+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+```
+
+
+```{r}
+# heatmap based on prevalence in cocl2 sample, colored by prevalence in end drug state
+
+filtered_matrix <- filtered_matrix[order(-filtered_matrix$Cis),]
+
+cis_sorted <- matrix(0, length(filtered_matrix$Cis), 4)
+colnames(cis_sorted) <- c('cis', 'cistodabtram', 'cistococl2', 'cistocis')
+rownames(cis_sorted) <- rownames(filtered_matrix)
+
+cis_sorted[rownames(filtered_matrix),'cis'] <- filtered_matrix$Cis
+cis_sorted[rownames(filtered_matrix), 'cistocis'] <- filtered_matrix$CistoCis
+cis_sorted[rownames(filtered_matrix), 'cistococl2'] <- filtered_matrix$CistoCoCl2
+cis_sorted[rownames(filtered_matrix), 'cistodabtram'] <- filtered_matrix$CistoDabTram
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cissorted_full_greys.pdf', height = 10, width = 10)
+cis_plot <- cis_sorted
+cis_plot[is.na(cis_plot)] <- 0
+pheatmap(log(cis_plot+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+
+#plot a log scaled version of all lineages, removing NA values, that have reads for at least one condition (rowsum > 0) in greyscale, sampling only 100 clones
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/cissorted_100clones_greys.pdf', height = 10, width = 10)
+set.seed(0)
+rand_inds <- sample(which(rowSums(cis_sorted, na.rm = TRUE) > 0),100)
+rand_inds <- rand_inds[order(rand_inds)]
+cis_subsample <- cis_sorted[rand_inds,]
+cis_subsample[is.na(cis_subsample)] <- 0
+pheatmap(log(cis_subsample+1), color = colorRampPalette(brewer.pal(n = 7, name =
+  "Greys"))(100), cluster_rows = F, cluster_cols = F, show_rownames = F, border_color = NA, main = paste(nrow(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0,]), 'total clones'))
+dev.off()
+
+```
+
+# print the number of clones surviving each drug
+```{r}
+num_clones_df <- data.frame('first_across_all' = nrow(first_sorted[rowSums(first_sorted, na.rm = TRUE) > 0,]),
+                            'dabtram_across_all' = nrow(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0,]),
+                            'cocl2_across_all' = nrow(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]),
+                            'cis_across_all' = nrow(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0,]),
+                            'dabtram' = sum(filtered_matrix$DabTram > 0, na.rm = T),
+                            'dabtram_to_dabtram' = sum(filtered_matrix$DabTramtoDabTram > 0, na.rm = T),
+                            'dabtram_to_cocl2' = sum(filtered_matrix$DabTramtoCoCl2 > 0, na.rm = T),
+                            'dabtram_to_cis' = sum(filtered_matrix$DabTramtoCis > 0, na.rm = T),
+                            'cocl2' = sum(filtered_matrix$CoCl2 > 0, na.rm = T),
+                            'cocl2_to_dabtram' = sum(filtered_matrix$CoCl2toDabTram > 0, na.rm = T),
+                            'cocl2_to_cocl2' = sum(filtered_matrix$CoCl2toCoCl2 > 0, na.rm = T),
+                            'cocl2_to_cis' = sum(filtered_matrix$CoCl2toCis > 0, na.rm = T),
+                            'cis' = sum(filtered_matrix$Cis > 0, na.rm = T),
+                            'cis_to_dabtram' = sum(filtered_matrix$CistoDabTram > 0, na.rm = T),
+                            'cis_to_cocl2' = sum(filtered_matrix$CistoCoCl2 > 0, na.rm = T),
+                            'cis_to_cis' = sum(filtered_matrix$CistoCis > 0, na.rm = T))
+
+write.csv(num_clones_df, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/num_clones_detected.csv')
+
+```
+
+# print the number of clones surviving each drug, updating to make sure all clones at every subsequent timepoint is included
+```{r}
+
+num_clones_df_updated <- data.frame('first_across_all' = nrow(filtered_matrix[rowSums(filtered_matrix, na.rm = TRUE) > 0,]),
+                            'dabtram_across_all' = nrow(dabtram_sorted[rowSums(dabtram_sorted, na.rm = TRUE) > 0,]),
+                            'cocl2_across_all' = nrow(cocl2_sorted[rowSums(cocl2_sorted, na.rm = TRUE) > 0,]),
+                            'cis_across_all' = nrow(cis_sorted[rowSums(cis_sorted, na.rm = TRUE) > 0,]),
+                            'dabtram' = sum(filtered_matrix$DabTram > 0, na.rm = T),
+                            'dabtram_to_dabtram' = sum(filtered_matrix$DabTramtoDabTram > 0, na.rm = T),
+                            'dabtram_to_cocl2' = sum(filtered_matrix$DabTramtoCoCl2 > 0, na.rm = T),
+                            'dabtram_to_cis' = sum(filtered_matrix$DabTramtoCis > 0, na.rm = T),
+                            'cocl2' = sum(filtered_matrix$CoCl2 > 0, na.rm = T),
+                            'cocl2_to_dabtram' = sum(filtered_matrix$CoCl2toDabTram > 0, na.rm = T),
+                            'cocl2_to_cocl2' = sum(filtered_matrix$CoCl2toCoCl2 > 0, na.rm = T),
+                            'cocl2_to_cis' = sum(filtered_matrix$CoCl2toCis > 0, na.rm = T),
+                            'cis' = sum(filtered_matrix$Cis > 0, na.rm = T),
+                            'cis_to_dabtram' = sum(filtered_matrix$CistoDabTram > 0, na.rm = T),
+                            'cis_to_cocl2' = sum(filtered_matrix$CistoCoCl2 > 0, na.rm = T),
+                            'cis_to_cis' = sum(filtered_matrix$CistoCis > 0, na.rm = T))
+
+
+write.csv(num_clones_df_updated, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_heatmaps/num_clones_detected_updated.csv')
+
+```
+
