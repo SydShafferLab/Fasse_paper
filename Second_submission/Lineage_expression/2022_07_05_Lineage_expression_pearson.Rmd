@@ -25,6 +25,19 @@ library(viridis)
 library(xlsx)
 
 `%nin%` = Negate(`%in%`)
+
+colors = c(dabtram = '#623594',
+           cocl2 = '#0F8241',
+           cis = '#C96D29',
+           dabtramtodabtram = '#561E59',
+           dabtramtococl2 = '#A2248E',
+           dabtramtocis = '#9D85BE',
+           cocl2todabtram = '#10413B',
+           cocl2tococl2 = '#6ABD45',
+           cocl2tocis = '#6DC49C',
+           cistodabtram = '#A23622',
+           cistococl2 = '#F49129',
+           cistocis = '#FBD08C')
 ```
 
 # Load data
@@ -1887,5 +1900,49 @@ ggplot(data = as.data.frame(weighted_means_pearson_cistocis_sim), aes(x = weight
 plot_df <- data.frame('Pearson' = c(unlist(lapply(cistocis_lin_pearson_list, mean)),unlist(lapply(cistocis_lin_pearson_rand_list[[1]], mean))), 'Condition' = c(rep('Data',length(cistocis_lin_pearson_list)),rep('Simulation', length(cistocis_lin_pearson_rand_list[[1]]))))
 ggplot(plot_df, aes(y = Pearson, x = Condition, color = Condition,fill = Condition)) + geom_violin(position="identity", alpha = 0.5) + geom_jitter(shape=16, position=position_jitter(0.2), size = 3) + scale_color_manual(values=c("#fdb08c","#999999")) + scale_fill_manual(values=c("#fbd08c","#999999")) + labs(y = 'Mean of pearson correlations per lineage', title = 'Example CistoCis plot')
 
+dev.off()
+```
+
+# Load the data back in and correlate pearson correlation with size before treatment
+```{r}
+# Load in the gDNA barcode abundance data
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/filtered_gDNA.RData')
+
+dir.create('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size')
+
+# DabTram first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtram_pearson_sim_results.RData')
+# Get means per lineage
+dabtram_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(dabtram_lin_pearson_list, mean)))
+dabtram_CorrVsMean_df$FirstSample <- filtered_matrix[rownames(dabtram_CorrVsMean_df),]$FirstSample
+dabtram_CorrVsMean_df$Cond <- filtered_matrix[rownames(dabtram_CorrVsMean_df),]$DabTram
+dabtram_CorrVsMean_df[is.na(dabtram_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/DabTram.pdf')
+ggplot(dabtram_CorrVsMean_df, aes(x = log2(FirstSample+1), y = Correlations)) + geom_point(color = colors['dabtram']) + ggtitle(paste('dabtram vs initial Pearson Corr:', cor(dabtram_CorrVsMean_df$Correlations, dabtram_CorrVsMean_df$FirstSample)))
+ggplot(dabtram_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['dabtram']) + ggtitle(paste('dabtram vs current Pearson Corr:', cor(dabtram_CorrVsMean_df$Correlations, dabtram_CorrVsMean_df$Cond)))
+dev.off()
+
+# Cisplatin ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cis_pearson_sim_results.RData')
+# Get means per lineage
+cis_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cis_lin_pearson_list, mean)))
+cis_CorrVsMean_df$FirstSample <- filtered_matrix[rownames(cis_CorrVsMean_df),]$FirstSample
+cis_CorrVsMean_df$Cond <- filtered_matrix[rownames(cis_CorrVsMean_df),]$Cis
+cis_CorrVsMean_df[is.na(cis_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cis.pdf')
+ggplot(cis_CorrVsMean_df, aes(x = log2(FirstSample+1), y = Correlations)) + geom_point(color = colors['cis']) + ggtitle(paste('cis vs initial Pearson Corr:', cor(cis_CorrVsMean_df$Correlations, cis_CorrVsMean_df$FirstSample)))
+ggplot(cis_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cis']) + ggtitle(paste('cis vs current Pearson Corr:', cor(cis_CorrVsMean_df$Correlations, cis_CorrVsMean_df$Cond)))
+dev.off()
+
+# cocl2 ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2_pearson_sim_results.RData')
+# Get means per lineage
+cocl2_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cocl2_lin_pearson_list, mean)))
+cocl2_CorrVsMean_df$FirstSample <- filtered_matrix[rownames(cocl2_CorrVsMean_df),]$FirstSample
+cocl2_CorrVsMean_df$Cond <- filtered_matrix[rownames(cocl2_CorrVsMean_df),]$CoCl2
+cocl2_CorrVsMean_df[is.na(cocl2_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cocl2.pdf')
+ggplot(cocl2_CorrVsMean_df, aes(x = log2(FirstSample+1), y = Correlations)) + geom_point(color = colors['cocl2']) + ggtitle(paste('cocl2 vs initial Pearson Corr:', cor(cocl2_CorrVsMean_df$Correlations, cocl2_CorrVsMean_df$FirstSample)))
+ggplot(cocl2_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cocl2']) + ggtitle(paste('cocl2 vs current Pearson Corr:', cor(cocl2_CorrVsMean_df$Correlations, cocl2_CorrVsMean_df$Cond)))
 dev.off()
 ```
