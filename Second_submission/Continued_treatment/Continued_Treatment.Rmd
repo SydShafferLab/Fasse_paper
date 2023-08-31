@@ -225,6 +225,9 @@ dev.off()
 # do ssGSEA on EGFR-high, NGFR-high, and mixed clones
 ```{r}
 
+Idents(all_data) <- all_data$OG_condition
+dabtram <- subset(all_data, idents = 'dabtram')
+
 # Get just the cells of interest from the lineages with more than 5 cells and normalize
 Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
 dabtram <- subset(all_data, idents = c('dabtram'))

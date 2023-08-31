@@ -64,6 +64,17 @@ dabtram_arm <- FindNeighbors(dabtram_arm, dims = 1:15)
 dabtram_arm <- FindClusters(dabtram_arm, resolution = 0.015)
 dabtram_arm <- RunUMAP(dabtram_arm, dims = 1:15)
 
+# dabtram
+dabtram <- subset(all_data, idents = c('dabtram')) # Subset down to the dabtram object
+dabtram <- NormalizeData(dabtram)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
+dabtram <- FindClusters(dabtram, resolution = 0.015)
+dabtram <- RunUMAP(dabtram, dims = 1:15)
+DimPlot(dabtram)
+
 # cocl2 arm
 cocl2_arm <- subset(all_data, idents = c('cocl2', 'cocl2tococl2', 'cocl2tocis','cocl2todabtram')) # Subset down to the cocl2 object
 cocl2_arm <- NormalizeData(cocl2_arm)
@@ -74,6 +85,17 @@ cocl2_arm <- FindNeighbors(cocl2_arm, dims = 1:15)
 cocl2_arm <- FindClusters(cocl2_arm, resolution = 0.015)
 cocl2_arm <- RunUMAP(cocl2_arm, dims = 1:15)
 
+# cocl2
+cocl2 <- subset(all_data, idents = c('cocl2')) # Subset down to the cocl2 object
+cocl2 <- NormalizeData(cocl2)
+cocl2 <- FindVariableFeatures(cocl2, selection.method = 'vst', nFeatures = 20000)
+cocl2 <- ScaleData(cocl2)
+cocl2 <- RunPCA(cocl2)
+cocl2 <- FindNeighbors(cocl2, dims = 1:15)
+cocl2 <- FindClusters(cocl2, resolution = 0.015)
+cocl2 <- RunUMAP(cocl2, dims = 1:15)
+DimPlot(cocl2)
+
 # cis arm
 cis_arm <- subset(all_data, idents = c('cis', 'cistodabtram', 'cistocis','cistococl2')) # Subset down to the cis object
 cis_arm <- NormalizeData(cis_arm)
@@ -83,6 +105,17 @@ cis_arm <- RunPCA(cis_arm)
 cis_arm <- FindNeighbors(cis_arm, dims = 1:15)
 cis_arm <- FindClusters(cis_arm, resolution = 0.015)
 cis_arm <- RunUMAP(cis_arm, dims = 1:15)
+
+# cis
+cis <- subset(all_data, idents = c('cis')) # Subset down to the cis object
+cis <- NormalizeData(cis)
+cis <- FindVariableFeatures(cis, selection.method = 'vst', nFeatures = 20000)
+cis <- ScaleData(cis)
+cis <- RunPCA(cis)
+cis <- FindNeighbors(cis, dims = 1:15)
+cis <- FindClusters(cis, resolution = 0.015)
+cis <- RunUMAP(cis, dims = 1:15)
+DimPlot(cis)
 
 # Find the overlapping lineages for each arm of the study
 cis_venn <- venn(list(cistocis = fivecell_cDNA$CistoCis, cistococl2 = fivecell_cDNA$CistoCoCl2, cistodabtram = fivecell_cDNA$CistoDabTram))
@@ -120,6 +153,8 @@ for (i in unlist(cis_venn_data)){
 }
 dev.off()
 
+###########DimPlot(cis, cells.highlight = list(colnames(cis)[cis$Lineage %in% cis_venn_data$`cistococl2:cistodabtram`],colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2`],colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2:cistodabtram`]), cols.highlight = c('red','blue','green'))
+
 # CoCl2
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/cocl2_arms_UMAPs.pdf',7,7)
 DimPlot(cocl2_arm, group.by = 'OG_condition', pt.size = 1, cols = colors)
@@ -140,6 +175,15 @@ for (i in unlist(cocl2_venn_data)){
 }
 dev.off()
 
+#### WORKING
+DimPlot(cocl2, cells.highlight = list(colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tococl2:cocl2todabtram`],colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2todabtram`],colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2`],colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2:cocl2todabtram`]), cols.highlight = c('red','blue','green','orange'))
+
+cocl2$Overlaps <- rep(NA, length(cocl2$orig.ident))
+for (i in names(cocl2_venn_data)){
+  cocl2$Overlaps[cocl2$Lineage %in% cocl2_venn_data[[i]]] <- i
+}
+Idents(cocl2) <- cocl2$Overlaps
+
 #DabTram
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/dabtram_arms_UMAPs.pdf',7,7)
 DimPlot(dabtram_arm, group.by = 'OG_condition', pt.size = 1, cols = colors)
@@ -158,6 +202,9 @@ for (i in unlist(dabtram_venn_data)){
   print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('DabTram',names(unlist(dabtram_venn_data))[unlist(dabtram_venn_data) == i],i)))
 }
 dev.off()
+
+###DimPlot(dabtram, cells.highlight = list(colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtococl2:dabtramtodabtram`],colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2`],colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2:dabtramtodabtram`]), cols.highlight = c('red','blue','green'))
+
 
 ```
 
