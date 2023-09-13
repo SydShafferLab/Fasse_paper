@@ -1,0 +1,2 @@
+from stitchwell import stitchwell
+StitchWell('/Users/phoebewhite/Library/CloudStorage/GoogleDrive-phwhite@sas.upenn.edu/.shortcut-targets-by-id/12tKUWWdMW6Is2j_X0QWarfY8tIR_UEj9/White_Shared/cloud/experiment_ids/pw023/images').save_tiff('/Users/phoebewhite/Library/CloudStorage/GoogleDrive-phwhite@sas.upenn.edu/.shortcut-targets-by-id/12tKUWWdMW6Is2j_X0QWarfY8tIR_UEj9/White_Shared/cloud/experiment_ids/pw023/PW023', 0.1)
