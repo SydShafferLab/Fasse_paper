@@ -15,6 +15,9 @@ colors <- c('500' = '#21618C',
             '1000' = '#95A5A6',
             '5000' = '#B03A2E')
 
+colors_il6st <- c('Low' = '#19447B',
+                  'High' = '#781024')
+
 #dir.create('cellarea_count')
 ```
 
@@ -110,7 +113,7 @@ save(area_ctrl_df, file='cellarea_count/rdata/areas_ctrl.RData')
 
 ```
 
-## LOAD
+## reload
 ```{r}
 load('cellarea_count/rdata/areas_exp.RData')
 load('cellarea_count/rdata/areas_ctrl.RData')
@@ -126,6 +129,7 @@ pdf(file="cellarea_count/plots/raw_plots.pdf")
 seeding_nums <- list()
 for(i in unique(area_df$seeding_num)) {
   t <- filter_all(area_df, any_vars(.==i))
+  t$il6st <- factor(t$il6st, levels = c("Low", "High"))
   print(ggplot(t) +
           geom_violin(aes(x= il6st, y= area, fill = seeding_num)) +
           geom_point(aes(x= il6st, y= area), color = 'black') +
@@ -176,6 +180,19 @@ area_df$norm_area <- area_df$area/area_df$sf
 area_df$norm_mean_area <- area_df$mean_area/area_df$sf
 
 
+area_df <- area_df[order(rev(area_df$il6st), as.numeric(area_df$seeding_num), area_df$plate), ]
+area_ctrl_df <- area_ctrl_df[order(rev(area_ctrl_df$il6st), as.numeric(area_ctrl_df$seeding_num), area_ctrl_df$plate), ]
+
+save(area_df, file='cellarea_count/rdata/areas_exp.RData')
+save(area_ctrl_df, file='cellarea_count/rdata/areas_ctrl.RData')
+```
+
+## LOAD
+```{r}
+load('cellarea_count/rdata/areas_exp.RData')
+load('cellarea_count/rdata/areas_ctrl.RData')
+load('cellarea_count/rdata/pvals.RData')
+
 ```
 
 ## Normalized area plots
@@ -186,6 +203,7 @@ pdf(file="cellarea_count/plots/norm_plots.pdf")
 seeding_nums_norm <- list()
 for(i in unique(area_df$seeding_num)) {
   t <- filter_all(area_df, any_vars(.==i))
+  t$il6st <- factor(t$il6st, levels = c("Low", "High"))
   print(ggplot(t) +
           geom_violin(aes(x= il6st, y= norm_area, fill = seeding_num)) +
           geom_point(aes(x= il6st, y= norm_area), color = 'black') +
@@ -209,6 +227,7 @@ dev.off()
 pdf(file="cellarea_count/plots/log2_plots.pdf")
 for(i in unique(area_df$seeding_num)) {
   t <- filter_all(area_df, any_vars(.==i))
+  t$il6st <- factor(t$il6st, levels = c("Low", "High"))
   print(ggplot(t) +
           geom_violin(aes(x= il6st, y= log2(norm_area), fill = seeding_num)) +
           geom_point(aes(x= il6st, y= log2(norm_area)), color = 'black') +
@@ -241,55 +260,58 @@ pval_500 <- t.test(area_df$norm_area[area_df$seeding_num == '500' & area_df$il6s
 
 pvals_df <- data.frame(pval = c(pval_500, pval_1000, pval_5000),
                        seeding_num = c(500, 1000, 5000))
+
+save(pvals_df, file='cellarea_count/rdata/pvals.RData')
+
 ```
 
-## LOG2FC w pval (?)
+## LOG2FC w pval per density
 ```{r}
 
 # Log2 FC w pval
 pdf(file="cellarea_count/plots/log2_pval_norm_plots.pdf")
 for(i in unique(area_df$seeding_num)) {
   t <- filter_all(area_df, any_vars(.==i))
+  t$il6st <- factor(t$il6st, levels = c("Low", "High"))
   p <- filter_all(pvals_df, any_vars(.==i))
   print(ggplot(t) +
-          geom_violin(aes(x= il6st, y= log2(norm_area), fill = seeding_num)) +
+          geom_violin(aes(x= il6st, y= log2(norm_area), fill = il6st)) +
           geom_point(aes(x= il6st, y= log2(norm_area)), color = 'black') +
           labs(x="il6st level", y="log2(cell area)", title="log2(norm cell area)", subtitle = paste('pvalue =', signif(p$pval, digits = 5))) + 
-          scale_fill_manual(values = colors[i]))
+          scale_fill_manual(values = colors_il6st))
 }
 dev.off()
 
 ```
 
+## FINAL Log2FC PLOTS FOR PAPER
 ```{r}
 
-add_norms <- list()
-for(i in unique(area_df$il6st)) {
-  t <- filter_all(area_df, any_vars(.==i))
-  
-  if(i == 'High'){
-    t$sf <- c(rep(scaling_factor_allhigh, nrow(t)))
-    
-  } else {
-    for(j in unique(t$plate)){
-      s <- filter_all(area_df, any_vars(.==j))
-      
-      if(j == 'Plate5'){
-        t$sf[t$plate == j] <- c(rep(scaling_factor_lowplate5, 6))
-      } else {
-        t$sf[t$plate == j] <- c(rep(scaling_factor_alllow, 3))
-      }
-    }
-    
+# Log2 FC w pval
+pdf(file="cellarea_count/plots/log2_pval_norm_1000.pdf")
+for(i in unique(area_df$seeding_num)) {
+  if(i == '1000'){
+    t <- filter_all(area_df, any_vars(.==i))
+    t$il6st <- factor(t$il6st, levels = c("Low", "High"))
+    p <- filter_all(pvals_df, any_vars(.==i))
+    print(ggplot(t) +
+            geom_violin(aes(x= il6st, y= log2(norm_area), fill = il6st)) +
+            geom_point(aes(x= il6st, y= log2(norm_area)), color = 'black') +
+            labs(x="il6st level", y="log2(cell area)", title="log2(norm cell area)", subtitle = paste('pvalue =', signif(p$pval, digits = 5))) + 
+            scale_fill_manual(values = colors_il6st))
   }
-  add_norms[[i]] <- t
 }
+dev.off()
 
 
-
-
-
-
-
+pdf(file="cellarea_count/plots/log2_norm.pdf")
+area_df$il6st <- factor(area_df$il6st, levels = c("Low", "High"))
+area_df$seeding_num <- factor(area_df$seeding_num, levels = c("500", "1000", "5000"))
+ggplot(area_df) +
+  geom_violin(aes(x = interaction(il6st, seeding_num), y = log2(norm_area), fill = il6st)) +
+  geom_point(aes(x = interaction(il6st, seeding_num), y = log2(norm_area)), color = 'black') +
+  labs(x = "il6st level", y = "log2(norm cell area)", title = "log2(norm cell area)", subtitle = pvals_df) + 
+  scale_fill_manual(values = colors_il6st)
+dev.off()
 
 ```
