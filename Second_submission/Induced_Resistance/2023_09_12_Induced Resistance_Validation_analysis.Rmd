@@ -15,8 +15,8 @@ colors <- c('500' = '#21618C',
             '1000' = '#95A5A6',
             '5000' = '#B03A2E')
 
-colors_il6st <- c('Low' = '#19447B',
-                  'High' = '#781024')
+colors_il6st <- c('Low' = '#55C0EE',
+                  'High' = '#EF3E69')
 
 #dir.create('cellarea_count')
 ```
