@@ -15,6 +15,9 @@ colors <- c('500' = '#21618C',
             '1000' = '#95A5A6',
             '5000' = '#B03A2E')
 
+colors_il6st <- c('low' = '#55C0EE',
+                  'high' = '#EF3E69')
+
 #dir.create('cellarea_count')
 ```
 
@@ -201,7 +204,7 @@ save(area_df, file='cellarea_count/10x/rdata/area.RData')
 
 # LOAD
 ```{r}
-load('cellarea_count/rdata/areas.RData')
+load('cellarea_count/10x/rdata/area.RData')
 ```
 
 # Raw area plots
@@ -252,6 +255,7 @@ dev.off()
 
 
 ```
+## PVALS (must run every time)
 ```{r}
 
 pval_5000 <- t.test(area_df$area[area_df$seeding_num == '5000' & area_df$il6st == 'high'],
@@ -270,6 +274,7 @@ pvals_df <- data.frame(pval = c(pval_500, pval_1000, pval_5000),
                     seeding_num = c(500, 1000, 5000))
 ```
 
+# Log2FC w pval
 ```{r}
 
 # Log2 FC
@@ -287,7 +292,35 @@ for(i in unique(area_df$seeding_num)) {
 dev.off()
 
 ```
-
+# Final plot for paper
 ```{r}
+
+
+# Log2 FC w pval
+pdf(file="cellarea_count/10x/plots/log2_pval_1000.pdf")
+for(i in unique(area_df$seeding_num)) {
+  if(i == '1000'){
+    t <- filter_all(area_df, any_vars(.==i))
+    t$il6st <- factor(t$il6st, levels = c("low", "high"))
+    p <- filter_all(pvals_df, any_vars(.==i))
+    print(ggplot(t) +
+            geom_violin(aes(x= il6st, y= area, fill = il6st)) +
+            geom_point(aes(x= il6st, y= area), color = 'black') +
+            labs(x="il6st level", y="cell area", title="cell area", subtitle = paste('pvalue =', signif(p$pval, digits = 5))) + 
+            scale_fill_manual(values = colors_il6st))
+  }
+}
+dev.off()
+
+
+pdf(file="cellarea_count/10x/plots/log2_all.pdf")
+area_df$il6st <- factor(area_df$il6st, levels = c("low", "high"))
+area_df$seeding_num <- factor(area_df$seeding_num, levels = c("500", "1000", "5000"))
+ggplot(area_df) +
+  geom_violin(aes(x = interaction(il6st, seeding_num), y = area, fill = il6st)) +
+  geom_point(aes(x = interaction(il6st, seeding_num), y = area), color = 'black') +
+  labs(x = "il6st level", y = "cell area", title = "cell area", subtitle = pvals_df) + 
+  scale_fill_manual(values = colors_il6st)
+dev.off()
 
 ```
