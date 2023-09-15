@@ -186,11 +186,11 @@ area_df <- data.frame(il6st = sapply(areas_df$Condition, function(x) strsplit(x,
                          frac = areas_df$fraction)
 
 
-area_df$mean_area <- ave(area_df$Carea, 
+area_df$mean_area <- ave(area_df$area, 
                            area_df$il6st, 
                            area_df$seeding_num, 
                            FUN = mean)
-area_df_18$mean_frac <- ave(area_df$frac, 
+area_df$mean_frac <- ave(area_df$frac, 
                            area_df$il6st, 
                            area_df$seeding_num, 
                            FUN = mean)
@@ -304,8 +304,8 @@ for(i in unique(area_df$seeding_num)) {
     t$il6st <- factor(t$il6st, levels = c("low", "high"))
     p <- filter_all(pvals_df, any_vars(.==i))
     print(ggplot(t) +
-            geom_violin(aes(x= il6st, y= area, fill = il6st)) +
-            geom_point(aes(x= il6st, y= area), color = 'black') +
+            geom_violin(aes(x= il6st, y= log2(area), fill = il6st)) +
+            geom_point(aes(x= il6st, y= log2(area)), color = 'black') +
             labs(x="il6st level", y="cell area", title="cell area", subtitle = paste('pvalue =', signif(p$pval, digits = 5))) + 
             scale_fill_manual(values = colors_il6st))
   }
@@ -317,9 +317,9 @@ pdf(file="cellarea_count/10x/plots/log2_all.pdf")
 area_df$il6st <- factor(area_df$il6st, levels = c("low", "high"))
 area_df$seeding_num <- factor(area_df$seeding_num, levels = c("500", "1000", "5000"))
 ggplot(area_df) +
-  geom_violin(aes(x = interaction(il6st, seeding_num), y = area, fill = il6st)) +
-  geom_point(aes(x = interaction(il6st, seeding_num), y = area), color = 'black') +
-  labs(x = "il6st level", y = "cell area", title = "cell area", subtitle = pvals_df) + 
+  geom_violin(aes(x = interaction(il6st, seeding_num), y = log2(area), fill = il6st)) +
+  geom_point(aes(x = interaction(il6st, seeding_num), y = log2(area)), color = 'black') +
+  labs(x = "il6st level", y = "log2 cell area", title = "log2 cell area", subtitle = pvals_df) + 
   scale_fill_manual(values = colors_il6st)
 dev.off()
 
