@@ -1,0 +1,564 @@
+---
+title: "q3d_analysis"
+output: html_document
+date: "2023-08-29"
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
+```
+
+# Initialize
+```{r include=FALSE}
+rm(list = ls())
+gc()
+
+library(dplyr)
+library(ggplot2)
+library(mclust)
+library(data.table)
+`%nin%` = Negate(`%in%`)
+```
+
+# Run looping all of the cells together for modeling
+```{r}
+data <- read.csv('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/White_Shared/cloud/experiment_ids/pw019/q3d_files/output.csv')
+
+df_total_cells <- as.data.frame(table(data$Time, data$Well_num))
+colnames(df_total_cells) <- c('Time','Well','Num_Cells')
+ggplot(df_total_cells, aes(x = Time, y = Num_Cells, color = Well, group = Well)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = 'Time', y = 'Number of cells', color = 'Well', title = 'Number of cells per well')
+
+######
+# some points seem to be out of focus:
+  # timepoiint 169 wells B2 and B3
+  # timepoint 361 B1, B2, B3
+  # timepoint 431 B2 B3
+
+data_filt <- data
+data_filt <- data_filt[-which(data_filt$Mean_NGFR > 175),]
+
+for (j in unique(data$Time)){
+  print(j)
+  for (z in unique(data$Well_num)){
+    
+    if( j == '169' & z %in% c('B2','B3')){
+      data_filt <- data_filt[-which(data_filt$Time == j & data_filt$Well_num == z),]
+    } else if (j == '361' & z %in% c('B1','B2','B3')){
+      data_filt <- data_filt[-which(data_filt$Time == j & data_filt$Well_num == z),]
+    } else if (j == '431' & z %in% c('B2','B3')) {
+      data_filt <- data_filt[-which(data_filt$Time == j & data_filt$Well_num == z),]
+    }
+  }
+}
+
+# Normalize expression to median
+data_filt$NGFR_mednorm <- data_filt$Mean_NGFR_Div/median(data_filt$Mean_NGFR_Div)
+
+#Visualize the data_filt in a histogram
+hist(data_filt$NGFR_mednorm)
+# Once have histogram data_filt - log-transform 
+data_filt$log_NGFR_mednorm <- log(data_filt$NGFR_mednorm)
+
+#Log normalized fitting to gaussian using Mclust
+fit1 = Mclust(data_filt$log_NGFR_mednorm, G = 1, model = 'V')
+fit2 = Mclust(data_filt$log_NGFR_mednorm, G = 2, model = 'V')  #fit gaussians to data_filt (G=# of gaussians, model="V" for unequal variances)
+
+plot(fit1, what = 'density', main = '')
+plot(fit2, what = 'density')
+
+# Create Gaussians using lognormal funciton in r
+solveat<-seq(0,ceiling(max(data_filt$NGFR_mednorm)),by=0.001)
+oneGauss<-dlnorm(solveat,fit1$parameters$mean,sqrt(fit1$parameters$variance$sigmasq))
+twoGauss_first<-fit2$parameters$pro[1]*dlnorm(solveat,fit2$parameters$mean[1],sqrt(fit2$parameters$variance$sigmasq[1]))
+twoGauss_second<-fit2$parameters$pro[2]*dlnorm(solveat,fit2$parameters$mean[2],sqrt(fit2$parameters$variance$sigmasq[2]))
+twoGauss<-twoGauss_first+twoGauss_second
+
+# Make breaks = 0.05
+calc_break = ceiling(max(data_filt$NGFR_mednorm))/.05
+breaks<-seq(0,calc_break,by=1)*ceiling(max(data_filt$NGFR_mednorm))/calc_break   #chosen to get binwidth ~ 0.05
+binwidth<-breaks[2]
+
+# Get the counts
+counts_oneGauss<-length(data_filt$log_NGFR_mednorm)*oneGauss*binwidth
+counts_twoGauss<-length(data_filt$log_NGFR_mednorm)*twoGauss*binwidth
+
+counts_twoGauss_first<-length(data_filt$log_NGFR_mednorm)*twoGauss_first*binwidth
+counts_twoGauss_second<-length(data_filt$log_NGFR_mednorm)*twoGauss_second*binwidth
+
+# Get 99th percentile of TwoGauss because fit is signficantly better
+percentile_99_first <- exp(2.326*sqrt(fit2$parameters$variance$sigmasq[1])+fit2$parameters$mean[1]) # first
+
+hist_func<-hist(data_filt$NGFR_mednorm,breaks=breaks,freq=TRUE,xlim=c(0,3),ylim=c(0,17000))
+lines(solveat,counts_twoGauss_first, col = 'red')
+lines(solveat,counts_twoGauss_second, col = 'blue')
+lines(solveat,counts_oneGauss, col = 'magenta')
+abline(v = percentile_99_first, col = 'green')
+
+#Sum of squared errors to assess fit of 1 Gaussian vs 2 Gaussian models 
+Gausscomp_final<-data.frame(hist_func$counts)
+colnames(Gausscomp_final)<-"Histdata_filt"
+Gausscomp_final<-cbind(midpoints=hist_func$mids,Gausscomp_final) 
+
+tol<-1e-4 #find closest x value to midpoint defined by histogram data_filt using this tolerance
+i<-1
+for (val in Gausscomp_final$midpoints){ 
+  Gausscomp_final$oneGauss[i]<-counts_oneGauss[which(solveat>val-tol & solveat<val+tol)]
+  Gausscomp_final$twoGauss[i]<-counts_twoGauss[which(solveat>val-tol & solveat<val+tol)]
+  i<-i+1
+}
+
+#Calculate errors
+Gausscomp_final$oneGauss_error<-Gausscomp_final$oneGauss - Gausscomp_final$Histdata_filt
+Gausscomp_final$twoGauss_error<-Gausscomp_final$twoGauss - Gausscomp_final$Histdata_filt
+
+#Sum of squared errors
+Gausscomp_final$oneGauss_error_sq<-Gausscomp_final$oneGauss_error^2
+Gausscomp_final$twoGauss_error_sq<-Gausscomp_final$twoGauss_error^2
+
+counts_oneGauss_SSE<-sum(Gausscomp_final$oneGauss_error_sq)
+counts_twoGauss_SSE<-sum(Gausscomp_final$twoGauss_error_sq)
+
+
+#F stat 
+fstat<-(counts_twoGauss_SSE/(length(Gausscomp_final$midpoints)-5-1))/(counts_oneGauss_SSE/(length(Gausscomp_final$midpoints)-2-1))
+
+# Calculating P value based F stat and degrees of freedom
+pval <- pf(fstat, (length(Gausscomp_final$midpoints)-5-1),length(Gausscomp_final$midpoints)-2-1, lower.tail = T)
+
+data_filt$EGFR_NGFR_status <- rep("EGFR-high", nrow(data_filt))
+data_filt$EGFR_NGFR_status[data_filt$NGFR_mednorm > percentile_99_first] <- 'NGFR-high'
+
+ggplot(data_filt, aes(x = Time, y = Mean_NGFR_Div, color = EGFR_NGFR_status)) + geom_point()
+
+# Plot the total number of cells 
+df_total_cells2 <- as.data.frame(table(data_filt$Time, data_filt$Well_num))
+df_total_cells2[df_total_cells2$Num_Cells == 0]
+colnames(df_total_cells2) <- c('Time','Well','Num_Cells')
+ggplot(df_total_cells2, aes(x = Time, y = Num_Cells, color = Well, group = Well)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Well', title = 'Number of cells per well')
+
+# Plot the total number of cells for each cond at each time point per well
+df_raw_nums_perwell <- as.data.frame(table(data_filt$Time, data_filt$Well_num, data_filt$EGFR_NGFR_status))
+colnames(df_raw_nums_perwell) <- c('Time','Well','Expression_status','Num_Cells')
+ggplot(df_raw_nums_perwell, aes(x = Time, y = log2(Num_Cells), color = Expression_status, group = Well)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'Number of EGFR or NGFR cells per well')
+
+# Plot the total number of cells for each cond at each time point
+df_raw_nums <- as.data.frame(table(data_filt$Time, data_filt$EGFR_NGFR_status))
+colnames(df_raw_nums) <- c('Time','Expression_status','Num_Cells')
+ggplot(df_raw_nums, aes(x = Time, y = log2(Num_Cells), color = Expression_status)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'Number of EGFR or NGFR cells per well')
+
+
+# Plot the proportions of cells for each cond at each time point per well
+df_pcnt_perwell <- as.data.frame(table(data_filt$Time, data_filt$Well_num, data_filt$EGFR_NGFR_status))
+colnames(df_pcnt_perwell) <- c('Time','Well','Expression_status','Num_Cells')
+
+df_pcnt_perwell$Total_cells <- NA
+for (q in df_pcnt_perwell$Time){
+  for (qq in df_pcnt_perwell$Well){
+    df_pcnt_perwell[df_pcnt_perwell$Time == q & df_pcnt_perwell$Well == qq,]$Total_cells <-sum(df_pcnt_perwell$Num_Cells[df_pcnt_perwell$Time == q & df_pcnt_perwell$Well == qq])
+    
+  }
+}
+df_pcnt_perwell$Proportions <- df_pcnt_perwell$Num_Cells/df_pcnt_perwell$Total_cells
+ggplot(df_pcnt_perwell, aes(x = Time, y = Proportions, color = Expression_status, group = Well)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'proportion of EGFR or NGFR cells per well')
+
+# Plot the proportions of cells for each cond at each time point
+df_pcnt <- as.data.frame(table(data_filt$Time, data_filt$EGFR_NGFR_status))
+colnames(df_pcnt) <- c('Time','Expression_status','Num_Cells')
+
+df_pcnt$Total_cells <- NA
+for (q in df_pcnt$Time){
+  df_pcnt[df_pcnt$Time == q ,]$Total_cells <-sum(df_pcnt$Num_Cells[df_pcnt$Time == q ])
+
+}
+df_pcnt$Proportions <- df_pcnt$Num_Cells/df_pcnt$Total_cells
+ggplot(df_pcnt, aes(x = Time, y = Proportions, color = Expression_status, group = Expression_status)) + 
+  geom_line() +
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'proportion of EGFR or NGFR cells per well')
+```
+# Run looping all of the cells together for modeling - with subtraction
+
+```{r}
+data <- read.csv('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/White_Shared/cloud/experiment_ids/pw019/q3d_files/output.csv')
+
+df_total_cells <- as.data.frame(table(data$Time, data$Well_num))
+colnames(df_total_cells) <- c('Time','Well','Num_Cells')
+ggplot(df_total_cells, aes(x = Time, y = Num_Cells, color = Well, group = Well)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = 'Time', y = 'Number of cells', color = 'Well', title = 'Number of cells per well')
+
+######
+# some points seem to be out of focus:
+  # timepoiint 169 wells B2 and B3
+  # timepoint 361 B1, B2, B3
+  # timepoint 431 B2 B3
+
+data_filt <- data
+for (j in unique(data$Time)){
+  print(j)
+  for (z in unique(data$Well_num)){
+    
+    if( j == '169' & z %in% c('B2','B3')){
+      data_filt <- data_filt[-which(data_filt$Time == j & data_filt$Well_num == z),]
+    } else if (j == '361' & z %in% c('B1','B2','B3')){
+      data_filt <- data_filt[-which(data_filt$Time == j & data_filt$Well_num == z),]
+    } else if (j == '431' & z %in% c('B2','B3')) {
+      data_filt <- data_filt[-which(data_filt$Time == j & data_filt$Well_num == z),]
+    }
+  }
+}
+
+data_filt$Mean_NGFR_Norm <- data_filt$Mean_NGFR_Norm + abs(min(data_filt$Mean_NGFR_Norm))+1
+data_filt <- data_filt[data_filt$Mean_NGFR_Norm <75,]
+
+# Normalize expression to median
+data_filt$NGFR_mednorm <- data_filt$Mean_NGFR_Norm/median(data_filt$Mean_NGFR_Norm)
+
+#Visualize the data_filt in a histogram
+hist(data_filt$NGFR_mednorm)
+# Once have histogram data_filt - log-transform 
+data_filt$log_NGFR_mednorm <- log(data_filt$NGFR_mednorm)
+
+#Log normalized fitting to gaussian using Mclust
+fit1 = Mclust(data_filt$log_NGFR_mednorm, G = 1, model = 'V')
+fit2 = Mclust(data_filt$log_NGFR_mednorm, G = 2, model = 'V')  #fit gaussians to data_filt (G=# of gaussians, model="V" for unequal variances)
+
+plot(fit1, what = 'density', main = '')
+plot(fit2, what = 'density')
+
+# Create Gaussians using lognormal funciton in r
+solveat<-seq(0,ceiling(max(data_filt$NGFR_mednorm)),by=0.001)
+oneGauss<-dlnorm(solveat,fit1$parameters$mean,sqrt(fit1$parameters$variance$sigmasq))
+twoGauss_first<-fit2$parameters$pro[1]*dlnorm(solveat,fit2$parameters$mean[1],sqrt(fit2$parameters$variance$sigmasq[1]))
+twoGauss_second<-fit2$parameters$pro[2]*dlnorm(solveat,fit2$parameters$mean[2],sqrt(fit2$parameters$variance$sigmasq[2]))
+twoGauss<-twoGauss_first+twoGauss_second
+
+# Make breaks = 0.05
+calc_break = ceiling(max(data_filt$NGFR_mednorm))/.05
+breaks<-seq(0,calc_break,by=1)*ceiling(max(data_filt$NGFR_mednorm))/calc_break   #chosen to get binwidth ~ 0.05
+binwidth<-breaks[2]
+
+# Get the counts
+counts_oneGauss<-length(data_filt$log_NGFR_mednorm)*oneGauss*binwidth
+counts_twoGauss<-length(data_filt$log_NGFR_mednorm)*twoGauss*binwidth
+
+counts_twoGauss_first<-length(data_filt$log_NGFR_mednorm)*twoGauss_first*binwidth
+counts_twoGauss_second<-length(data_filt$log_NGFR_mednorm)*twoGauss_second*binwidth
+
+# Get 99th percentile of TwoGauss because fit is signficantly better
+percentile_99_first <- exp(2.326*sqrt(fit2$parameters$variance$sigmasq[1])+fit2$parameters$mean[1]) # first
+
+hist_func<-hist(data_filt$NGFR_mednorm,breaks=breaks,freq=TRUE,xlim=c(0,3),ylim=c(0,17000))
+lines(solveat,counts_twoGauss_first, col = 'red')
+lines(solveat,counts_twoGauss_second, col = 'blue')
+lines(solveat,counts_oneGauss, col = 'magenta')
+abline(v = percentile_99_first, col = 'green')
+
+#Sum of squared errors to assess fit of 1 Gaussian vs 2 Gaussian models 
+Gausscomp_final<-data.frame(hist_func$counts)
+colnames(Gausscomp_final)<-"Histdata_filt"
+Gausscomp_final<-cbind(midpoints=hist_func$mids,Gausscomp_final) 
+
+tol<-1e-4 #find closest x value to midpoint defined by histogram data_filt using this tolerance
+i<-1
+for (val in Gausscomp_final$midpoints){ 
+  Gausscomp_final$oneGauss[i]<-counts_oneGauss[which(solveat>val-tol & solveat<val+tol)]
+  Gausscomp_final$twoGauss[i]<-counts_twoGauss[which(solveat>val-tol & solveat<val+tol)]
+  i<-i+1
+}
+
+#Calculate errors
+Gausscomp_final$oneGauss_error<-Gausscomp_final$oneGauss - Gausscomp_final$Histdata_filt
+Gausscomp_final$twoGauss_error<-Gausscomp_final$twoGauss - Gausscomp_final$Histdata_filt
+
+#Sum of squared errors
+Gausscomp_final$oneGauss_error_sq<-Gausscomp_final$oneGauss_error^2
+Gausscomp_final$twoGauss_error_sq<-Gausscomp_final$twoGauss_error^2
+
+counts_oneGauss_SSE<-sum(Gausscomp_final$oneGauss_error_sq)
+counts_twoGauss_SSE<-sum(Gausscomp_final$twoGauss_error_sq)
+
+
+#F stat 
+fstat<-(counts_twoGauss_SSE/(length(Gausscomp_final$midpoints)-5-1))/(counts_oneGauss_SSE/(length(Gausscomp_final$midpoints)-2-1))
+
+# Calculating P value based F stat and degrees of freedom
+pval <- pf(fstat, (length(Gausscomp_final$midpoints)-5-1),length(Gausscomp_final$midpoints)-2-1, lower.tail = T)
+
+data_filt$EGFR_NGFR_status <- rep("EGFR-high", nrow(data_filt))
+data_filt$EGFR_NGFR_status[data_filt$NGFR_mednorm > percentile_99_first] <- 'NGFR-high'
+
+ggplot(data_filt, aes(x = Time, y = Mean_NGFR_Norm, color = EGFR_NGFR_status)) + geom_point()
+
+# Plot the total number of cells 
+df_total_cells2 <- as.data.frame(table(data_filt$Time, data_filt$Well_num))
+df_total_cells2[df_total_cells2$Num_Cells == 0]
+colnames(df_total_cells2) <- c('Time','Well','Num_Cells')
+ggplot(df_total_cells2, aes(x = Time, y = Num_Cells, color = Well, group = Well)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Well', title = 'Number of cells per well')
+
+# Plot the total number of cells for each cond at each time point per well
+df_raw_nums_perwell <- as.data.frame(table(data_filt$Time, data_filt$Well_num, data_filt$EGFR_NGFR_status))
+colnames(df_raw_nums_perwell) <- c('Time','Well','Expression_status','Num_Cells')
+ggplot(df_raw_nums_perwell, aes(x = Time, y = log2(Num_Cells), color = Expression_status, group = Well)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'Number of EGFR or NGFR cells per well')
+
+# Plot the total number of cells for each cond at each time point
+df_raw_nums <- as.data.frame(table(data_filt$Time, data_filt$EGFR_NGFR_status))
+colnames(df_raw_nums) <- c('Time','Expression_status','Num_Cells')
+ggplot(df_raw_nums, aes(x = Time, y = log2(Num_Cells), color = Expression_status)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'Number of EGFR or NGFR cells per well')
+
+
+# Plot the proportions of cells for each cond at each time point per well
+df_pcnt_perwell <- as.data.frame(table(data_filt$Time, data_filt$Well_num, data_filt$EGFR_NGFR_status))
+colnames(df_pcnt_perwell) <- c('Time','Well','Expression_status','Num_Cells')
+
+df_pcnt_perwell$Total_cells <- NA
+for (q in df_pcnt_perwell$Time){
+  for (qq in df_pcnt_perwell$Well){
+    df_pcnt_perwell[df_pcnt_perwell$Time == q & df_pcnt_perwell$Well == qq,]$Total_cells <-sum(df_pcnt_perwell$Num_Cells[df_pcnt_perwell$Time == q & df_pcnt_perwell$Well == qq])
+    
+  }
+}
+df_pcnt_perwell$Proportions <- df_pcnt_perwell$Num_Cells/df_pcnt_perwell$Total_cells
+ggplot(df_pcnt_perwell, aes(x = Time, y = Proportions, color = Expression_status, group = Well)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'proportion of EGFR or NGFR cells per well')
+
+# Plot the proportions of cells for each cond at each time point
+df_pcnt <- as.data.frame(table(data_filt$Time, data_filt$EGFR_NGFR_status))
+colnames(df_pcnt) <- c('Time','Expression_status','Num_Cells')
+
+df_pcnt$Total_cells <- NA
+for (q in df_pcnt$Time){
+  df_pcnt[df_pcnt$Time == q ,]$Total_cells <-sum(df_pcnt$Num_Cells[df_pcnt$Time == q ])
+
+}
+df_pcnt$Proportions <- df_pcnt$Num_Cells/df_pcnt$Total_cells
+ggplot(df_pcnt, aes(x = Time, y = Proportions, color = Expression_status, group = Expression_status)) + 
+  geom_line() +
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'proportion of EGFR or NGFR cells per well')
+```
+
+
+# Run the analysis one timepoint and one well at a time
+```{r}
+data <- read.csv('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/White_Shared/cloud/experiment_ids/pw019/q3d_files/output.csv')
+
+pvals = c()
+
+data_list <- list()
+
+df_total_cells <- as.data.frame(table(data$Time, data$Well_num))
+colnames(df_total_cells) <- c('Time','Well','Num_Cells')
+ggplot(df_total_cells, aes(x = Time, y = Num_Cells, color = Well, group = Well)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = 'Time', y = 'Number of cells', color = 'Well', title = 'Number of cells per well')
+
+######
+# some points seem to be out of focus:
+  # timepoiint 169 wells B2 and B3
+  # timepoint 361 B1, B2, B3
+  # timepoint 431 B2 B3
+
+for (j in unique(data$Time)){
+  data_list[[as.character(paste0('time',j))]] = list()
+  print(j)
+  for (z in unique(data$Well_num)){
+    
+    if( j == '169' & z %in% c('B2','B3')){
+    } else if (j == '361' & z %in% c('B1','B2','B3')){
+    } else if (j == '431' & z %in% c('B2','B3')) {
+    } else {
+      temp_df <- data[data$Time == j & data$Well_num == z,]
+      temp_df$NGFR_mednorm <- temp_df$Mean_NGFR_Div/median(data$Mean_NGFR_Div)
+      
+      #Visualize the data in a histogram
+      hist(temp_df$NGFR_mednorm)
+      # Once have histogram data - log-transform 
+      temp_df$log_NGFR_mednorm <- log(temp_df$NGFR_mednorm)
+      
+      #Log normalized fitting to gaussian using Mclust
+      fit1 = Mclust(temp_df$log_NGFR_mednorm, G = 1, model = 'V')
+      fit2 = Mclust(temp_df$log_NGFR_mednorm, G = 2, model = 'V')  #fit gaussians to data (G=# of gaussians, model="V" for unequal variances)
+    
+      plot(fit1, what = 'density', main = '')
+      plot(fit2, what = 'density')
+      
+      # Create Gaussians using lognormal funciton in r
+      solveat<-seq(0,ceiling(max(temp_df$NGFR_mednorm)),by=0.001)
+      oneGauss<-dlnorm(solveat,fit1$parameters$mean,sqrt(fit1$parameters$variance$sigmasq))
+      twoGauss_first<-fit2$parameters$pro[1]*dlnorm(solveat,fit2$parameters$mean[1],sqrt(fit2$parameters$variance$sigmasq[1]))
+      twoGauss_second<-fit2$parameters$pro[2]*dlnorm(solveat,fit2$parameters$mean[2],sqrt(fit2$parameters$variance$sigmasq[2]))
+      twoGauss<-twoGauss_first+twoGauss_second
+      print(z)
+      
+      # Make breaks = 0.05
+      calc_break = ceiling(max(temp_df$NGFR_mednorm))/.05
+      breaks<-seq(0,calc_break,by=1)*ceiling(max(temp_df$NGFR_mednorm))/calc_break   #chosen to get binwidth ~ 0.05
+      binwidth<-breaks[2]
+      
+      # Get the counts
+      counts_oneGauss<-length(temp_df$log_NGFR_mednorm)*oneGauss*binwidth
+      counts_twoGauss<-length(temp_df$log_NGFR_mednorm)*twoGauss*binwidth
+      
+      counts_twoGauss_first<-length(temp_df$log_NGFR_mednorm)*twoGauss_first*binwidth
+      counts_twoGauss_second<-length(temp_df$log_NGFR_mednorm)*twoGauss_second*binwidth
+      
+      hist_func<-hist(temp_df$NGFR_mednorm,breaks=breaks,freq=TRUE,xlim=c(0,3),ylim=c(0,1000))
+      lines(solveat,counts_twoGauss_first, col = 'red')
+      lines(solveat,counts_twoGauss_second, col = 'blue')
+      lines(solveat,counts_oneGauss, col = 'magenta')
+      abline(v = percentile_99_first, col = 'green')
+      
+        # Get 99th percentile of TwoGauss because fit is signficantly better
+      if (pval < 0.05){
+        percentile_99 <- exp(2.326*sqrt(fit2$parameters$variance$sigmasq[1])+fit2$parameters$mean[1]) 
+        percentile_95 <- exp(1.645*sqrt(fit2$parameters$variance$sigmasq[1])+fit2$parameters$mean[1])
+        percentile_90 <- exp(1.282*sqrt(fit2$parameters$variance$sigmasq[1])+fit2$parameters$mean[1])
+      } else {
+        percentile_99 <- exp(2.326*sqrt(fit1$parameters$variance$sigmasq)+fit1$parameters$mean) 
+        percentile_95 <- exp(1.645*sqrt(fit1$parameters$variance$sigmasq)+fit1$parameters$mean)
+        percentile_90 <- exp(1.282*sqrt(fit1$parameters$variance$sigmasq)+fit1$parameters$mean)
+      }
+      
+      temp_df$EGFR_NGFR_status <- rep("EGFR-high", nrow(temp_df))
+      temp_df$EGFR_NGFR_status[temp_df$NGFR_mednorm > percentile_99_first] <- 'NGFR-high'
+      
+      #Sum of squared errors to assess fit of 1 Gaussian vs 2 Gaussian models 
+      Gausscomp_final<-data.frame(hist_func$counts)
+      colnames(Gausscomp_final)<-"Histdata"
+      Gausscomp_final<-cbind(midpoints=hist_func$mids,Gausscomp_final) 
+      
+      tol<-1e-4 #find closest x value to midpoint defined by histogram data using this tolerance
+      i<-1
+      for (val in Gausscomp_final$midpoints){ 
+        Gausscomp_final$oneGauss[i]<-counts_oneGauss[which(solveat>val-tol & solveat<val+tol)]
+        Gausscomp_final$twoGauss[i]<-counts_twoGauss[which(solveat>val-tol & solveat<val+tol)]
+        i<-i+1
+      }
+      
+      #Calculate errors
+      Gausscomp_final$oneGauss_error<-Gausscomp_final$oneGauss - Gausscomp_final$Histdata
+      Gausscomp_final$twoGauss_error<-Gausscomp_final$twoGauss - Gausscomp_final$Histdata
+    
+      #Sum of squared errors
+      Gausscomp_final$oneGauss_error_sq<-Gausscomp_final$oneGauss_error^2
+      Gausscomp_final$twoGauss_error_sq<-Gausscomp_final$twoGauss_error^2
+    
+      counts_oneGauss_SSE<-sum(Gausscomp_final$oneGauss_error_sq)
+      counts_twoGauss_SSE<-sum(Gausscomp_final$twoGauss_error_sq)
+    
+      
+      #F stat 
+      fstat<-(counts_twoGauss_SSE/(length(Gausscomp_final$midpoints)-5-1))/(counts_oneGauss_SSE/(length(Gausscomp_final$midpoints)-2-1))
+    
+      # Calculating P value based F stat and degrees of freedom
+      pval <- pf(fstat, (length(Gausscomp_final$midpoints)-5-1),length(Gausscomp_final$midpoints)-2-1, lower.tail = T)
+    
+      ggplot(temp_df, aes(x = Time, y = Mean_NGFR_Div, color = EGFR_NGFR_status)) + geom_point()
+      
+      pvals <- c(pvals,pval)
+      
+      cutoffs <- data.frame( percentile_99 = rep(percentile_99, nrow(temp_df)),
+                             percentile_95 = rep(percentile_95, nrow(temp_df)),
+                             percentile_90 = rep(percentile_90, nrow(temp_df)))
+      
+      temp_df <- cbind(temp_df, cutoffs)
+      
+      data_list[[as.character(paste0('time',j))]][[z]] <- temp_df
+    }
+  }
+  
+  
+}
+
+data_unlisted <- unlist(data_list, recursive = FALSE)
+data_new <- do.call("rbind", data_unlisted)
+
+ggplot(data_new, aes(x = Time, y = Mean_NGFR_Div, color = EGFR_NGFR_status)) + geom_jitter()
+
+# Plot the total number of cells 
+df_total_cells2 <- as.data.frame(table(data_new$Time, data_new$Well_num))
+df_total_cells2[df_total_cells2$Num_Cells == 0]
+colnames(df_total_cells2) <- c('Time','Well','Num_Cells')
+ggplot(df_total_cells2, aes(x = Time, y = Num_Cells, color = Well, group = Well)) + 
+  geom_point() + 
+  geom_line() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Well', title = 'Number of cells per well')
+
+# Plot the total number of cells for each cond at each time point per well
+df_raw_nums_perwell <- as.data.frame(table(data_new$Time, data_new$Well_num, data_new$EGFR_NGFR_status))
+colnames(df_raw_nums_perwell) <- c('Time','Well','Expression_status','Num_Cells')
+ggplot(df_raw_nums_perwell, aes(x = Time, y = log2(Num_Cells), color = Expression_status, group = Well)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'Number of EGFR or NGFR cells per well')
+
+# Plot the total number of cells for each cond at each time point
+df_raw_nums <- as.data.frame(table(data_new$Time, data_new$EGFR_NGFR_status))
+colnames(df_raw_nums) <- c('Time','Expression_status','Num_Cells')
+ggplot(df_raw_nums, aes(x = Time, y = log2(Num_Cells), color = Expression_status)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'Number of EGFR or NGFR cells per well')
+
+
+# Plot the proportions of cells for each cond at each time point per well
+df_pcnt_perwell <- as.data.frame(table(data_new$Time, data_new$Well_num, data_new$EGFR_NGFR_status))
+colnames(df_pcnt_perwell) <- c('Time','Well','Expression_status','Num_Cells')
+
+df_pcnt_perwell$Total_cells <- NA
+for (q in df_pcnt_perwell$Time){
+  for (qq in df_pcnt_perwell$Well){
+    df_pcnt_perwell[df_pcnt_perwell$Time == q & df_pcnt_perwell$Well == qq,]$Total_cells <-sum(df_pcnt_perwell$Num_Cells[df_pcnt_perwell$Time == q & df_pcnt_perwell$Well == qq])
+    
+  }
+}
+df_pcnt_perwell$Proportions <- df_pcnt_perwell$Num_Cells/df_pcnt_perwell$Total_cells
+ggplot(df_pcnt_perwell, aes(x = Time, y = Proportions, color = Expression_status, group = Well)) + 
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'proportion of EGFR or NGFR cells per well')
+
+# Plot the proportions of cells for each cond at each time point
+df_pcnt <- as.data.frame(table(data_new$Time, data_new$EGFR_NGFR_status))
+colnames(df_pcnt) <- c('Time','Expression_status','Num_Cells')
+
+df_pcnt$Total_cells <- NA
+for (q in df_pcnt$Time){
+  df_pcnt[df_pcnt$Time == q ,]$Total_cells <-sum(df_pcnt$Num_Cells[df_pcnt$Time == q ])
+
+}
+df_pcnt$Proportions <- df_pcnt$Num_Cells/df_pcnt$Total_cells
+ggplot(df_pcnt, aes(x = Time, y = Proportions, color = Expression_status, group = Expression_status)) + 
+  geom_line() +
+  geom_point() + 
+  labs(x = 'Time (hours)', y = 'Number of cells', color = 'Expression status', title = 'proportion of EGFR or NGFR cells per well')
+
+
+
+```
+

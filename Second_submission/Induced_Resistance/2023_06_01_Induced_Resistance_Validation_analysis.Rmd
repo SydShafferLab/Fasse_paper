@@ -1,0 +1,326 @@
+---
+title: "pw018_cellarea"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(readr)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+
+knitr::opts_knit$set(root.dir = '/Users/phoebewhite/Library/CloudStorage/GoogleDrive-phwhite@sas.upenn.edu/.shortcut-targets-by-id/12tKUWWdMW6Is2j_X0QWarfY8tIR_UEj9/White_Shared/cloud/experiment_ids/pw018')
+
+colors <- c('500' = '#21618C',
+            '1000' = '#95A5A6',
+            '5000' = '#B03A2E')
+
+colors_il6st <- c('low' = '#55C0EE',
+                  'high' = '#EF3E69')
+
+#dir.create('cellarea_count')
+```
+
+# Import cell area csvs
+```{r}
+setwd('cellarea')
+  area_files_1 <- list.files(pattern = '*.csv', recursive=T, full.names = T)
+  areas_1 <- lapply(area_files_1, read.csv, header = T)
+names(areas_1) <- area_files_1
+
+areas_1 <- lapply(areas_1, function(x) {x$fraction <- x$Cell_area/x$Cell_area[x$Condition == "Blank"];return(x)})
+areas_1 <- lapply(areas_1, function(x) x[x$Condition != "Blank", ])
+areas_1 <- lapply(areas_1, function(x) {x$X <- NULL;return(x)})
+
+setwd('cellarea2')
+  area_files_2 <- list.files(pattern = '*.csv', recursive=T, full.names = T)
+  areas_2 <- lapply(area_files_2, read.csv, header = T)
+names(areas_2) <- area_files_2
+
+areas_2 <- lapply(areas_2, function(x) {x$fraction <- x$Cell_area/x$Cell_area[x$Condition == "Blank"];return(x)})
+areas_2 <- lapply(areas_2, function(x) x[x$Condition != "Blank", ])
+areas_2 <- lapply(areas_2, function(x) {x$X <- NULL;return(x)})
+
+
+```
+# Convert to data frames
+```{r}
+
+# I need to get the badly scanned ones out of here (high 5000 and high 1000)
+areas_1_df <- bind_rows(areas_1, .id= 'column_label')
+areas_1_df$il6st <- sapply(areas_1_df$Condition, function(x) strsplit(x,'_')[[1]][[6]])
+areas_1_df$seeding_num <- sapply(areas_1_df$Condition, function(x) strsplit(x,'_')[[1]][[7]])
+areas_1_df$plate <- sapply(areas_1_df$Condition, function(x) strsplit(x,'_')[[1]][[8]])
+areas_1_df$well <- sapply(areas_1_df$Condition, function(x) strsplit(x,'_')[[1]][[9]])
+
+areas_1_df_high <- areas_1_df[areas_1_df$il6st == 'high' & areas_1_df$seeding_num == '500', ]
+areas_1_df_low <- areas_1_df[areas_1_df$il6st == 'low', ]
+areas_1_df <- rbind(areas_1_df_high, areas_1_df_low)
+
+
+# These should all be good
+areas_2_df <- bind_rows(areas_2, .id= 'column_label')
+areas_2_df$il6st <- sapply(areas_2_df$Condition, function(x) strsplit(x,'_')[[1]][[6]])
+areas_2_df$seeding_num <- sapply(areas_2_df$Condition, function(x) strsplit(x,'_')[[1]][[7]])
+areas_2_df$plate <- sapply(areas_2_df$Condition, function(x) strsplit(x,'_')[[1]][[8]])
+areas_2_df$well <- sapply(areas_2_df$Condition, function(x) strsplit(x,'_')[[1]][[10]])
+
+area_df_18 <- rbind(areas_1_df, areas_2_df)
+area_df_18$column_label <- NULL
+area_df_18$Condition <- NULL
+
+area_df_18$mean_area <- ave(area_df_18$Cell_area, 
+                           area_df_18$il6st, 
+                           area_df_18$seeding_num, 
+                           FUN = mean)
+area_df_18$mean_frac <- ave(area_df_18$fraction, 
+                           area_df_18$il6st, 
+                           area_df_18$seeding_num, 
+                           FUN = mean)
+
+area_df_18 <- area_df_18[order(area_df_18$il6st, as.numeric(area_df_18$seeding_num), area_df_18$plate, area_df_18$well), ]
+
+#dir.create('cellarea_count/rdata')
+save(area_df_18, file='cellarea_count/rdata/areas.RData')
+
+```
+
+# LOAD
+```{r}
+load('cellarea_count/rdata/areas.RData')
+```
+
+# Raw area plots
+```{r}
+#dir.create('cellarea_count/plots')
+
+# Raw counts
+pdf(file="cellarea_count/plots/raw_plots.pdf")
+seeding_nums <- list()
+for(i in unique(area_df_18$seeding_num)) {
+  t <- filter_all(area_df_18, any_vars(.==i))
+  print(ggplot(t) +
+          geom_point(aes(x= il6st, y= Cell_area, color = seeding_num)) +
+          geom_violin(alpha = 0.5, aes(x= il6st, y= Cell_area, fill = seeding_num)) +
+          labs(x="il6st level", y="cell area", title="cell area") + 
+          scale_color_manual(values = colors[i]) + 
+          scale_fill_manual(values = colors[i]))
+  print(ggplot(t, aes(x= il6st, y= Cell_area, fill = seeding_num)) +
+          geom_boxplot() +
+          labs(x="il6st level", y="cell area", title="cell area") + 
+          scale_fill_manual(values = colors[i]))
+  seeding_nums[[i]] <- t
+}
+dev.off()
+
+```
+# Log2 area plots
+```{r}
+#dir.create('cellarea_count/plots')
+
+# Log2 FC
+pdf(file="cellarea_count/plots/log2_plots.pdf")
+for(i in unique(area_df_18$seeding_num)) {
+  t <- filter_all(area_df_18, any_vars(.==i))
+  print(ggplot(t) +
+          geom_point(aes(x= il6st, y= log2(Cell_area), color = seeding_num)) +
+          geom_violin(alpha = 0.5, aes(x= il6st, y= log2(Cell_area), fill = seeding_num)) +
+          labs(x="il6st level", y="log2(cell area)", title="log2(cell area)") + 
+          scale_color_manual(values = colors[i]) + 
+          scale_fill_manual(values = colors[i]))
+  print(ggplot(t, aes(x= il6st, y= log2(Cell_area), fill = seeding_num)) +
+          geom_boxplot() +
+          labs(x="il6st level", y="cell area", title="cell area") + 
+          scale_fill_manual(values = colors[i]))
+}
+dev.off()
+
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+# REDONE CELL AREA ANALYSIS
+# Import cell area csvs
+```{r}
+setwd('cellarea_10x')
+  area_files <- list.files(pattern = '*.csv', recursive=T, full.names = T)
+  areas <- lapply(area_files, read.csv, header = T)
+
+names(areas) <- area_files
+names(areas) <- lapply(names(areas), function(x) strsplit(x, '_')[[1]][[3]])
+names(areas) <- lapply(names(areas), function(x) strsplit(x, '.csv')[[1]][[1]])
+
+areas <- lapply(areas, function(x) {x$fraction <- x$Cell_area/x$Cell_area[x$Condition == "Blank"];return(x)})
+areas <- lapply(areas, function(x) x[x$Condition != "Blank", ])
+areas <- lapply(areas, function(x) {x$X <- NULL;return(x)})
+```
+
+# Convert to data frames
+```{r}
+
+# I need to split the badly scanned ones (high 5000 and high 1000) from the others
+areas_df <- do.call(rbind, areas)
+
+area_df <- data.frame(il6st = sapply(areas_df$Condition, function(x) strsplit(x, '_')[[1]][[6]]), 
+                      seeding_num = sapply(areas_df$Condition, function(x) strsplit(x, '_')[[1]][[7]]),
+                      plate = sapply(areas_df$Condition, function(x) strsplit(x, '_')[[1]][[8]]),
+                      well = ifelse(grepl("high_5000",areas_df$Condition) | grepl("high_1000",areas_df$Condition), 
+                                    sapply(areas_df$Condition, function(x) strsplit(x, '_')[[1]][[10]]), 
+                                    sapply(areas_df$Condition, function(x) strsplit(x, '_')[[1]][[9]])),
+                         area = areas_df$Cell_area, 
+                         frac = areas_df$fraction)
+
+
+area_df$mean_area <- ave(area_df$area, 
+                           area_df$il6st, 
+                           area_df$seeding_num, 
+                           FUN = mean)
+area_df$mean_frac <- ave(area_df$frac, 
+                           area_df$il6st, 
+                           area_df$seeding_num, 
+                           FUN = mean)
+
+area_df <- area_df[order(area_df$il6st, as.numeric(area_df$seeding_num), area_df$plate, area_df$well), ]
+
+#dir.create('cellarea_count/10x/rdata')
+save(area_df, file='cellarea_count/10x/rdata/area.RData')
+
+```
+
+# LOAD
+```{r}
+load('cellarea_count/10x/rdata/area.RData')
+```
+
+# Raw area plots
+```{r}
+#dir.create('cellarea_count/10x/plots')
+
+# Raw counts
+pdf(file="cellarea_count/10x/plots/raw_plots.pdf")
+seeding_nums <- list()
+for(i in unique(area_df$seeding_num)) {
+  t <- filter_all(area_df, any_vars(.==i))
+  print(ggplot(t) +
+          geom_point(aes(x= il6st, y= area, color = seeding_num)) +
+          geom_violin(alpha = 0.5, aes(x= il6st, y= area, fill = seeding_num)) +
+          labs(x="il6st level", y="cell area", title="cell area") + 
+          scale_color_manual(values = colors[i]) + 
+          scale_fill_manual(values = colors[i]))
+  print(ggplot(t, aes(x= il6st, y= area, fill = seeding_num)) +
+          geom_boxplot() +
+          labs(x="il6st level", y="cell area", title="cell area") + 
+          scale_fill_manual(values = colors[i]))
+  seeding_nums[[i]] <- t
+}
+dev.off()
+
+```
+# Log2 area plots
+```{r}
+#dir.create('cellarea_count/plots')
+
+# Log2 FC
+pdf(file="cellarea_count/10x/plots/log2_plots.pdf")
+for(i in unique(area_df$seeding_num)) {
+  t <- filter_all(area_df, any_vars(.==i))
+  print(ggplot(t) +
+          geom_point(aes(x= il6st, y= log2(area), color = seeding_num)) +
+          geom_violin(alpha = 0.5, aes(x= il6st, y= log2(area), fill = seeding_num)) +
+          labs(x="il6st level", y="log2(cell area)", title="log2(cell area)") + 
+          scale_color_manual(values = colors[i]) + 
+          scale_fill_manual(values = colors[i]))
+  print(ggplot(t, aes(x= il6st, y= log2(area), fill = seeding_num)) +
+          geom_boxplot() +
+          labs(x="il6st level", y="cell area", title="cell area") + 
+          scale_fill_manual(values = colors[i]))
+}
+dev.off()
+
+
+
+```
+## PVALS (must run every time)
+```{r}
+
+pval_5000 <- t.test(area_df$area[area_df$seeding_num == '5000' & area_df$il6st == 'high'],
+                    area_df$area[area_df$seeding_num == '5000' & area_df$il6st == 'low'],
+                    alternative = 'greater')$p.value
+
+pval_1000 <- t.test(area_df$area[area_df$seeding_num == '1000' & area_df$il6st == 'high'],
+                    area_df$area[area_df$seeding_num == '1000' & area_df$il6st == 'low'],
+                    alternative = 'greater')$p.value
+
+pval_500 <- t.test(area_df$area[area_df$seeding_num == '500' & area_df$il6st == 'high'],
+                    area_df$area[area_df$seeding_num == '500' & area_df$il6st == 'low'],
+                    alternative = 'greater')$p.value
+
+pvals_df <- data.frame(pval = c(pval_500, pval_1000, pval_5000),
+                    seeding_num = c(500, 1000, 5000))
+```
+
+# Log2FC w pval
+```{r}
+
+# Log2 FC
+pdf(file="cellarea_count/10x/plots/log2_pval_plots.pdf")
+for(i in unique(area_df$seeding_num)) {
+  t <- filter_all(area_df, any_vars(.==i))
+  p <- filter_all(pvals_df, any_vars(.==i))
+  print(ggplot(t) +
+          geom_point(aes(x= il6st, y= log2(area), color = seeding_num)) +
+          geom_violin(alpha = 0.5, aes(x= il6st, y= log2(area), fill = seeding_num)) +
+          labs(x="il6st level", y="log2(cell area)", title="log2(cell area)", subtitle = paste('pvalue =', signif(p$pval, digits = 5))) + 
+          scale_color_manual(values = colors[i]) + 
+          scale_fill_manual(values = colors[i]))
+}
+dev.off()
+
+```
+# Final plot for paper
+```{r}
+
+
+# Log2 FC w pval
+pdf(file="cellarea_count/10x/plots/log2_pval_1000.pdf")
+for(i in unique(area_df$seeding_num)) {
+  if(i == '1000'){
+    t <- filter_all(area_df, any_vars(.==i))
+    t$il6st <- factor(t$il6st, levels = c("low", "high"))
+    p <- filter_all(pvals_df, any_vars(.==i))
+    print(ggplot(t) +
+            geom_violin(aes(x= il6st, y= log2(area), fill = il6st)) +
+            geom_point(aes(x= il6st, y= log2(area)), color = 'black') +
+            labs(x="il6st level", y="cell area", title="cell area", subtitle = paste('pvalue =', signif(p$pval, digits = 5))) + 
+            scale_fill_manual(values = colors_il6st))
+  }
+}
+dev.off()
+
+
+pdf(file="cellarea_count/10x/plots/log2_all.pdf")
+area_df$il6st <- factor(area_df$il6st, levels = c("low", "high"))
+area_df$seeding_num <- factor(area_df$seeding_num, levels = c("500", "1000", "5000"))
+ggplot(area_df) +
+  geom_violin(aes(x = interaction(il6st, seeding_num), y = log2(area), fill = il6st)) +
+  geom_point(aes(x = interaction(il6st, seeding_num), y = log2(area)), color = 'black') +
+  labs(x = "il6st level", y = "log2 cell area", title = "log2 cell area", subtitle = pvals_df) + 
+  scale_fill_manual(values = colors_il6st)
+dev.off()
+
+```

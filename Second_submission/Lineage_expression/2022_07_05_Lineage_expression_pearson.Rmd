@@ -1945,4 +1945,99 @@ pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_
 ggplot(cocl2_CorrVsMean_df, aes(x = log2(FirstSample+1), y = Correlations)) + geom_point(color = colors['cocl2']) + ggtitle(paste('cocl2 vs initial Pearson Corr:', cor(cocl2_CorrVsMean_df$Correlations, cocl2_CorrVsMean_df$FirstSample)))
 ggplot(cocl2_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cocl2']) + ggtitle(paste('cocl2 vs current Pearson Corr:', cor(cocl2_CorrVsMean_df$Correlations, cocl2_CorrVsMean_df$Cond)))
 dev.off()
+
+## Secondary treatments ------
+
+# DabTram to DabTram ----
+
+# DabTramtoDabTram first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtodabtram_pearson_sim_results.RData')
+# Get means per lineage
+dabtramtodabtram_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(dabtramtodabtram_lin_pearson_list, mean)))
+dabtramtodabtram_CorrVsMean_df$Cond <- filtered_matrix[rownames(dabtramtodabtram_CorrVsMean_df),]$DabTramtoDabTram
+dabtramtodabtram_CorrVsMean_df[is.na(dabtramtodabtram_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/dabtramtodabtram.pdf')
+ggplot(dabtramtodabtram_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['dabtramtodabtram']) + ggtitle(paste('dabtramtodabtram vs current Pearson Corr:', cor(dabtramtodabtram_CorrVsMean_df$Correlations, dabtramtodabtram_CorrVsMean_df$Cond)))
+dev.off()
+
+# DabTramtoCoCl2 first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtococl2_pearson_sim_results.RData')
+# Get means per lineage
+dabtramtococl2_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(dabtramtococl2_lin_pearson_list, mean)))
+dabtramtococl2_CorrVsMean_df$Cond <- filtered_matrix[rownames(dabtramtococl2_CorrVsMean_df),]$DabTramtoCoCl2
+dabtramtococl2_CorrVsMean_df[is.na(dabtramtococl2_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/dabtramtococl2.pdf')
+ggplot(dabtramtococl2_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['dabtramtococl2']) + ggtitle(paste('dabtramtococl2 vs current Pearson Corr:', cor(dabtramtococl2_CorrVsMean_df$Correlations, dabtramtococl2_CorrVsMean_df$Cond)))
+dev.off()
+
+# DabTramtoCis first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/dabtramtocis_pearson_sim_results.RData')
+# Get means per lineage
+dabtramtocis_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(dabtramtocis_lin_pearson_list, mean)))
+dabtramtocis_CorrVsMean_df$Cond <- filtered_matrix[rownames(dabtramtocis_CorrVsMean_df),]$DabTramtoCis
+dabtramtocis_CorrVsMean_df[is.na(dabtramtocis_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/dabtramtocis.pdf')
+ggplot(dabtramtocis_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['dabtramtocis']) + ggtitle(paste('dabtramtocis vs current Pearson Corr:', cor(dabtramtocis_CorrVsMean_df$Correlations, dabtramtocis_CorrVsMean_df$Cond)))
+dev.off()
+
+# CoCl2toCoCl2 first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tococl2_pearson_sim_results.RData')
+# Get means per lineage
+cocl2tococl2_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cocl2tococl2_lin_pearson_list, mean)))
+cocl2tococl2_CorrVsMean_df$Cond <- filtered_matrix[rownames(cocl2tococl2_CorrVsMean_df),]$CoCl2toCoCl2
+cocl2tococl2_CorrVsMean_df[is.na(cocl2tococl2_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cocl2tococl2.pdf')
+ggplot(cocl2tococl2_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cocl2tococl2']) + ggtitle(paste('cocl2tococl2 vs current Pearson Corr:', cor(cocl2tococl2_CorrVsMean_df$Correlations, cocl2tococl2_CorrVsMean_df$Cond)))
+dev.off()
+
+# CoCl2toCis first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2tocis_pearson_sim_results.RData')
+# Get means per lineage
+cocl2tocis_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cocl2tocis_lin_pearson_list, mean)))
+cocl2tocis_CorrVsMean_df$Cond <- filtered_matrix[rownames(cocl2tocis_CorrVsMean_df),]$CoCl2toCis
+cocl2tocis_CorrVsMean_df[is.na(cocl2tocis_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cocl2tocis.pdf')
+ggplot(cocl2tocis_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cocl2tocis']) + ggtitle(paste('cocl2tocis vs current Pearson Corr:', cor(cocl2tocis_CorrVsMean_df$Correlations, cocl2tocis_CorrVsMean_df$Cond)))
+dev.off()
+
+# CoCl2toDabTram first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cocl2todabtram_pearson_sim_results.RData')
+# Get means per lineage
+cocl2todabtram_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cocl2todabtram_lin_pearson_list, mean)))
+cocl2todabtram_CorrVsMean_df$Cond <- filtered_matrix[rownames(cocl2todabtram_CorrVsMean_df),]$CoCl2toDabTram
+cocl2todabtram_CorrVsMean_df[is.na(cocl2todabtram_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cocl2todabtram.pdf')
+ggplot(cocl2todabtram_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cocl2todabtram']) + ggtitle(paste('cocl2todabtram vs current Pearson Corr:', cor(cocl2todabtram_CorrVsMean_df$Correlations, cocl2todabtram_CorrVsMean_df$Cond)))
+dev.off()
+
+# CistoCoCl2 first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistococl2_pearson_sim_results.RData')
+# Get means per lineage
+cistococl2_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cistococl2_lin_pearson_list, mean)))
+cistococl2_CorrVsMean_df$Cond <- filtered_matrix[rownames(cistococl2_CorrVsMean_df),]$CistoCoCl2
+cistococl2_CorrVsMean_df[is.na(cistococl2_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cistococl2.pdf')
+ggplot(cistococl2_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cistococl2']) + ggtitle(paste('cistococl2 vs current Pearson Corr:', cor(cistococl2_CorrVsMean_df$Correlations, cistococl2_CorrVsMean_df$Cond)))
+dev.off()
+
+# CistoCis first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistocis_pearson_sim_results.RData')
+# Get means per lineage
+cistocis_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cistocis_lin_pearson_list, mean)))
+cistocis_CorrVsMean_df$Cond <- filtered_matrix[rownames(cistocis_CorrVsMean_df),]$CoCl2toCis
+cistocis_CorrVsMean_df[is.na(cistocis_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cistocis.pdf')
+ggplot(cistocis_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cistocis']) + ggtitle(paste('cistocis vs current Pearson Corr:', cor(cistocis_CorrVsMean_df$Correlations, cistocis_CorrVsMean_df$Cond)))
+dev.off()
+
+# CistoDabTram first ----
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/cistodabtram_pearson_sim_results.RData')
+# Get means per lineage
+cistodabtram_CorrVsMean_df <- data.frame(Correlations = unlist(lapply(cistodabtram_lin_pearson_list, mean)))
+cistodabtram_CorrVsMean_df$Cond <- filtered_matrix[rownames(cistodabtram_CorrVsMean_df),]$CistoDabTram
+cistodabtram_CorrVsMean_df[is.na(cistodabtram_CorrVsMean_df)] <- 0
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/scatter_Pearson_Vs_Size/cistodabtram.pdf')
+ggplot(cistodabtram_CorrVsMean_df, aes(x = log2(Cond+1), y = Correlations)) + geom_point(color = colors['cistodabtram']) + ggtitle(paste('cistodabtram vs current Pearson Corr:', cor(cistodabtram_CorrVsMean_df$Correlations, cistodabtram_CorrVsMean_df$Cond)))
+dev.off()
+
 ```

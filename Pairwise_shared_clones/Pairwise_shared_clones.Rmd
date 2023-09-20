@@ -153,8 +153,6 @@ for (i in unlist(cis_venn_data)){
 }
 dev.off()
 
-###########DimPlot(cis, cells.highlight = list(colnames(cis)[cis$Lineage %in% cis_venn_data$`cistococl2:cistodabtram`],colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2`],colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2:cistodabtram`]), cols.highlight = c('red','blue','green'))
-
 # CoCl2
 pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/cocl2_arms_UMAPs.pdf',7,7)
 DimPlot(cocl2_arm, group.by = 'OG_condition', pt.size = 1, cols = colors)
@@ -174,9 +172,6 @@ for (i in unlist(cocl2_venn_data)){
   print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('CoCl2',names(unlist(cocl2_venn_data))[unlist(cocl2_venn_data) == i],i)))
 }
 dev.off()
-
-#### WORKING
-DimPlot(cocl2, cells.highlight = list(colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tococl2:cocl2todabtram`],colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2todabtram`],colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2`],colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2:cocl2todabtram`]), cols.highlight = c('red','blue','green','orange'))
 
 cocl2$Overlaps <- rep(NA, length(cocl2$orig.ident))
 for (i in names(cocl2_venn_data)){
@@ -203,8 +198,22 @@ for (i in unlist(dabtram_venn_data)){
 }
 dev.off()
 
-###DimPlot(dabtram, cells.highlight = list(colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtococl2:dabtramtodabtram`],colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2`],colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2:dabtramtodabtram`]), cols.highlight = c('red','blue','green'))
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/overlaps_onfirsttreat.pdf',7,7)
 
+# Pull out the venn diagram data
+venn(list(cistocis = fivecell_cDNA$CistoCis, cistococl2 = fivecell_cDNA$CistoCoCl2, cistodabtram = fivecell_cDNA$CistoDabTram))
+DimPlot(cis, cells.highlight = list("cistocis:cistococl2" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2`], "cistococl2:cistodabtram" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistococl2:cistodabtram`], "cistocis:cistococl2:cistodabtram" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2:cistodabtram`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+DimPlot(cis, cells.highlight = list("cistocis" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis`], "cistococl2" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistococl2`], "cistodabtram" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistodabtram`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+
+venn(list(cocl2tocis = fivecell_cDNA$CoCl2toCis, cocl2tococl2 = fivecell_cDNA$CoCl2toCoCl2, cocl2todabtram = fivecell_cDNA$CoCl2toDabTram))
+DimPlot(cocl2, cells.highlight = list("cocl2tococl2:cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tococl2:cocl2todabtram`], "cocl2tocis:cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2todabtram`], "cocl2tocis:cocl2tococl2" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2`], "cocl2tocis:cocl2tococl2:cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2:cocl2todabtram`]), cols.highlight = c('red','blue','green','orange'), pt.size = 1, sizes.highlight = 2)
+DimPlot(cocl2, cells.highlight = list("cocl2tococl2" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tococl2`], "cocl2tocis" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis`], "cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2todabtram`]), cols.highlight = c('red','blue','green','orange'), pt.size = 1, sizes.highlight = 2)
+
+venn(list(dabtramtocis = fivecell_cDNA$DabTramtoCis, dabtramtococl2 = fivecell_cDNA$DabTramtoCoCl2, dabtramtodabtram = fivecell_cDNA$DabTramtoDabTram))
+DimPlot(dabtram, cells.highlight = list("dabtramtococl2:dabtramtodabtram" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtococl2:dabtramtodabtram`], "dabtramtocis:dabtramtococl2" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2`], "dabtramtocis:dabtramtococl2:dabtramtodabtram" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2:dabtramtodabtram`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+DimPlot(dabtram, cells.highlight = list("dabtramtodabtram" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtodabtram`], "dabtramtococl2" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtococl2`], "dabtramtocis" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+
+dev.off()
 
 ```
 

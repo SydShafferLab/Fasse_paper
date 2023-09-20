@@ -36,10 +36,6 @@ load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/a
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData')
 load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
 
-load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cis_final_lineages.RData')
-load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cocl2_final_lineages.RData')
-load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_final_lineages.RData')
-
 ```
 
 # Markers within each first drug object to find subgroups (ie analogous to NGFR/EGFR)
@@ -233,6 +229,8 @@ Idents(all_data) <- all_data$OG_condition
 dabtram <- subset(all_data, idents = 'dabtram')
 
 # Get just the cells of interest from the lineages with more than 5 cells and normalize
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+dabtram <- subset(all_data, idents = c('dabtram'))
 Idents(dabtram) <- dabtram$Lineage
 dt_sub <- subset(dabtram, idents = fivecell_cDNA$DabTram)
 dt_sub <- NormalizeData(dt_sub)
@@ -316,7 +314,7 @@ ES2 <- data.frame(dt_sub[[]], Idents(dt_sub))
 colnames(ES2)[ncol(ES2)] <- "cluster"
 dev.off()
 
-output <- getSignificance(ES2, 
+output <- getSignificance(ES2, # https://rdrr.io/github/ncborcherding/escape/man/getSignificance.html
                           group = "cluster", 
                           gene.sets = names(enriched),
                           fit = "ANOVA")
