@@ -786,3 +786,11 @@ ggplot(cis_inducedto_cocl2_fgseaRes_padj, aes(reorder(pathway, NES), NES)) +
 dev.off()
 ```
 
+# Look at largest clone in dabtram to cocl2  for revision work
+```{r}
+largest_clone_dttococl2 <- table(all_data$Lineage[all_data$OG_condition == 'dabtramtococl2'])[order(table(all_data$Lineage[all_data$OG_condition == 'dabtramtococl2']))][length(table(all_data$Lineage[all_data$OG_condition == 'dabtramtococl2'])[order(table(all_data$Lineage[all_data$OG_condition == 'dabtramtococl2']))])-2]
+
+num_cells_dabtram_largest_dttococl2 <- length(all_data$Lineage[all_data$OG_condition == 'dabtram' & all_data$Lineage == names(largest_clone_dttococl2)])
+
+```
+
