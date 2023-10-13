@@ -9,7 +9,7 @@ library(readxl)
 library(dplyr)
 library(ggplot2)
 
-knitr::opts_knit$set(root.dir = '/Users/phoebewhite/Library/CloudStorage/GoogleDrive-phwhite@sas.upenn.edu/.shortcut-targets-by-id/12tKUWWdMW6Is2j_X0QWarfY8tIR_UEj9/White_Shared/cloud/experiment_ids/pw023')
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/White_Shared/cloud/experiment_ids/pw023')
 
 colors <- c('500' = '#21618C',
             '1000' = '#95A5A6',
