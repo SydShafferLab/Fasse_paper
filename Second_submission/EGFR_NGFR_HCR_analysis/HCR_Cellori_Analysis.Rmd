@@ -1,0 +1,582 @@
+---
+title: "HCR_Cellori_Analysis"
+output: html_document
+date: "2023-11-07"
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+```
+
+# Initialize
+```{r include=FALSE}
+rm(list = ls())
+gc()
+
+library(dplyr)
+library(ggplot2)
+library(mclust)
+library(data.table)
+`%nin%` = Negate(`%in%`)
+```
+
+# Load the data in and preprocess/format
+```{r}
+data <- read.csv('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/images_for_analysis/cellori_output.csv')
+
+# Add the plate and well to data
+data$plate <- sapply(data$file_488, function(x) strsplit(x,'_')[[1]][[9]])
+data$well <- rep(NA, NROW(data$plate))
+data$well[grepl('scan',data$file_488)] <- sapply(data$file_488[grepl('scan',data$file_488)], function(x) strsplit(x,'_')[[1]][[12]]) # Some had to be rescanned
+data$well[-which(grepl('scan',data$file_488))] <- sapply(data$file_488[-which(grepl('scan',data$file_488))], function(x) strsplit(x,'_')[[1]][[11]]) # Some had to be rescanned
+
+# Fix X and Y coords labels
+colnames(data) <- c('X','Mean_488','Mean_647','Cell_num','Coords_Y','Coords_X','Nuc_file','file_488','file_647','plate','well')
+
+# flip axis for Y and remove a border 150 pixels around each image to adjust for edge effects
+x_width <- 9249
+y_height <- c(9267,9232) # when splitting, q3 qnd q4 are shorter
+data_filt <- data[data$Coords_X > 150 & data$Coords_X < (x_width - 150),] # filter on X axis
+for (z in unique(data_filt$Nuc_file)){
+  print(z)
+  if (z %in% c('DAPI_q1.tif','DAPI_q2.tif')){
+    print('first')
+    data_filt$Coords_Y[data_filt$Nuc_file == z] <- y_height[1] - data_filt$Coords_Y[data_filt$Nuc_file == z]
+    data_filt <- data_filt[-which(data_filt$Nuc_file == z & data_filt$Coords_Y < 150 ),]
+    data_filt <- data_filt[-which(data_filt$Nuc_file == z & data_filt$Coords_Y > (y_height[1] - 150)),]
+  } else if (z %in% c('DAPI_q3.tif','DAPI_q4.tif')){
+    print('second')
+    data_filt$Coords_Y[data_filt$Nuc_file == z] <- y_height[2] - data_filt$Coords_Y[data_filt$Nuc_file == z]
+    data_filt <- data_filt[-which(data_filt$Nuc_file == z & data_filt$Coords_Y < 150 ),]
+    data_filt <- data_filt[-which(data_filt$Nuc_file == z & data_filt$Coords_Y > (y_height[2] - 150)),]
+  } 
+}
+
+
+```
+
+# Make intermediate plots before any computations
+```{r, include = FALSE}
+dir.create(file.path('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots'), showWarnings = FALSE)
+pdf('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots/raw_plots.pdf')
+ggplot(data_filt, aes(x = Mean_488, y = Mean_647)) + geom_point() + labs(title = 'all_data')
+
+for (i in unique(data_filt$plate)){
+  print(i)
+  for (j in unique(data_filt$well[data_filt$plate == i])){
+    print(j)
+    print(ggplot(data_filt[data_filt$plate == i & data_filt$well == j,], aes(x = log(Mean_488), y = log(Mean_647))) + geom_point() + labs(title = paste(i,j)))
+  }
+}
+
+dev.off()
+
+
+```
+
+# Calculate the ratio of NGFR ot EGFR and set a threshold - normalization across all samples
+```{r}
+# Normalize expression to median
+data_filt$NGFR_mednorm <- data_filt$Mean_647/median(data_filt$Mean_647)
+data_filt$EGFR_mednorm <- data_filt$Mean_488/median(data_filt$Mean_488)
+
+# Calculate the ratio of normalized NGFR ot EGFR expression
+data_filt$ratio_norm_NGFRtoEGFR <- data_filt$NGFR_mednorm/data_filt$EGFR_mednorm
+
+hist(data_filt$ratio_norm_NGFRtoEGFR,51)
+hist(log2(data_filt$ratio_norm_NGFRtoEGFR),51)
+
+data_filt$NGFR_EGFR_class <- rep('Equal', length(data_filt$ratio_norm_NGFRtoEGFR))
+data_filt$NGFR_EGFR_class[data_filt$ratio_norm_NGFRtoEGFR > 1.05] <- 'NGFR-high' # NGFR 5% higher than EGFR
+data_filt$NGFR_EGFR_class[data_filt$ratio_norm_NGFRtoEGFR < 0.952381] <- 'EGFR-high'# EGFR 5% higher than NGFR
+
+ggplot(data_filt, aes(x = EGFR_mednorm, y = NGFR_mednorm, color = NGFR_EGFR_class)) + geom_point(size = .1)
+
+# Plot the data on coordinates
+for (i in unique(data_filt$plate)){
+  print(i)
+  for (j in unique(data_filt$well[data_filt$plate == i])){
+    print(j)
+    temp_df <- data_filt[data_filt$plate == i & data_filt$well == j,]
+    temp_df$adjsuted_X <- rep(NA, nrow(temp_df))
+    temp_df$adjsuted_Y <- rep(NA, nrow(temp_df))
+    
+    #q1
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q1.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q1.tif']
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q1.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q1.tif'] + y_height[1]
+    #q2
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q2.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q2.tif'] + x_width
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q2.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q2.tif'] + y_height[1]
+    #q3
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q3.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q3.tif']
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q3.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q3.tif'] 
+    #q4
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q4.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q4.tif'] + x_width
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q4.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q4.tif']
+    
+    print(ggplot(temp_df, aes(x = adjusted_X, y = adjusted_Y, color = NGFR_EGFR_class))+ geom_point(size = .1) + labs(title = paste(i,j)))
+  }
+}
+```
+
+# Calculate the ratio of NGFR ot EGFR and set a threshold - normalization per image
+```{r}
+# Normalize expression to median per image
+data_list <- list()
+for (q in unique(data_filt$plate)){
+  print(q)
+  data_list[[q]] <- list()
+  for (z in unique(data_filt$well)){
+    print(z)
+    temp_df <- data_filt[data_filt$plate == q & data_filt$well == z,]
+    
+    # Normalize expression to median
+    temp_df$NGFR_mednorm <- temp_df$Mean_647/median(temp_df$Mean_647)
+    temp_df$EGFR_mednorm <- temp_df$Mean_488/median(temp_df$Mean_488)
+    
+    data_list[[q]][[z]] <- temp_df
+  }
+}
+
+data_unlisted <- unlist(data_list, recursive = FALSE)
+data_filt <- do.call("rbind", data_unlisted)
+
+# Calculate the ratio of normalized NGFR ot EGFR expression
+data_filt$ratio_norm_NGFRtoEGFR <- data_filt$NGFR_mednorm/data_filt$EGFR_mednorm
+
+hist(data_filt$ratio_norm_NGFRtoEGFR,51)
+hist(log2(data_filt$ratio_norm_NGFRtoEGFR),51)
+
+data_filt$NGFR_EGFR_class <- rep('Equal', length(data_filt$ratio_norm_NGFRtoEGFR))
+data_filt$NGFR_EGFR_class[data_filt$ratio_norm_NGFRtoEGFR > 1.3] <- 'NGFR-high' # NGFR 5% higher than EGFR
+data_filt$NGFR_EGFR_class[data_filt$ratio_norm_NGFRtoEGFR < 1.3] <- 'EGFR-high'# EGFR 5% higher than NGFR
+
+ggplot(data_filt, aes(x = EGFR_mednorm, y = NGFR_mednorm, color = NGFR_EGFR_class)) + geom_point(size = .1)
+
+# Plot the data on coordinates
+for (i in unique(data_filt$plate)){
+  print(i)
+  for (j in unique(data_filt$well[data_filt$plate == i])){
+    print(j)
+    temp_df <- data_filt[data_filt$plate == i & data_filt$well == j,]
+    temp_df$adjsuted_X <- rep(NA, nrow(temp_df))
+    temp_df$adjsuted_Y <- rep(NA, nrow(temp_df))
+    
+    #q1
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q1.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q1.tif']
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q1.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q1.tif'] + y_height[1]
+    #q2
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q2.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q2.tif'] + x_width
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q2.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q2.tif'] + y_height[1]
+    #q3
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q3.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q3.tif']
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q3.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q3.tif'] 
+    #q4
+    temp_df$adjusted_X[temp_df$Nuc_file == 'DAPI_q4.tif'] <- temp_df$Coords_X[temp_df$Nuc_file == 'DAPI_q4.tif'] + x_width
+    temp_df$adjusted_Y[temp_df$Nuc_file == 'DAPI_q4.tif'] <- temp_df$Coords_Y[temp_df$Nuc_file == 'DAPI_q4.tif']
+    
+    print(ggplot(temp_df, aes(x = adjusted_X, y = adjusted_Y, color = NGFR_EGFR_class))+ geom_point(size = .0000005) + labs(title = paste(i,j)))
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+# Run with all data together 
+```{r}
+# Normalize expression to median
+data_filt$NGFR_mednorm <- data_filt$Mean_647/median(data_filt$Mean_647)
+data_filt$EGFR_mednorm <- data_filt$Mean_488/median(data_filt$Mean_488)
+
+# Visualize the intermediate, median normalized plots
+pdf('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots/median_normalized_plots.pdf')
+hist(data_filt$NGFR_mednorm)
+hist(data_filt$EGFR_mednorm)
+ggplot(data_filt, aes(x = EGFR_mednorm, y = NGFR_mednorm)) + geom_point() + labs(title = 'all_data')
+dev.off()
+
+# Once have histogram data_filt - log-transform 
+data_filt$log_NGFR_mednorm <- log(data_filt$NGFR_mednorm)
+data_filt$log_EGFR_mednorm <- log(data_filt$EGFR_mednorm)
+
+#Log normalized fitting to gaussian using Mclust
+fit1_NGFR = Mclust(data_filt$log_NGFR_mednorm, G = 1, model = 'V')
+fit2_NGFR = Mclust(data_filt$log_NGFR_mednorm, G = 2, model = 'V')  #fit gaussians to data_filt (G=# of gaussians, model="V" for unequal variances)
+plot(fit1_NGFR, what = 'density', main = '')
+plot(fit2_NGFR, what = 'density')
+
+fit1_EGFR = Mclust(data_filt$log_EGFR_mednorm, G = 1, model = 'V')
+fit2_EGFR = Mclust(data_filt$log_EGFR_mednorm, G = 2, model = 'V')  #fit gaussians to data_filt (G=# of gaussians, model="V" for unequal variances)
+plot(fit1_EGFR, what = 'density', main = '')
+plot(fit2_EGFR, what = 'density')
+
+# Create Gaussians using lognormal funciton in r
+solveat_NGFR<-seq(0,ceiling(max(data_filt$NGFR_mednorm)),by=0.001)
+oneGauss_NGFR<-dlnorm(solveat_NGFR,fit1_NGFR$parameters$mean,sqrt(fit1_NGFR$parameters$variance$sigmasq))
+twoGauss_first_NGFR<-fit2_NGFR$parameters$pro[1]*dlnorm(solveat_NGFR,fit2_NGFR$parameters$mean[1],sqrt(fit2_NGFR$parameters$variance$sigmasq[1]))
+twoGauss_second_NGFR<-fit2_NGFR$parameters$pro[2]*dlnorm(solveat_NGFR,fit2_NGFR$parameters$mean[2],sqrt(fit2_NGFR$parameters$variance$sigmasq[2]))
+twoGauss_NGFR<-twoGauss_first_NGFR+twoGauss_second_NGFR
+
+solveat_EGFR<-seq(0,ceiling(max(data_filt$EGFR_mednorm)),by=0.001)
+oneGauss_EGFR<-dlnorm(solveat_EGFR,fit1_EGFR$parameters$mean,sqrt(fit1_EGFR$parameters$variance$sigmasq))
+twoGauss_first_EGFR<-fit2_EGFR$parameters$pro[1]*dlnorm(solveat_EGFR,fit2_EGFR$parameters$mean[1],sqrt(fit2_EGFR$parameters$variance$sigmasq[1]))
+twoGauss_second_EGFR<-fit2_EGFR$parameters$pro[2]*dlnorm(solveat_EGFR,fit2_EGFR$parameters$mean[2],sqrt(fit2_EGFR$parameters$variance$sigmasq[2]))
+twoGauss_EGFR<-twoGauss_first_EGFR+twoGauss_second_EGFR
+
+# Make breaks = 0.05
+calc_break_NGFR = ceiling(max(data_filt$NGFR_mednorm))/.05
+breaks_NGFR<-seq(0,calc_break_NGFR,by=1)*ceiling(max(data_filt$NGFR_mednorm))/calc_break_NGFR   #chosen to get binwidth ~ 0.05
+binwidth_NGFR<-breaks_NGFR[2]
+
+calc_break_EGFR = ceiling(max(data_filt$EGFR_mednorm))/.05
+breaks_EGFR<-seq(0,calc_break_EGFR,by=1)*ceiling(max(data_filt$EGFR_mednorm))/calc_break_EGFR   #chosen to get binwidth ~ 0.05
+binwidth_EGFR<-breaks_EGFR[2]
+
+# Get the counts
+counts_oneGauss_NGFR<-length(data_filt$log_NGFR_mednorm)*oneGauss_NGFR*binwidth_NGFR
+counts_twoGauss_NGFR<-length(data_filt$log_NGFR_mednorm)*twoGauss_NGFR*binwidth_NGFR
+counts_twoGauss_first_NGFR<-length(data_filt$log_NGFR_mednorm)*twoGauss_first_NGFR*binwidth_NGFR
+counts_twoGauss_second_NGFR<-length(data_filt$log_NGFR_mednorm)*twoGauss_second_NGFR*binwidth_NGFR
+
+counts_oneGauss_EGFR<-length(data_filt$log_EGFR_mednorm)*oneGauss_EGFR*binwidth_EGFR
+counts_twoGauss_EGFR<-length(data_filt$log_EGFR_mednorm)*twoGauss_EGFR*binwidth_EGFR
+counts_twoGauss_first_EGFR<-length(data_filt$log_EGFR_mednorm)*twoGauss_first_EGFR*binwidth_EGFR
+counts_twoGauss_second_EGFR<-length(data_filt$log_EGFR_mednorm)*twoGauss_second_EGFR*binwidth_EGFR
+
+# Get 99th percentile of TwoGauss because fit is signficantly better
+percentile_cutoff_first_NGFR <- exp(2.326*sqrt(fit2_NGFR$parameters$variance$sigmasq[1])+fit2_NGFR$parameters$mean[1])
+
+percentile_cutoff_first_EGFR <- exp(.2*sqrt(fit2_EGFR$parameters$variance$sigmasq[1])+fit2_EGFR$parameters$mean[1])
+
+# Plot the data with cutoffs
+pdf('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots/mednorm_gaussian_fits.pdf')
+hist_func_NGFR<-hist(data_filt$NGFR_mednorm,breaks=breaks_NGFR,freq=TRUE,xlim=c(0,3),ylim=c(0,9000))
+lines(solveat_NGFR,counts_twoGauss_first_NGFR, col = 'red')
+lines(solveat_NGFR,counts_twoGauss_second_NGFR, col = 'blue')
+lines(solveat_NGFR,counts_oneGauss_NGFR, col = 'magenta')
+abline(v = percentile_cutoff_first_NGFR, col = 'green')
+
+hist_func_EGFR<-hist(data_filt$EGFR_mednorm,breaks=breaks_EGFR,freq=TRUE,xlim=c(0,3),ylim=c(0,5000))
+lines(solveat_EGFR,counts_twoGauss_first_EGFR, col = 'red')
+lines(solveat_EGFR,counts_twoGauss_second_EGFR, col = 'blue')
+lines(solveat_EGFR,counts_oneGauss_EGFR, col = 'magenta')
+abline(v = percentile_cutoff_first_EGFR, col = 'green')
+dev.off()
+
+#Sum of squared errors to assess fit of 1 Gaussian vs 2 Gaussian models 
+Gausscomp_final_NGFR<-data.frame(hist_func_NGFR$counts)
+colnames(Gausscomp_final_NGFR)<-"Histdata_filt"
+Gausscomp_final_NGFR<-cbind(midpoints=hist_func_NGFR$mids,Gausscomp_final_NGFR) 
+tol<-1e-4 #find closest x value to midpoint defined by histogram data_filt using this tolerance
+i<-1
+for (val in Gausscomp_final_NGFR$midpoints){ 
+  Gausscomp_final_NGFR$oneGauss[i]<-counts_oneGauss_NGFR[which(solveat_NGFR>val-tol & solveat_NGFR<val+tol)]
+  Gausscomp_final_NGFR$twoGauss[i]<-counts_twoGauss_NGFR[which(solveat_NGFR>val-tol & solveat_NGFR<val+tol)]
+  i<-i+1
+}
+
+Gausscomp_final_EGFR<-data.frame(hist_func_EGFR$counts)
+colnames(Gausscomp_final_EGFR)<-"Histdata_filt"
+Gausscomp_final_EGFR<-cbind(midpoints=hist_func_EGFR$mids,Gausscomp_final_EGFR) 
+tol<-1e-4 #find closest x value to midpoint defined by histogram data_filt using this tolerance
+i<-1
+for (val in Gausscomp_final_EGFR$midpoints){ 
+  Gausscomp_final_EGFR$oneGauss[i]<-counts_oneGauss_EGFR[which(solveat_EGFR>val-tol & solveat_EGFR<val+tol)]
+  Gausscomp_final_EGFR$twoGauss[i]<-counts_twoGauss_EGFR[which(solveat_EGFR>val-tol & solveat_EGFR<val+tol)]
+  i<-i+1
+}
+
+#Calculate errors
+Gausscomp_final_NGFR$oneGauss_error<-Gausscomp_final_NGFR$oneGauss - Gausscomp_final_NGFR$Histdata_filt
+Gausscomp_final_NGFR$twoGauss_error<-Gausscomp_final_NGFR$twoGauss - Gausscomp_final_NGFR$Histdata_filt
+
+Gausscomp_final_EGFR$oneGauss_error<-Gausscomp_final_EGFR$oneGauss - Gausscomp_final_EGFR$Histdata_filt
+Gausscomp_final_EGFR$twoGauss_error<-Gausscomp_final_EGFR$twoGauss - Gausscomp_final_EGFR$Histdata_filt
+
+#Sum of squared errors
+Gausscomp_final_NGFR$oneGauss_error_sq<-Gausscomp_final_NGFR$oneGauss_error^2
+Gausscomp_final_NGFR$twoGauss_error_sq<-Gausscomp_final_NGFR$twoGauss_error^2
+counts_oneGauss_SSE_NGFR<-sum(Gausscomp_final_NGFR$oneGauss_error_sq)
+counts_twoGauss_SSE_NGFR<-sum(Gausscomp_final_NGFR$twoGauss_error_sq)
+
+Gausscomp_final_EGFR$oneGauss_error_sq<-Gausscomp_final_EGFR$oneGauss_error^2
+Gausscomp_final_EGFR$twoGauss_error_sq<-Gausscomp_final_EGFR$twoGauss_error^2
+counts_oneGauss_SSE_EGFR<-sum(Gausscomp_final_EGFR$oneGauss_error_sq)
+counts_twoGauss_SSE_EGFR<-sum(Gausscomp_final_EGFR$twoGauss_error_sq)
+
+#F stat 
+fstat_NGFR<-(counts_twoGauss_SSE_NGFR/(length(Gausscomp_final_NGFR$midpoints)-5-1))/(counts_oneGauss_SSE_NGFR/(length(Gausscomp_final_NGFR$midpoints)-2-1))
+
+fstat_EGFR<-(counts_twoGauss_SSE_EGFR/(length(Gausscomp_final_EGFR$midpoints)-5-1))/(counts_oneGauss_SSE_EGFR/(length(Gausscomp_final_EGFR$midpoints)-2-1))
+
+# Calculating P value based F stat and degrees of freedom
+pval_NGFR <- pf(fstat_NGFR, (length(Gausscomp_final_NGFR$midpoints)-5-1),length(Gausscomp_final_NGFR$midpoints)-2-1, lower.tail = T)
+
+pval_EGFR <- pf(fstat_EGFR, (length(Gausscomp_final_EGFR$midpoints)-5-1),length(Gausscomp_final_EGFR$midpoints)-2-1, lower.tail = T)
+
+# Assign cells as EGFR or NGFR high
+data_filt$EGFR_NGFR_status <- rep("EGFR_NGFR_low", NROW(data_filt))
+data_filt$EGFR_NGFR_status[data_filt$NGFR_mednorm > percentile_cutoff_first_NGFR & data_filt$EGFR_mednorm <= percentile_cutoff_first_EGFR] <- 'NGFR-high'
+data_filt$EGFR_NGFR_status[data_filt$NGFR_mednorm <= percentile_cutoff_first_NGFR & data_filt$EGFR_mednorm > percentile_cutoff_first_EGFR] <- 'EGFR-high'
+data_filt$EGFR_NGFR_status[data_filt$NGFR_mednorm > percentile_cutoff_first_NGFR & data_filt$EGFR_mednorm > percentile_cutoff_first_EGFR] <- 'EGFR_NGFR-high'
+
+ggplot(data_filt, aes(x = EGFR_mednorm, y = NGFR_mednorm, color = EGFR_NGFR_status)) + geom_point() + labs(title = 'all_data')
+
+# do analysis
+stats <- as.data.frame(table(data_filt$EGFR_NGFR_status, data_filt$plate))
+colnames(stats) <- c('Cond','Plate','Freq')
+analysis_df_includeDoubles <- data.frame('pcnt_EGFR_total_4wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100,
+                          'pcnt_NGFR_total_4wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100,
+                          'ratio_EGFR_NGFR_total_4wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100)/(sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100),
+                          
+                          'pcnt_EGFR_total_6.5wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100,
+                          'pcnt_NGFR_total_6.5wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100,
+                          'ratio_EGFR_NGFR_total_6.5wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100)/(sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100),
+                          
+                          'pcnt_EGFR_nolows_4wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') & stats$Plate == 'Plate1'])*100,
+                          'pcnt_NGFR_nolows_4wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate1'])*100,
+                          'ratio_EGFR_NGFR_nolows_4wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate1'])*100)/(sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate1'])*100),
+                          
+                          'pcnt_EGFR_nolows_6.5wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100,
+                          'pcnt_NGFR_nolows_6.5wks' = sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100,
+                          'ratio_EGFR_NGFR_nolows_6.5wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100)/(sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR_NGFR-high','EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100))
+
+analysis_df_excludeDoubles <- data.frame('pcnt_EGFR_total_4wks' = sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100,
+                          'pcnt_NGFR_total_4wks' = sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100,
+                          'ratio_EGFR_NGFR_total_4wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100)/(sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Plate == 'Plate1'])*100),
+                          
+                          'pcnt_EGFR_total_6.5wks' = sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100,
+                          'pcnt_NGFR_total_6.5wks' = sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100,
+                          'ratio_EGFR_NGFR_total_6.5wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100)/(sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Plate == 'Plate2'])*100),
+                          
+                          'pcnt_EGFR_nolows_4wks' = sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') & stats$Plate == 'Plate1'])*100,
+                          'pcnt_NGFR_nolows_4wks' = sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') &stats$Plate == 'Plate1'])*100,
+                          'ratio_EGFR_NGFR_nolows_4wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') &stats$Plate == 'Plate1'])*100)/(sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate1'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') &stats$Plate == 'Plate1'])*100),
+                          
+                          'pcnt_EGFR_nolows_6.5wks' = sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100,
+                          'pcnt_NGFR_nolows_6.5wks' = sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100,
+                          'ratio_EGFR_NGFR_nolows_6.5wks' = (sum(stats$Freq[stats$Cond %in% c('EGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') &stats$Plate == 'Plate2'])*100)/(sum(stats$Freq[stats$Cond %in% c('NGFR-high') & stats$Plate == 'Plate2'])/sum(stats$Freq[stats$Cond %in% c('EGFR-high','NGFR-high') & stats$Plate == 'Plate2'])*100))
+
+t <- data_filt[data_filt$plate == 'Plate2' & data_filt$well == 'Well2' & data_filt$Nuc_file == 'DAPI_q4.tif',]
+t <- t[,-12]
+ggplot(t, aes(x = Coords_Y, y = y_height - Coords_X, color = EGFR_NGFR_status))+ geom_point(size = .1)
+```
+
+# Run the analysis one well at a time
+```{r}
+pvals_NGFR <- c()
+pvals_EGFR <- c()
+
+data_list <- list()
+
+for (z in unique(data_filt$plate)){
+  print(z)
+  data_list[[z]] = list()
+  for (q in unique(data_filt$well[data_filt$plate == z])){
+    print(q)
+    
+    temp_df <- data_filt[data_filt$plate == z & data_filt$well == q,]
+    
+    # Normalize expression to median
+    temp_df$NGFR_mednorm <- temp_df$Mean_647/median(temp_df$Mean_647)
+    temp_df$EGFR_mednorm <- temp_df$Mean_488/median(temp_df$Mean_488)
+    
+    # Visualize the intermediate, median normalized plots
+    dir.create(file.path('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots/gaussin_per_well'), showWarnings = FALSE)
+    pdf(paste0('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots/gaussin_per_well/',z,'_',q,'_median_normalized_plots.pdf'))
+    hist(temp_df$NGFR_mednorm)
+    hist(temp_df$EGFR_mednorm)
+    ggplot(temp_df, aes(x = EGFR_mednorm, y = NGFR_mednorm)) + geom_point() + labs(title = 'all_data')
+    dev.off()
+    
+    # Once have histogram temp_df - log-transform 
+    temp_df$log_NGFR_mednorm <- log(temp_df$NGFR_mednorm)
+    temp_df$log_EGFR_mednorm <- log(temp_df$EGFR_mednorm)
+    
+    #Log normalized fitting to gaussian using Mclust
+    fit1_NGFR = Mclust(temp_df$log_NGFR_mednorm, G = 1, model = 'V')
+    fit2_NGFR = Mclust(temp_df$log_NGFR_mednorm, G = 2, model = 'V')  #fit gaussians to temp_df (G=# of gaussians, model="V" for unequal variances)
+    plot(fit1_NGFR, what = 'density', main = '')
+    plot(fit2_NGFR, what = 'density')
+    
+    fit1_EGFR = Mclust(temp_df$log_EGFR_mednorm, G = 1, model = 'V')
+    fit2_EGFR = Mclust(temp_df$log_EGFR_mednorm, G = 2, model = 'V')  #fit gaussians to temp_df (G=# of gaussians, model="V" for unequal variances)
+    plot(fit1_EGFR, what = 'density', main = '')
+    plot(fit2_EGFR, what = 'density')
+    
+    # Create Gaussians using lognormal funciton in r
+    solveat_NGFR<-seq(0,ceiling(max(temp_df$NGFR_mednorm)),by=0.001)
+    oneGauss_NGFR<-dlnorm(solveat_NGFR,fit1_NGFR$parameters$mean,sqrt(fit1_NGFR$parameters$variance$sigmasq))
+    twoGauss_first_NGFR<-fit2_NGFR$parameters$pro[1]*dlnorm(solveat_NGFR,fit2_NGFR$parameters$mean[1],sqrt(fit2_NGFR$parameters$variance$sigmasq[1]))
+    twoGauss_second_NGFR<-fit2_NGFR$parameters$pro[2]*dlnorm(solveat_NGFR,fit2_NGFR$parameters$mean[2],sqrt(fit2_NGFR$parameters$variance$sigmasq[2]))
+    twoGauss_NGFR<-twoGauss_first_NGFR+twoGauss_second_NGFR
+    
+    solveat_EGFR<-seq(0,ceiling(max(temp_df$EGFR_mednorm)),by=0.001)
+    oneGauss_EGFR<-dlnorm(solveat_EGFR,fit1_EGFR$parameters$mean,sqrt(fit1_EGFR$parameters$variance$sigmasq))
+    twoGauss_first_EGFR<-fit2_EGFR$parameters$pro[1]*dlnorm(solveat_EGFR,fit2_EGFR$parameters$mean[1],sqrt(fit2_EGFR$parameters$variance$sigmasq[1]))
+    twoGauss_second_EGFR<-fit2_EGFR$parameters$pro[2]*dlnorm(solveat_EGFR,fit2_EGFR$parameters$mean[2],sqrt(fit2_EGFR$parameters$variance$sigmasq[2]))
+    twoGauss_EGFR<-twoGauss_first_EGFR+twoGauss_second_EGFR
+    
+    # Make breaks = 0.05
+    calc_break_NGFR = ceiling(max(temp_df$NGFR_mednorm))/.05
+    breaks_NGFR<-seq(0,calc_break_NGFR,by=1)*ceiling(max(temp_df$NGFR_mednorm))/calc_break_NGFR   #chosen to get binwidth ~ 0.05
+    binwidth_NGFR<-breaks_NGFR[2]
+    
+    calc_break_EGFR = ceiling(max(temp_df$EGFR_mednorm))/.05
+    breaks_EGFR<-seq(0,calc_break_EGFR,by=1)*ceiling(max(temp_df$EGFR_mednorm))/calc_break_EGFR   #chosen to get binwidth ~ 0.05
+    binwidth_EGFR<-breaks_EGFR[2]
+    
+    # Get the counts
+    counts_oneGauss_NGFR<-length(temp_df$log_NGFR_mednorm)*oneGauss_NGFR*binwidth_NGFR
+    counts_twoGauss_NGFR<-length(temp_df$log_NGFR_mednorm)*twoGauss_NGFR*binwidth_NGFR
+    counts_twoGauss_first_NGFR<-length(temp_df$log_NGFR_mednorm)*twoGauss_first_NGFR*binwidth_NGFR
+    counts_twoGauss_second_NGFR<-length(temp_df$log_NGFR_mednorm)*twoGauss_second_NGFR*binwidth_NGFR
+    
+    counts_oneGauss_EGFR<-length(temp_df$log_EGFR_mednorm)*oneGauss_EGFR*binwidth_EGFR
+    counts_twoGauss_EGFR<-length(temp_df$log_EGFR_mednorm)*twoGauss_EGFR*binwidth_EGFR
+    counts_twoGauss_first_EGFR<-length(temp_df$log_EGFR_mednorm)*twoGauss_first_EGFR*binwidth_EGFR
+    counts_twoGauss_second_EGFR<-length(temp_df$log_EGFR_mednorm)*twoGauss_second_EGFR*binwidth_EGFR
+    
+    # Get 99th percentile of TwoGauss because fit is signficantly better
+    percentile_cutoff_first_NGFR <- exp(2*sqrt(fit2_NGFR$parameters$variance$sigmasq[1])+fit2_NGFR$parameters$mean[1])
+    
+    percentile_cutoff_first_EGFR <- exp(2*sqrt(fit2_EGFR$parameters$variance$sigmasq[1])+fit2_EGFR$parameters$mean[1])
+    
+    # Plot the data with cutoffs
+    pdf(paste0('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/output_plots/gaussin_per_well/',z,'_',q,'_mednorm_gaussian_fits.pdf'))
+    hist_func_NGFR<-hist(temp_df$NGFR_mednorm,breaks=breaks_NGFR,freq=TRUE,xlim=c(0,3),ylim=c(0,9000))
+    lines(solveat_NGFR,counts_twoGauss_first_NGFR, col = 'red')
+    lines(solveat_NGFR,counts_twoGauss_second_NGFR, col = 'blue')
+    lines(solveat_NGFR,counts_oneGauss_NGFR, col = 'magenta')
+    abline(v = percentile_cutoff_first_NGFR, col = 'green')
+    
+    hist_func_EGFR<-hist(temp_df$EGFR_mednorm,breaks=breaks_EGFR,freq=TRUE,xlim=c(0,3),ylim=c(0,5000))
+    lines(solveat_EGFR,counts_twoGauss_first_EGFR, col = 'red')
+    lines(solveat_EGFR,counts_twoGauss_second_EGFR, col = 'blue')
+    lines(solveat_EGFR,counts_oneGauss_EGFR, col = 'magenta')
+    abline(v = percentile_cutoff_first_EGFR, col = 'green')
+    dev.off()
+    
+    #Sum of squared errors to assess fit of 1 Gaussian vs 2 Gaussian models 
+    Gausscomp_final_NGFR<-data.frame(hist_func_NGFR$counts)
+    colnames(Gausscomp_final_NGFR)<-"Histtemp_df"
+    Gausscomp_final_NGFR<-cbind(midpoints=hist_func_NGFR$mids,Gausscomp_final_NGFR) 
+    tol<-1e-4 #find closest x value to midpoint defined by histogram temp_df using this tolerance
+    i<-1
+    for (val in Gausscomp_final_NGFR$midpoints){ 
+      Gausscomp_final_NGFR$oneGauss[i]<-counts_oneGauss_NGFR[which(solveat_NGFR>val-tol & solveat_NGFR<val+tol)]
+      Gausscomp_final_NGFR$twoGauss[i]<-counts_twoGauss_NGFR[which(solveat_NGFR>val-tol & solveat_NGFR<val+tol)]
+      i<-i+1
+    }
+    
+    Gausscomp_final_EGFR<-data.frame(hist_func_EGFR$counts)
+    colnames(Gausscomp_final_EGFR)<-"Histtemp_df"
+    Gausscomp_final_EGFR<-cbind(midpoints=hist_func_EGFR$mids,Gausscomp_final_EGFR) 
+    tol<-1e-4 #find closest x value to midpoint defined by histogram temp_df using this tolerance
+    i<-1
+    for (val in Gausscomp_final_EGFR$midpoints){ 
+      Gausscomp_final_EGFR$oneGauss[i]<-counts_oneGauss_EGFR[which(solveat_EGFR>val-tol & solveat_EGFR<val+tol)]
+      Gausscomp_final_EGFR$twoGauss[i]<-counts_twoGauss_EGFR[which(solveat_EGFR>val-tol & solveat_EGFR<val+tol)]
+      i<-i+1
+    }
+    
+    #Calculate errors
+    Gausscomp_final_NGFR$oneGauss_error<-Gausscomp_final_NGFR$oneGauss - Gausscomp_final_NGFR$Histtemp_df
+    Gausscomp_final_NGFR$twoGauss_error<-Gausscomp_final_NGFR$twoGauss - Gausscomp_final_NGFR$Histtemp_df
+    
+    Gausscomp_final_EGFR$oneGauss_error<-Gausscomp_final_EGFR$oneGauss - Gausscomp_final_EGFR$Histtemp_df
+    Gausscomp_final_EGFR$twoGauss_error<-Gausscomp_final_EGFR$twoGauss - Gausscomp_final_EGFR$Histtemp_df
+    
+    #Sum of squared errors
+    Gausscomp_final_NGFR$oneGauss_error_sq<-Gausscomp_final_NGFR$oneGauss_error^2
+    Gausscomp_final_NGFR$twoGauss_error_sq<-Gausscomp_final_NGFR$twoGauss_error^2
+    counts_oneGauss_SSE_NGFR<-sum(Gausscomp_final_NGFR$oneGauss_error_sq)
+    counts_twoGauss_SSE_NGFR<-sum(Gausscomp_final_NGFR$twoGauss_error_sq)
+    
+    Gausscomp_final_EGFR$oneGauss_error_sq<-Gausscomp_final_EGFR$oneGauss_error^2
+    Gausscomp_final_EGFR$twoGauss_error_sq<-Gausscomp_final_EGFR$twoGauss_error^2
+    counts_oneGauss_SSE_EGFR<-sum(Gausscomp_final_EGFR$oneGauss_error_sq)
+    counts_twoGauss_SSE_EGFR<-sum(Gausscomp_final_EGFR$twoGauss_error_sq)
+    
+    #F stat 
+    fstat_NGFR<-(counts_twoGauss_SSE_NGFR/(length(Gausscomp_final_NGFR$midpoints)-5-1))/(counts_oneGauss_SSE_NGFR/(length(Gausscomp_final_NGFR$midpoints)-2-1))
+    
+    fstat_EGFR<-(counts_twoGauss_SSE_EGFR/(length(Gausscomp_final_EGFR$midpoints)-5-1))/(counts_oneGauss_SSE_EGFR/(length(Gausscomp_final_EGFR$midpoints)-2-1))
+    
+    # Calculating P value based F stat and degrees of freedom
+    pval_NGFR <- pf(fstat_NGFR, (length(Gausscomp_final_NGFR$midpoints)-5-1),length(Gausscomp_final_NGFR$midpoints)-2-1, lower.tail = T)
+    
+    pval_EGFR <- pf(fstat_EGFR, (length(Gausscomp_final_EGFR$midpoints)-5-1),length(Gausscomp_final_EGFR$midpoints)-2-1, lower.tail = T)
+    
+    # Assign cells as EGFR or NGFR high
+    temp_df$EGFR_NGFR_status <- rep("EGFR_NGFR_low", NROW(temp_df))
+    temp_df$EGFR_NGFR_status[temp_df$NGFR_mednorm > percentile_cutoff_first_NGFR & temp_df$EGFR_mednorm <= percentile_cutoff_first_NGFR] <- 'NGFR-high'
+    temp_df$EGFR_NGFR_status[temp_df$NGFR_mednorm <= percentile_cutoff_first_NGFR & temp_df$EGFR_mednorm > percentile_cutoff_first_NGFR] <- 'EGFR-high'
+    temp_df$EGFR_NGFR_status[temp_df$NGFR_mednorm > percentile_cutoff_first_NGFR & temp_df$EGFR_mednorm > percentile_cutoff_first_NGFR] <- 'EGFR_NGFR-high'
+    
+    
+    pvals_NGFR <- c(pvals_NGFR,pval_NGFR)
+    pvals_EGFR <- c(pvals_EGFR,pval_EGFR)
+    
+    data_list[[z]][[q]] <- temp_df
+  }
+}
+
+data_unlisted <- unlist(data_list, recursive = FALSE)
+data_new <- do.call("rbind", data_unlisted)
+
+ggplot(data_new, aes(x = EGFR_mednorm, y = NGFR_mednorm, color = EGFR_NGFR_status)) + geom_point() + labs(title = 'all_data')
+
+stats_individual <- as.data.frame(table(data_new$EGFR_NGFR_status, data_new$plate))
+
+```
+
+```{r}
+data_filt$NGFR_to_EGFR_ratio <- data_filt$Mean_647/data_filt$Mean_488
+data_filt$NGFR_to_EGFR_ratio_eval <- rep('Same',length(data_filt$NGFR_to_EGFR_ratio))
+data_filt$NGFR_to_EGFR_ratio_eval[log10(data_filt$NGFR_to_EGFR_ratio) < -.01] <- 'EGFR'
+data_filt$NGFR_to_EGFR_ratio_eval[log10(data_filt$NGFR_to_EGFR_ratio) > .01] <- 'NGFR'
+table(data_filt$plate, data_filt$NGFR_to_EGFR_ratio_eval)
+
+ggplot(data_filt, aes(x = Mean_488, y = Mean_647, color = NGFR_to_EGFR_ratio_eval)) + geom_point(size = .1)
+
+t <- data_filt[data_filt$plate == 'Plate2' & data_filt$well == 'Well2' & data_filt$Nuc_file == 'DAPI_q4.tif',]
+t <- t[,-12]
+ggplot(t, aes(x = Coords_Y, y = y_height - Coords_X, color = NGFR_to_EGFR_ratio_eval))+ geom_point(size = .1)
+
+```
+
+```{r}
+data_filt$NGFR_to_EGFR_ratio <- data_filt$NGFR_mednorm/data_filt$EGFR_mednorm
+data_filt$NGFR_to_EGFR_ratio_eval <- rep('Same',length(data_filt$NGFR_to_EGFR_ratio))
+data_filt$NGFR_to_EGFR_ratio_eval[log10(data_filt$NGFR_to_EGFR_ratio) < -.05] <- 'EGFR'
+data_filt$NGFR_to_EGFR_ratio_eval[log10(data_filt$NGFR_to_EGFR_ratio) > .05] <- 'NGFR'
+table(data_filt$plate, data_filt$NGFR_to_EGFR_ratio_eval)
+
+ggplot(data_filt, aes(x = EGFR_mednorm, y = NGFR_mednorm, color = NGFR_to_EGFR_ratio_eval)) + geom_point(size = .1)
+
+t <- data_filt[data_filt$plate == 'Plate2' & data_filt$well == 'Well2' & data_filt$Nuc_file == 'DAPI_q4.tif',]
+t <- t[,-12]
+ggplot(t, aes(x = Coords_Y, y = y_height - Coords_X, color = NGFR_to_EGFR_ratio_eval))+ geom_point(size = .1)
+
+```
+
+# Try z scoring the cells and then look at ratio
+```{r}
+zscore <- function(values) {
+  return (values - mean(values))/sd(values)
+}
+data_filt$z_488 <- zscore(data_filt$Mean_488)
+data_filt$z_647 <- zscore(data_filt$Mean_647)
+
+ggplot(data_filt, aes(x = z_488, y = z_647)) + geom_point()
+```
