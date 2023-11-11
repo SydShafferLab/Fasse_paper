@@ -369,7 +369,8 @@ ggplot(df_pcnt, aes(x = Time, y = Proportions, color = Expression_status, group 
 ```{r}
 data <- read.csv('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/White_Shared/cloud/experiment_ids/pw019/q3d_files/output.csv')
 
-pvals = c()
+pvals_NGFR = c()
+pvals_EGFR = c()
 
 data_list <- list()
 
@@ -562,3 +563,4 @@ ggplot(df_pcnt, aes(x = Time, y = Proportions, color = Expression_status, group 
 
 ```
 
+ggplot(t, aes(x = Coords_Y, y = Coords_X, fill = EGFR_NGFR_status))+ geompoint()
