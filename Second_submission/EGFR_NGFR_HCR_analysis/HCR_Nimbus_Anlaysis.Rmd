@@ -22,15 +22,15 @@ rm(list = ls())
 library(ggplot2)
 library(dplyr)
 
-colors <- c(' [ Colony Ambiguous ]' = '#000000',
+colors <- c(' [ Colony Ambiguous ]' = '#D4D4D4',
             ' [ Colony EGFR ]' = '#C96BAA',
             ' [ Colony NGFR ]' = '#3BB54A',
-            ' [ Colony Mixed ]' = '#D4D4D4')
+            ' [ Colony Mixed ]' = '#FFFF00')
 ```
 
 # Load in the data
 ```{r, include = FALSE}
-setwd('/Users/dylanschaff/Downloads')
+setwd('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/Nimbus_Outputs')
 files <- list.files(pattern = '*annotation_export.csv', recursive=T, full.names = T)
 data <- lapply(files, read.csv, header = T)
 names(data)<- files
@@ -38,7 +38,7 @@ names(data)<- files
 
 # plot the data
 ```{r}
-pdf('/Users/dylanschaff/Downloads/output.pdf')
+pdf('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/Nimbus_Outputs/output.pdf')
 for(i in names(data)){
   t <- data[[i]]
   t <- t[c(6,8,9)]
