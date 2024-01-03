@@ -1763,161 +1763,37 @@ on Google Drive</p>
 <h1>Load data</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0obGlzdCA9IGxzKCkpXG5gYGAifQ== -->
-<pre class="r"><code>rm(list = ls())</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0obGlzdCA9IGxzKCkpXG5saWJyYXJ5KGRwbHlyKVxubGlicmFyeShTZXVyYXQpXG5saWJyYXJ5KGdncGxvdDIpXG5saWJyYXJ5KFJDb2xvckJyZXdlcilcbmxpYnJhcnkoZ2dwdWJyKVxubGlicmFyeShwaGVhdG1hcClcbmxpYnJhcnkodmlyaWRpcylcbmBgYCJ9 -->
+<pre class="r"><code>rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(pheatmap)
+library(viridis)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiTG9hZGluZyByZXF1aXJlZCBwYWNrYWdlOiB2aXJpZGlzTGl0ZVxuIn0= -->
+<pre><code>Loading required package: viridisLite</code></pre>
 <!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShkcGx5cilcbmBgYCJ9 -->
-<pre class="r"><code>library(dplyr)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSh4bHN4KVxuXG5gJW5pbiVgID0gTmVnYXRlKGAlaW4lYClcblxuY29sb3JzID0gYyhkYWJ0cmFtID0gJyM2MjM1OTQnLFxuICAgICAgICAgICBjb2NsMiA9ICcjMEY4MjQxJyxcbiAgICAgICAgICAgY2lzID0gJyNDOTZEMjknLFxuICAgICAgICAgICBkYWJ0cmFtdG9kYWJ0cmFtID0gJyM1NjFFNTknLFxuICAgICAgICAgICBkYWJ0cmFtdG9jb2NsMiA9ICcjQTIyNDhFJyxcbiAgICAgICAgICAgZGFidHJhbXRvY2lzID0gJyM5RDg1QkUnLFxuICAgICAgICAgICBjb2NsMnRvZGFidHJhbSA9ICcjMTA0MTNCJyxcbiAgICAgICAgICAgY29jbDJ0b2NvY2wyID0gJyM2QUJENDUnLFxuICAgICAgICAgICBjb2NsMnRvY2lzID0gJyM2REM0OUMnLFxuICAgICAgICAgICBjaXN0b2RhYnRyYW0gPSAnI0EyMzYyMicsXG4gICAgICAgICAgIGNpc3RvY29jbDIgPSAnI0Y0OTEyOScsXG4gICAgICAgICAgIGNpc3RvY2lzID0gJyNGQkQwOEMnKVxuYGBgIn0= -->
+<pre class="r"><code>library(xlsx)
+
+`%nin%` = Negate(`%in%`)
+
+colors = c(dabtram = &#39;#623594&#39;,
+           cocl2 = &#39;#0F8241&#39;,
+           cis = &#39;#C96D29&#39;,
+           dabtramtodabtram = &#39;#561E59&#39;,
+           dabtramtococl2 = &#39;#A2248E&#39;,
+           dabtramtocis = &#39;#9D85BE&#39;,
+           cocl2todabtram = &#39;#10413B&#39;,
+           cocl2tococl2 = &#39;#6ABD45&#39;,
+           cocl2tocis = &#39;#6DC49C&#39;,
+           cistodabtram = &#39;#A23622&#39;,
+           cistococl2 = &#39;#F49129&#39;,
+           cistocis = &#39;#FBD08C&#39;)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShTZXVyYXQpXG5gYGAifQ== -->
-<pre class="r"><code>library(Seurat)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShnZ3Bsb3QyKVxuYGBgIn0= -->
-<pre class="r"><code>library(ggplot2)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShSQ29sb3JCcmV3ZXIpXG5gYGAifQ== -->
-<pre class="r"><code>library(RColorBrewer)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShnZ3B1YnIpXG5gYGAifQ== -->
-<pre class="r"><code>library(ggpubr)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShwaGVhdG1hcClcbmBgYCJ9 -->
-<pre class="r"><code>library(pheatmap)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSh2aXJpZGlzKVxuYGBgIn0= -->
-<pre class="r"><code>library(viridis)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiTG9hZGluZyByZXF1aXJlZCBwYWNrYWdlOiB2aXJpZGlzTGl0ZVxuRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Loading required package: viridisLite
-Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSh4bHN4KVxuYGBgIn0= -->
-<pre class="r"><code>library(xlsx)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYCVuaW4lYCA9IE5lZ2F0ZShgJWluJWApXG5gYGAifQ== -->
-<pre class="r"><code>`%nin%` = Negate(`%in%`)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY29sb3JzID0gYyhkYWJ0cmFtID0gJyM2MjM1OTQnLFxuYGBgIn0= -->
-<pre class="r"><code>colors = c(dabtram = &#39;#623594&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjb2NsMiA9ICcjMEY4MjQxJyxcbmBgYCJ9 -->
-<pre class="r"><code>           cocl2 = &#39;#0F8241&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjaXMgPSAnI0M5NkQyOScsXG5gYGAifQ== -->
-<pre class="r"><code>           cis = &#39;#C96D29&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBkYWJ0cmFtdG9kYWJ0cmFtID0gJyM1NjFFNTknLFxuYGBgIn0= -->
-<pre class="r"><code>           dabtramtodabtram = &#39;#561E59&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBkYWJ0cmFtdG9jb2NsMiA9ICcjQTIyNDhFJyxcbmBgYCJ9 -->
-<pre class="r"><code>           dabtramtococl2 = &#39;#A2248E&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBkYWJ0cmFtdG9jaXMgPSAnIzlEODVCRScsXG5gYGAifQ== -->
-<pre class="r"><code>           dabtramtocis = &#39;#9D85BE&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjb2NsMnRvZGFidHJhbSA9ICcjMTA0MTNCJyxcbmBgYCJ9 -->
-<pre class="r"><code>           cocl2todabtram = &#39;#10413B&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjb2NsMnRvY29jbDIgPSAnIzZBQkQ0NScsXG5gYGAifQ== -->
-<pre class="r"><code>           cocl2tococl2 = &#39;#6ABD45&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjb2NsMnRvY2lzID0gJyM2REM0OUMnLFxuYGBgIn0= -->
-<pre class="r"><code>           cocl2tocis = &#39;#6DC49C&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjaXN0b2RhYnRyYW0gPSAnI0EyMzYyMicsXG5gYGAifQ== -->
-<pre class="r"><code>           cistodabtram = &#39;#A23622&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjaXN0b2NvY2wyID0gJyNGNDkxMjknLFxuYGBgIn0= -->
-<pre class="r"><code>           cistococl2 = &#39;#F49129&#39;,</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICAgICAgICAgICBjaXN0b2NpcyA9ICcjRkJEMDhDJylcbmBgYCJ9 -->
-<pre class="r"><code>           cistocis = &#39;#FBD08C&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -1926,56 +1802,17 @@ Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) :
 included in the combined lins list, or if they were filtered</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2FsbF9kYXRhX2ZpbmFsX2xpbmVhZ2VzLlJEYXRhJylcbmBgYCJ9 -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvUHJlcHJvY2Vzc19HRVgvc2Vjb25kX3RpbWVwb2ludF9tZXJnZWQuUkRhdGEnKVxuYGBgIn0= -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvRmlsdGVyaW5nX2NETkEvcmVzaXN0YW50X2xpbmVhZ2VfbGlzdHMuUkRhdGEnKVxuYGBgIn0= -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2Npc19maW5hbF9saW5lYWdlcy5SRGF0YScpXG5gYGAifQ== -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cis_final_lineages.RData&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2NvY2wyX2ZpbmFsX2xpbmVhZ2VzLlJEYXRhJylcbmBgYCJ9 -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cocl2_final_lineages.RData&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2RhYnRyYW1fZmluYWxfbGluZWFnZXMuUkRhdGEnKVxuYGBgIn0= -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_final_lineages.RData&#39;)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2RhYnRyYW1fYm90aF90aW1lc19maW5hbF9saW5lYWdlcy5SRGF0YScpXG5cbmBgYCJ9 -->
-<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_both_times_final_lineages.RData&#39;)
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2FsbF9kYXRhX2ZpbmFsX2xpbmVhZ2VzLlJEYXRhJylcbmxvYWQoJzIwMjJfMDFfMTRfYW5hbHlzaXNfc2NyaXB0cy8yMDIyXzA1XzI3X2FuYWx5c2lzL1ByZXByb2Nlc3NfR0VYL3NlY29uZF90aW1lcG9pbnRfbWVyZ2VkLlJEYXRhJylcbmxvYWQoJzIwMjJfMDFfMTRfYW5hbHlzaXNfc2NyaXB0cy8yMDIyXzA1XzI3X2FuYWx5c2lzL0ZpbHRlcmluZ19jRE5BL3Jlc2lzdGFudF9saW5lYWdlX2xpc3RzLlJEYXRhJylcblxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2Npc19maW5hbF9saW5lYWdlcy5SRGF0YScpXG5sb2FkKCcyMDIyXzAxXzE0X2FuYWx5c2lzX3NjcmlwdHMvMjAyMl8wNV8yN19hbmFseXNpcy9Bc3NpZ25fZG9taW5hbnRfYmFyY29kZXMvY29jbDJfZmluYWxfbGluZWFnZXMuUkRhdGEnKVxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2RhYnRyYW1fZmluYWxfbGluZWFnZXMuUkRhdGEnKVxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2RhYnRyYW1fYm90aF90aW1lc19maW5hbF9saW5lYWdlcy5SRGF0YScpXG5cbmBgYCJ9 -->
+<pre class="r"><code>load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData&#39;)
+load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData&#39;)
+load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData&#39;)
+
+load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cis_final_lineages.RData&#39;)
+load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/cocl2_final_lineages.RData&#39;)
+load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_final_lineages.RData&#39;)
+load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/dabtram_both_times_final_lineages.RData&#39;)
 </code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZXhpc3RzKGNhY2hlS2V5LCB3aGVyZSA9IC5ycy5Xb3JraW5nRGF0YUVudiwgaW5oZXJpdHMgPSBGQUxTRSkgOiBcbiAgaW52YWxpZCBmaXJzdCBhcmd1bWVudFxuIn0= -->
-<pre><code>Error in exists(cacheKey, where = .rs.WorkingDataEnv, inherits = FALSE) : 
-  invalid first argument</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -1986,38 +1823,94 @@ included in the combined lins list, or if they were filtered</h1>
 condition - Starting with DabTram</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYGBgclxubG9hZCgnMjAyMl8wMV8xNF9hbmFseXNpc19zY3JpcHRzLzIwMjJfMDVfMjdfYW5hbHlzaXMvQXNzaWduX2RvbWluYW50X2JhcmNvZGVzL2FsbF9kYXRhX2ZpbmFsX2xpbmVhZ2VzLlJEYXRhJylcbmBgYFxuYGBgIn0= -->
-<pre class="r"><code>```r
-load(&#39;2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData&#39;)</code></pre>
-<pre><code>
-&lt;!-- rnb-source-end --&gt;
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI2ZpbmQgbGluZWFnZXMgdGhhdCBhcmUgbWFpbnRhaW5lZCBhdCBib3RoIGRhYnRyYW0gdGltZXBvaW50c1xuZml2ZWNlbGxfY0ROQSREYWJUcmFtTWFpbnRhaW5lZCA8LSBSZWR1Y2UoaW50ZXJzZWN0LCBsaXN0KGZpdmVjZWxsX2NETkEkRGFiVHJhbSwgZml2ZWNlbGxfY0ROQSREYWJUcmFtdG9EYWJUcmFtKSlcblxuZmlsdGVyZWRfbWV0YSA8LSByZXAoMCwgbGVuZ3RoKG5hbWVzKGFsbF9kYXRhJExpbmVhZ2UpKSlcblxuI3NwZWNpZnkgd2hpY2ggY2VsbHMgYXJlIGluIGxpbmVhZ2VzIHRoYXQgcGFzcyBmaWx0ZXJpbmcgZm9yIHRoYXQgY29uZGl0aW9uXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImRhYnRyYW1cIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBjb21iaW5lZF9saW5zX2xpc3QkRGFiVHJhbSldIDwtICdSZXNpc3RhbnQgdG8gRGFiVHJhbSdcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiZGFidHJhbXRvZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCREYWJUcmFtdG9EYWJUcmFtKV0gPC0gJ1Jlc2lzdGFudCB0byBEYWJUcmFtdG9EYWJUcmFtJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtdG9jb2NsMlwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCREYWJUcmFtdG9Db0NsMildIDwtICdSZXNpc3RhbnQgdG8gRGFiVHJhbXRvQ29DbDInXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImRhYnRyYW10b2Npc1wiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCREYWJUcmFtdG9DaXMpXSA8LSAnUmVzaXN0YW50IHRvIERhYlRyYW10b0NpcydcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiY29jbDJcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBjb21iaW5lZF9saW5zX2xpc3QkQ29DbDIpXSA8LSAnUmVzaXN0YW50IHRvIENvQ2wyJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMnRvZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDb0NsMnRvRGFiVHJhbSldIDwtICdSZXNpc3RhbnQgdG8gQ29DbDJ0b0RhYlRyYW0nXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImNvY2wydG9jb2NsMlwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDb0NsMnRvQ29DbDIpXSA8LSAnUmVzaXN0YW50IHRvIENvQ2wydG9Db0NsMidcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiY29jbDJ0b2Npc1wiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDb0NsMnRvQ2lzKV0gPC0gJ1Jlc2lzdGFudCB0byBDb0NsMnRvQ2lzJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjaXNcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBjb21iaW5lZF9saW5zX2xpc3QkQ2lzKV0gPC0gJ1Jlc2lzdGFudCB0byBDaXMnXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImNpc3RvZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDaXN0b0RhYlRyYW0pXSA8LSAnUmVzaXN0YW50IHRvIENpc3RvRGFiVHJhbSdcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiY2lzdG9jb2NsMlwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDaXN0b0NvQ2wyKV0gPC0gJ1Jlc2lzdGFudCB0byBDaXN0b0NvQ2wyJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjaXN0b2Npc1wiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDaXN0b0NpcyldIDwtICdSZXNpc3RhbnQgdG8gQ2lzdG9DaXMnXG5cbiNzcGVjaWZ5IHdoaWNoIGNlbGxzIGFyZSBpbiBsaW5lYWdlcyBvZiBtb3JlIHRoYW4gNSBjZWxsc1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVpbiUgZml2ZWNlbGxfY0ROQSREYWJUcmFtKV0gPC0gJ0xhcmdlIFJlc2lzdGFudCB0byBEYWJUcmFtJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtdG9kYWJ0cmFtXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVpbiUgZml2ZWNlbGxfY0ROQSREYWJUcmFtdG9EYWJUcmFtKV0gPC0gJ0xhcmdlIFJlc2lzdGFudCB0byBEYWJUcmFtdG9EYWJUcmFtJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtdG9jb2NsMlwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGZpdmVjZWxsX2NETkEkRGFiVHJhbXRvQ29DbDIpXSA8LSAnTGFyZ2UgUmVzaXN0YW50IHRvIERhYlRyYW10b0NvQ2wyJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtdG9jaXNcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBmaXZlY2VsbF9jRE5BJERhYlRyYW10b0NpcyldIDwtICdMYXJnZSBSZXNpc3RhbnQgdG8gRGFiVHJhbXRvQ2lzJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMlwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGZpdmVjZWxsX2NETkEkQ29DbDIpXSA8LSAnTGFyZ2UgUmVzaXN0YW50IHRvIENvQ2wyJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMnRvZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGZpdmVjZWxsX2NETkEkQ29DbDJ0b0RhYlRyYW0pXSA8LSAnTGFyZ2UgUmVzaXN0YW50IHRvIENvQ2wydG9EYWJUcmFtJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMnRvY29jbDJcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBmaXZlY2VsbF9jRE5BJENvQ2wydG9Db0NsMildIDwtICdMYXJnZSBSZXNpc3RhbnQgdG8gQ29DbDJ0b0NvQ2wyJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMnRvY2lzXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVpbiUgZml2ZWNlbGxfY0ROQSRDb0NsMnRvQ2lzKV0gPC0gJ0xhcmdlIFJlc2lzdGFudCB0byBDb0NsMnRvQ2lzJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjaXNcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBmaXZlY2VsbF9jRE5BJENpcyldIDwtICdMYXJnZSBSZXNpc3RhbnQgdG8gQ2lzJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjaXN0b2RhYnRyYW1cIiAmIGFsbF9kYXRhJExpbmVhZ2UgJWluJSBmaXZlY2VsbF9jRE5BJENpc3RvRGFiVHJhbSldIDwtICdMYXJnZSBSZXNpc3RhbnQgdG8gQ2lzdG9EYWJUcmFtJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjaXN0b2NvY2wyXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVpbiUgZml2ZWNlbGxfY0ROQSRDaXN0b0NvQ2wyKV0gPC0gJ0xhcmdlIFJlc2lzdGFudCB0byBDaXN0b0NvQ2wyJ1xuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjaXN0b2Npc1wiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGZpdmVjZWxsX2NETkEkQ2lzdG9DaXMpXSA8LSAnTGFyZ2UgUmVzaXN0YW50IHRvIENpc3RvQ2lzJ1xuXG4jIGZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlaW4lIGZpdmVjZWxsX2NETkEkRGFiVHJhbU1haW50YWluZWQpXSA8LSAnTWFpbnRhaW5lZCBSZXNpc3RhbnQgdG8gRGFiVHJhbSdcbiMgZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtdG9kYWJ0cmFtXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVpbiUgZml2ZWNlbGxfY0ROQSREYWJUcmFtTWFpbnRhaW5lZCldIDwtICdNYWludGFpbmVkIFJlc2lzdGFudCB0byBEYWJUcmFtdG9EYWJUcmFtJ1xuXG4jc3BlY2lmeSB3aGljaCBjZWxscyBhcmUgaW4gbGluZWFnZXMgdGhhdCBkaWQgbm90IHBhc3MgZmlsdGVyaW5nXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImRhYnRyYW1cIiAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgY29tYmluZWRfbGluc19saXN0JERhYlRyYW0gJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGMoXCJObyBCYXJjb2RlXCIsIFwiU3RpbGwgbXVsdGlwbGVcIikpXSA8LSAnRmlsdGVyZWQgb3V0JyBcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiZGFidHJhbXRvZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjb21iaW5lZF9saW5zX2xpc3QkRGFiVHJhbXRvRGFiVHJhbSAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgYyhcIk5vIEJhcmNvZGVcIiwgXCJTdGlsbCBtdWx0aXBsZVwiKSldIDwtICdGaWx0ZXJlZCBvdXQnIFxuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJkYWJ0cmFtdG9jb2NsMlwiICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjb21iaW5lZF9saW5zX2xpc3QkRGFiVHJhbXRvQ29DbDIgJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGMoXCJObyBCYXJjb2RlXCIsIFwiU3RpbGwgbXVsdGlwbGVcIikpXSA8LSAnRmlsdGVyZWQgb3V0JyBcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiZGFidHJhbXRvY2lzXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCREYWJUcmFtdG9DaXMgJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGMoXCJObyBCYXJjb2RlXCIsIFwiU3RpbGwgbXVsdGlwbGVcIikpXSA8LSAnRmlsdGVyZWQgb3V0JyBcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiY29jbDJcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgY29tYmluZWRfbGluc19saXN0JENvQ2wyICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjKFwiTm8gQmFyY29kZVwiLCBcIlN0aWxsIG11bHRpcGxlXCIpKV0gPC0gJ0ZpbHRlcmVkIG91dCcgXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImNvY2wydG9kYWJ0cmFtXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDb0NsMnRvRGFiVHJhbSAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgYyhcIk5vIEJhcmNvZGVcIiwgXCJTdGlsbCBtdWx0aXBsZVwiKSldIDwtICdGaWx0ZXJlZCBvdXQnIFxuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMnRvY29jbDJcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgY29tYmluZWRfbGluc19saXN0JENvQ2wydG9Db0NsMiAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgYyhcIk5vIEJhcmNvZGVcIiwgXCJTdGlsbCBtdWx0aXBsZVwiKSldIDwtICdGaWx0ZXJlZCBvdXQnIFxuZmlsdGVyZWRfbWV0YVt3aGljaChhbGxfZGF0YSRPR19jb25kaXRpb24gPT0gXCJjb2NsMnRvY2lzXCIgJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGNvbWJpbmVkX2xpbnNfbGlzdCRDb0NsMnRvQ2lzICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjKFwiTm8gQmFyY29kZVwiLCBcIlN0aWxsIG11bHRpcGxlXCIpKV0gPC0gJ0ZpbHRlcmVkIG91dCcgXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImNpc1wiICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjb21iaW5lZF9saW5zX2xpc3QkQ2lzICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjKFwiTm8gQmFyY29kZVwiLCBcIlN0aWxsIG11bHRpcGxlXCIpKV0gPC0gJ0ZpbHRlcmVkIG91dCcgXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImNpc3RvZGFidHJhbVwiICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjb21iaW5lZF9saW5zX2xpc3QkQ2lzdG9EYWJUcmFtICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjKFwiTm8gQmFyY29kZVwiLCBcIlN0aWxsIG11bHRpcGxlXCIpKV0gPC0gJ0ZpbHRlcmVkIG91dCcgXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJE9HX2NvbmRpdGlvbiA9PSBcImNpc3RvY29jbDJcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgY29tYmluZWRfbGluc19saXN0JENpc3RvQ29DbDIgJiBhbGxfZGF0YSRMaW5lYWdlICVuaW4lIGMoXCJObyBCYXJjb2RlXCIsIFwiU3RpbGwgbXVsdGlwbGVcIikpXSA8LSAnRmlsdGVyZWQgb3V0JyBcbmZpbHRlcmVkX21ldGFbd2hpY2goYWxsX2RhdGEkT0dfY29uZGl0aW9uID09IFwiY2lzdG9jaXNcIiAmIGFsbF9kYXRhJExpbmVhZ2UgJW5pbiUgY29tYmluZWRfbGluc19saXN0JENpc3RvQ2lzICYgYWxsX2RhdGEkTGluZWFnZSAlbmluJSBjKFwiTm8gQmFyY29kZVwiLCBcIlN0aWxsIG11bHRpcGxlXCIpKV0gPC0gJ0ZpbHRlcmVkIG91dCcgXG5cbiNzcGVjaWZ5IHdoaWNoIGNlbGxzIGhhZCB6ZXJvIG9yIG11bHRpcGxlIGJhcmNvZGVzXG5maWx0ZXJlZF9tZXRhW3doaWNoKGFsbF9kYXRhJExpbmVhZ2UgJWluJSBjKFwiTm8gQmFyY29kZVwiLCBcIlN0aWxsIG11bHRpcGxlXCIpKV0gPC0gJ05vIEJhcmNvZGUnXG5cbnByaW50KHRhYmxlKGZpbHRlcmVkX21ldGEpKVxuYGBgIn0= -->
+<pre class="r"><code>#find lineages that are maintained at both dabtram timepoints
+fivecell_cDNA$DabTramMaintained &lt;- Reduce(intersect, list(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram))
 
-&lt;!-- rnb-chunk-end --&gt;
+filtered_meta &lt;- rep(0, length(names(all_data$Lineage)))
 
+#specify which cells are in lineages that pass filtering for that condition
+filtered_meta[which(all_data$OG_condition == &quot;dabtram&quot; &amp; all_data$Lineage %in% combined_lins_list$DabTram)] &lt;- &#39;Resistant to DabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtodabtram&quot; &amp; all_data$Lineage %in% combined_lins_list$DabTramtoDabTram)] &lt;- &#39;Resistant to DabTramtoDabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtococl2&quot; &amp; all_data$Lineage %in% combined_lins_list$DabTramtoCoCl2)] &lt;- &#39;Resistant to DabTramtoCoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtocis&quot; &amp; all_data$Lineage %in% combined_lins_list$DabTramtoCis)] &lt;- &#39;Resistant to DabTramtoCis&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2&quot; &amp; all_data$Lineage %in% combined_lins_list$CoCl2)] &lt;- &#39;Resistant to CoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2todabtram&quot; &amp; all_data$Lineage %in% combined_lins_list$CoCl2toDabTram)] &lt;- &#39;Resistant to CoCl2toDabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2tococl2&quot; &amp; all_data$Lineage %in% combined_lins_list$CoCl2toCoCl2)] &lt;- &#39;Resistant to CoCl2toCoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2tocis&quot; &amp; all_data$Lineage %in% combined_lins_list$CoCl2toCis)] &lt;- &#39;Resistant to CoCl2toCis&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cis&quot; &amp; all_data$Lineage %in% combined_lins_list$Cis)] &lt;- &#39;Resistant to Cis&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cistodabtram&quot; &amp; all_data$Lineage %in% combined_lins_list$CistoDabTram)] &lt;- &#39;Resistant to CistoDabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cistococl2&quot; &amp; all_data$Lineage %in% combined_lins_list$CistoCoCl2)] &lt;- &#39;Resistant to CistoCoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cistocis&quot; &amp; all_data$Lineage %in% combined_lins_list$CistoCis)] &lt;- &#39;Resistant to CistoCis&#39;
 
-&lt;!-- rnb-text-begin --&gt;
+#specify which cells are in lineages of more than 5 cells
+filtered_meta[which(all_data$OG_condition == &quot;dabtram&quot; &amp; all_data$Lineage %in% fivecell_cDNA$DabTram)] &lt;- &#39;Large Resistant to DabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtodabtram&quot; &amp; all_data$Lineage %in% fivecell_cDNA$DabTramtoDabTram)] &lt;- &#39;Large Resistant to DabTramtoDabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtococl2&quot; &amp; all_data$Lineage %in% fivecell_cDNA$DabTramtoCoCl2)] &lt;- &#39;Large Resistant to DabTramtoCoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtocis&quot; &amp; all_data$Lineage %in% fivecell_cDNA$DabTramtoCis)] &lt;- &#39;Large Resistant to DabTramtoCis&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CoCl2)] &lt;- &#39;Large Resistant to CoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2todabtram&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CoCl2toDabTram)] &lt;- &#39;Large Resistant to CoCl2toDabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2tococl2&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CoCl2toCoCl2)] &lt;- &#39;Large Resistant to CoCl2toCoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cocl2tocis&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CoCl2toCis)] &lt;- &#39;Large Resistant to CoCl2toCis&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cis&quot; &amp; all_data$Lineage %in% fivecell_cDNA$Cis)] &lt;- &#39;Large Resistant to Cis&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cistodabtram&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CistoDabTram)] &lt;- &#39;Large Resistant to CistoDabTram&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cistococl2&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CistoCoCl2)] &lt;- &#39;Large Resistant to CistoCoCl2&#39;
+filtered_meta[which(all_data$OG_condition == &quot;cistocis&quot; &amp; all_data$Lineage %in% fivecell_cDNA$CistoCis)] &lt;- &#39;Large Resistant to CistoCis&#39;
 
-## Significance testing of the dabtram simulation
+# filtered_meta[which(all_data$OG_condition == &quot;dabtram&quot; &amp; all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] &lt;- &#39;Maintained Resistant to DabTram&#39;
+# filtered_meta[which(all_data$OG_condition == &quot;dabtramtodabtram&quot; &amp; all_data$Lineage %in% fivecell_cDNA$DabTramMaintained)] &lt;- &#39;Maintained Resistant to DabTramtoDabTram&#39;
 
-&lt;!-- rnb-text-end --&gt;
+#specify which cells are in lineages that did not pass filtering
+filtered_meta[which(all_data$OG_condition == &quot;dabtram&quot; &amp; all_data$Lineage %nin% combined_lins_list$DabTram &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtodabtram&quot; &amp; all_data$Lineage %nin% combined_lins_list$DabTramtoDabTram &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtococl2&quot; &amp; all_data$Lineage %nin% combined_lins_list$DabTramtoCoCl2 &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;dabtramtocis&quot; &amp; all_data$Lineage %nin% combined_lins_list$DabTramtoCis &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cocl2&quot; &amp; all_data$Lineage %nin% combined_lins_list$CoCl2 &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cocl2todabtram&quot; &amp; all_data$Lineage %nin% combined_lins_list$CoCl2toDabTram &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cocl2tococl2&quot; &amp; all_data$Lineage %nin% combined_lins_list$CoCl2toCoCl2 &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cocl2tocis&quot; &amp; all_data$Lineage %nin% combined_lins_list$CoCl2toCis &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cis&quot; &amp; all_data$Lineage %nin% combined_lins_list$Cis &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cistodabtram&quot; &amp; all_data$Lineage %nin% combined_lins_list$CistoDabTram &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cistococl2&quot; &amp; all_data$Lineage %nin% combined_lins_list$CistoCoCl2 &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
+filtered_meta[which(all_data$OG_condition == &quot;cistocis&quot; &amp; all_data$Lineage %nin% combined_lins_list$CistoCis &amp; all_data$Lineage %nin% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;Filtered out&#39; 
 
+#specify which cells had zero or multiple barcodes
+filtered_meta[which(all_data$Lineage %in% c(&quot;No Barcode&quot;, &quot;Still multiple&quot;))] &lt;- &#39;No Barcode&#39;
 
-
-&lt;!-- rnb-text-begin --&gt;
-
-
-## Look at whether lineages cluster together in each individual condition - dabtramtodabtram
-
-&lt;!-- rnb-text-end --&gt;
-
-
-&lt;!-- rnb-chunk-begin --&gt;
-
-
-&lt;!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuSWRlbnRzKGFsbF9kYXRhKSA8LSBhbGxfZGF0YSRPR19jb25kaXRpb24gIyBDaGFuZ2UgdGhlIGlkZW50cyB0byB0aGUgT0cgY29uZGl0aW9uIGZvciBzdWJzZXR0aW5nIHRvIGRhYnRyYW10b2RhYnRyYW1cbmRhYnRyYW10b2RhYnRyYW0gPC0gc3Vic2V0KGFsbF9kYXRhLCBpZGVudHMgPSAnZGFidHJhbXRvZGFidHJhbScpICMgU3Vic2V0IGRvd24gdG8gdGhlIGRhYnRyYW10b2RhYnRyYW0gb2JqZWN0XG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIE5vcm1hbGl6ZURhdGEoZGFidHJhbXRvZGFidHJhbSlcbmRhYnRyYW10b2RhYnRyYW0gPC0gRmluZFZhcmlhYmxlRmVhdHVyZXMoZGFidHJhbXRvZGFidHJhbSwgc2VsZWN0aW9uLm1ldGhvZCA9ICd2c3QnLCBuRmVhdHVyZXMgPSAyMDAwMClcbmRhYnRyYW10b2RhYnRyYW0gPC0gU2NhbGVEYXRhKGRhYnRyYW10b2RhYnRyYW0pXG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIFJ1blBDQShkYWJ0cmFtdG9kYWJ0cmFtKVxuRWxib3dQbG90KGRhYnRyYW10b2RhYnRyYW0pICMgVGhlIHN0YW5kYXJkIGRldmlhdGlvbiBzZWVtcyB0byByZWFsbHkgbGV2ZWwgb2ZmIGF0IDEwXG5cbiMgUmVjbHVzdGVyIHdpdGggdGhlIGFwcHJvcHJpYXRlIG51bWJlciBvZiBkaW1lbnNpb25zXG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIEZpbmROZWlnaGJvcnMoZGFidHJhbXRvZGFidHJhbSwgZGltcyA9IDE6MTUpXG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIEZpbmRDbHVzdGVycyhkYWJ0cmFtdG9kYWJ0cmFtLCByZXNvbHV0aW9uID0gMC41KVxuZGFidHJhbXRvZGFidHJhbSA8LSBSdW5VTUFQKGRhYnRyYW10b2RhYnRyYW0sIGRpbXMgPSAxOjE1KVxuRGltUGxvdChkYWJ0cmFtdG9kYWJ0cmFtLCByZWR1Y3Rpb24gPSAndW1hcCcsIHB0LnNpemUgPSAxKVxuXG5cbiMgR2V0IHRoZSBzY2FsZWQgZGF0YSBmcm9tIHRoZSBkYWJ0cmFtdG9kYWJ0cmFtIG9iamVjdFxuZGFidHJhbXRvZGFidHJhbV9pbnB1dF9kYXRhIDwtIEdldEFzc2F5RGF0YShkYWJ0cmFtdG9kYWJ0cmFtLCBhc3NheSA9ICdSTkEnLCBzbG90ID0gJ3NjYWxlLmRhdGEnKVxuXG4jIEJ1aWxkIGxpc3Qgb2YgbGluZWFnZXMgd2l0aCBhdCBsZWFzdCA1IGNlbGxzIGluIGRhYiB0cmFtIGFuZCBkbyBwZWFyc29uIGNvcnJlbGF0aW9uXG5kYWJ0cmFtdG9kYWJ0cmFtX2xpbl9wZWFyc29uX2xpc3QgPC0gbGlzdCgpXG5cbmZvciAoaSBpbiBmaXZlY2VsbF9jRE5BJERhYlRyYW10b0RhYlRyYW0pe1xuICB0ZW1wX3BlYXJzb24gPC0gY29yKGRhYnRyYW10b2RhYnRyYW1faW5wdXRfZGF0YVssY29sbmFtZXMoZGFidHJhbXRvZGFidHJhbSlbZGFidHJhbXRvZGFidHJhbSRMaW5lYWdlID09IGldXSlcbiAgdGVtcF9wZWFyc29uX2ZpbHQgPC0gdGVtcF9wZWFyc29uW2xvd2VyLnRyaSh0ZW1wX3BlYXJzb24sIGRpYWcgPSBGQUxTRSldXG4gIGRhYnRyYW10b2RhYnRyYW1fbGluX3BlYXJzb25fbGlzdFtbaV1dIDwtIHRlbXBfcGVhcnNvbl9maWx0XG59XG5cbiMgTmVlZCB0byBkbyBhIHJhbmRvbSBzYW1wbGluZyBvZiB0aGUgc2FtZSB0aGluZyBcbmRhYnRyYW10b2RhYnRyYW1fbGluX3BlYXJzb25fcmFuZF9saXN0IDwtIGxpc3QoKVxubnVtX2l0ZXIgPC0gMTAwIFxuZm9yKGogaW4gMTpudW1faXRlcil7XG4gIGRhYnRyYW10b2RhYnRyYW1fbGluX3BlYXJzb25fcmFuZF9saXN0W1tqXV0gPC0gbGlzdCgpXG4gIGZvciAoaSBpbiBmaXZlY2VsbF9jRE5BJERhYlRyYW10b0RhYlRyYW0pe1xuICAgIHNldC5zZWVkKGopXG4gICAgbnVtX2NlbGxzIDwtIGxlbmd0aChkYWJ0cmFtdG9kYWJ0cmFtJExpbmVhZ2VbZGFidHJhbXRvZGFidHJhbSRMaW5lYWdlID09IGldKVxuICAgIHRlbXBfcGVhcnNvbiA8LSBjb3IoZGFidHJhbXRvZGFidHJhbV9pbnB1dF9kYXRhWyxzYW1wbGUoY29sbmFtZXMoZGFidHJhbXRvZGFidHJhbSksIG51bV9jZWxscywgcmVwbGFjZSA9IEYpXSlcbiAgICB0ZW1wX3BlYXJzb25fZmlsdCA8LSB0ZW1wX3BlYXJzb25bbG93ZXIudHJpKHRlbXBfcGVhcnNvbiwgZGlhZyA9IEZBTFNFKV1cbiAgICBkYWJ0cmFtdG9kYWJ0cmFtX2xpbl9wZWFyc29uX3JhbmRfbGlzdFtbal1dW1tpXV0gPC0gdGVtcF9wZWFyc29uX2ZpbHRcbiAgICBcbiAgfVxufVxuYGBgIn0= --&gt;
-
-```r
-Idents(all_data) &lt;- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtodabtram
+print(table(filtered_meta))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiZmlsdGVyZWRfbWV0YVxuICAgICAgICAgICAgICAgICAgICAgICBGaWx0ZXJlZCBvdXQgICAgICAgICAgICAgIExhcmdlIFJlc2lzdGFudCB0byBDaXMgICAgICAgICBMYXJnZSBSZXNpc3RhbnQgdG8gQ2lzdG9DaXMgICAgICAgTGFyZ2UgUmVzaXN0YW50IHRvIENpc3RvQ29DbDIgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMzMzNyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMTM3NSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDk1MSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMjA3OCBcbiAgICBMYXJnZSBSZXNpc3RhbnQgdG8gQ2lzdG9EYWJUcmFtICAgICAgICAgICAgTGFyZ2UgUmVzaXN0YW50IHRvIENvQ2wyICAgICAgIExhcmdlIFJlc2lzdGFudCB0byBDb0NsMnRvQ2lzICAgICBMYXJnZSBSZXNpc3RhbnQgdG8gQ29DbDJ0b0NvQ2wyIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEzOTQgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDE3ODQgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDMwMTAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMTE1NzggXG4gIExhcmdlIFJlc2lzdGFudCB0byBDb0NsMnRvRGFiVHJhbSAgICAgICAgICBMYXJnZSBSZXNpc3RhbnQgdG8gRGFiVHJhbSAgICAgTGFyZ2UgUmVzaXN0YW50IHRvIERhYlRyYW10b0NpcyAgIExhcmdlIFJlc2lzdGFudCB0byBEYWJUcmFtdG9Db0NsMiBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNjYzICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNDc4ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA0MjM0ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAyODQwIFxuTGFyZ2UgUmVzaXN0YW50IHRvIERhYlRyYW10b0RhYlRyYW0gICAgICAgICAgICAgICAgICAgICAgICAgIE5vIEJhcmNvZGUgICAgICAgICAgICAgICAgICAgIFJlc2lzdGFudCB0byBDaXMgICAgICAgICAgICAgICBSZXNpc3RhbnQgdG8gQ2lzdG9DaXMgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMzE3NiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAzNTMxNCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDMzMSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA2NyBcbiAgICAgICAgICAgIFJlc2lzdGFudCB0byBDaXN0b0NvQ2wyICAgICAgICAgICBSZXNpc3RhbnQgdG8gQ2lzdG9EYWJUcmFtICAgICAgICAgICAgICAgICAgUmVzaXN0YW50IHRvIENvQ2wyICAgICAgICAgICAgIFJlc2lzdGFudCB0byBDb0NsMnRvQ2lzIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxMzUgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxMTMgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAyNzggICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxNTcgXG4gICAgICAgICAgUmVzaXN0YW50IHRvIENvQ2wydG9Db0NsMiAgICAgICAgIFJlc2lzdGFudCB0byBDb0NsMnRvRGFiVHJhbSAgICAgICAgICAgICAgICBSZXNpc3RhbnQgdG8gRGFiVHJhbSAgICAgICAgICAgUmVzaXN0YW50IHRvIERhYlRyYW10b0NpcyBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDU1ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDkzICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMzM3ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMjI1IFxuICAgICAgICBSZXNpc3RhbnQgdG8gRGFiVHJhbXRvQ29DbDIgICAgICAgUmVzaXN0YW50IHRvIERhYlRyYW10b0RhYlRyYW0gXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEwMCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDIyMiBcbiJ9 -->
+<pre><code>filtered_meta
+                       Filtered out              Large Resistant to Cis         Large Resistant to CistoCis       Large Resistant to CistoCoCl2 
+                               3337                                1375                                 951                                2078 
+    Large Resistant to CistoDabTram            Large Resistant to CoCl2       Large Resistant to CoCl2toCis     Large Resistant to CoCl2toCoCl2 
+                               1394                                1784                                3010                               11578 
+  Large Resistant to CoCl2toDabTram          Large Resistant to DabTram     Large Resistant to DabTramtoCis   Large Resistant to DabTramtoCoCl2 
+                                663                                 478                                4234                                2840 
+Large Resistant to DabTramtoDabTram                          No Barcode                    Resistant to Cis               Resistant to CistoCis 
+                               3176                               35314                                 331                                  67 
+            Resistant to CistoCoCl2           Resistant to CistoDabTram                  Resistant to CoCl2             Resistant to CoCl2toCis 
+                                135                                 113                                 278                                 157 
+          Resistant to CoCl2toCoCl2         Resistant to CoCl2toDabTram                Resistant to DabTram           Resistant to DabTramtoCis 
+                                 55                                  93                                 337                                 225 
+        Resistant to DabTramtoCoCl2       Resistant to DabTramtoDabTram 
+                                100                                 222 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="significance-testing-of-the-dabtram-simulation" class="section level2">
+<h2>Significance testing of the dabtram simulation</h2>
+<!-- rnb-text-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="look-at-whether-lineages-cluster-together-in-each-individual-condition---dabtramtodabtram" class="section level2">
+<h2>Look at whether lineages cluster together in each individual
+condition - dabtramtodabtram</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuSWRlbnRzKGFsbF9kYXRhKSA8LSBhbGxfZGF0YSRPR19jb25kaXRpb24gIyBDaGFuZ2UgdGhlIGlkZW50cyB0byB0aGUgT0cgY29uZGl0aW9uIGZvciBzdWJzZXR0aW5nIHRvIGRhYnRyYW10b2RhYnRyYW1cbmRhYnRyYW10b2RhYnRyYW0gPC0gc3Vic2V0KGFsbF9kYXRhLCBpZGVudHMgPSAnZGFidHJhbXRvZGFidHJhbScpICMgU3Vic2V0IGRvd24gdG8gdGhlIGRhYnRyYW10b2RhYnRyYW0gb2JqZWN0XG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIE5vcm1hbGl6ZURhdGEoZGFidHJhbXRvZGFidHJhbSlcbmRhYnRyYW10b2RhYnRyYW0gPC0gRmluZFZhcmlhYmxlRmVhdHVyZXMoZGFidHJhbXRvZGFidHJhbSwgc2VsZWN0aW9uLm1ldGhvZCA9ICd2c3QnLCBuRmVhdHVyZXMgPSAyMDAwMClcbmRhYnRyYW10b2RhYnRyYW0gPC0gU2NhbGVEYXRhKGRhYnRyYW10b2RhYnRyYW0pXG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIFJ1blBDQShkYWJ0cmFtdG9kYWJ0cmFtKVxuRWxib3dQbG90KGRhYnRyYW10b2RhYnRyYW0pICMgVGhlIHN0YW5kYXJkIGRldmlhdGlvbiBzZWVtcyB0byByZWFsbHkgbGV2ZWwgb2ZmIGF0IDEwXG5cbiMgUmVjbHVzdGVyIHdpdGggdGhlIGFwcHJvcHJpYXRlIG51bWJlciBvZiBkaW1lbnNpb25zXG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIEZpbmROZWlnaGJvcnMoZGFidHJhbXRvZGFidHJhbSwgZGltcyA9IDE6MTUpXG5kYWJ0cmFtdG9kYWJ0cmFtIDwtIEZpbmRDbHVzdGVycyhkYWJ0cmFtdG9kYWJ0cmFtLCByZXNvbHV0aW9uID0gMC41KVxuZGFidHJhbXRvZGFidHJhbSA8LSBSdW5VTUFQKGRhYnRyYW10b2RhYnRyYW0sIGRpbXMgPSAxOjE1KVxuRGltUGxvdChkYWJ0cmFtdG9kYWJ0cmFtLCByZWR1Y3Rpb24gPSAndW1hcCcsIHB0LnNpemUgPSAxKVxuXG5cbiMgR2V0IHRoZSBzY2FsZWQgZGF0YSBmcm9tIHRoZSBkYWJ0cmFtdG9kYWJ0cmFtIG9iamVjdFxuZGFidHJhbXRvZGFidHJhbV9pbnB1dF9kYXRhIDwtIEdldEFzc2F5RGF0YShkYWJ0cmFtdG9kYWJ0cmFtLCBhc3NheSA9ICdSTkEnLCBzbG90ID0gJ3NjYWxlLmRhdGEnKVxuXG4jIEJ1aWxkIGxpc3Qgb2YgbGluZWFnZXMgd2l0aCBhdCBsZWFzdCA1IGNlbGxzIGluIGRhYiB0cmFtIGFuZCBkbyBwZWFyc29uIGNvcnJlbGF0aW9uXG5kYWJ0cmFtdG9kYWJ0cmFtX2xpbl9wZWFyc29uX2xpc3QgPC0gbGlzdCgpXG5cbmZvciAoaSBpbiBmaXZlY2VsbF9jRE5BJERhYlRyYW10b0RhYlRyYW0pe1xuICB0ZW1wX3BlYXJzb24gPC0gY29yKGRhYnRyYW10b2RhYnRyYW1faW5wdXRfZGF0YVssY29sbmFtZXMoZGFidHJhbXRvZGFidHJhbSlbZGFidHJhbXRvZGFidHJhbSRMaW5lYWdlID09IGldXSlcbiAgdGVtcF9wZWFyc29uX2ZpbHQgPC0gdGVtcF9wZWFyc29uW2xvd2VyLnRyaSh0ZW1wX3BlYXJzb24sIGRpYWcgPSBGQUxTRSldXG4gIGRhYnRyYW10b2RhYnRyYW1fbGluX3BlYXJzb25fbGlzdFtbaV1dIDwtIHRlbXBfcGVhcnNvbl9maWx0XG59XG5cbiMgTmVlZCB0byBkbyBhIHJhbmRvbSBzYW1wbGluZyBvZiB0aGUgc2FtZSB0aGluZyBcbmRhYnRyYW10b2RhYnRyYW1fbGluX3BlYXJzb25fcmFuZF9saXN0IDwtIGxpc3QoKVxubnVtX2l0ZXIgPC0gMTAwIFxuZm9yKGogaW4gMTpudW1faXRlcil7XG4gIGRhYnRyYW10b2RhYnRyYW1fbGluX3BlYXJzb25fcmFuZF9saXN0W1tqXV0gPC0gbGlzdCgpXG4gIGZvciAoaSBpbiBmaXZlY2VsbF9jRE5BJERhYlRyYW10b0RhYlRyYW0pe1xuICAgIHNldC5zZWVkKGopXG4gICAgbnVtX2NlbGxzIDwtIGxlbmd0aChkYWJ0cmFtdG9kYWJ0cmFtJExpbmVhZ2VbZGFidHJhbXRvZGFidHJhbSRMaW5lYWdlID09IGldKVxuICAgIHRlbXBfcGVhcnNvbiA8LSBjb3IoZGFidHJhbXRvZGFidHJhbV9pbnB1dF9kYXRhWyxzYW1wbGUoY29sbmFtZXMoZGFidHJhbXRvZGFidHJhbSksIG51bV9jZWxscywgcmVwbGFjZSA9IEYpXSlcbiAgICB0ZW1wX3BlYXJzb25fZmlsdCA8LSB0ZW1wX3BlYXJzb25bbG93ZXIudHJpKHRlbXBfcGVhcnNvbiwgZGlhZyA9IEZBTFNFKV1cbiAgICBkYWJ0cmFtdG9kYWJ0cmFtX2xpbl9wZWFyc29uX3JhbmRfbGlzdFtbal1dW1tpXV0gPC0gdGVtcF9wZWFyc29uX2ZpbHRcbiAgICBcbiAgfVxufVxuYGBgIn0= -->
+<pre class="r"><code>Idents(all_data) &lt;- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtramtodabtram
 dabtramtodabtram &lt;- subset(all_data, idents = &#39;dabtramtodabtram&#39;) # Subset down to the dabtramtodabtram object
 dabtramtodabtram &lt;- NormalizeData(dabtramtodabtram)
 dabtramtodabtram &lt;- FindVariableFeatures(dabtramtodabtram, selection.method = &#39;vst&#39;, nFeatures = 20000)
