@@ -272,15 +272,3 @@ individual_UMAPs.pdf
 ```
 
 ```
-
-## Scripts not used in this iteration of analysis (not on github):
-Find_induced_resistant_markers
-Loads in all_data_final_lineages, x_final_lineages, x_first_final_lineages,  induced_resistant_lineage_lists
-	Looks for markers of induced resistant vs all other lineages after 1st drug
-Exports x_inducedto_x_markers.pdf 
-
-
-Induced_resistant_markers_from_endstate
-Loads in all_data_final_lineages, x_final_lineages, x_first_final_lineages,  induced_resistant_lineage_lists
-Looks for expression of endstate markers in induced resistant vs all other lineages after 1st drug
-Exports cluster_markers.RData, x_inducedto_x_markers_endstate.pdf
