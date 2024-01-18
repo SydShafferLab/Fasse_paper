@@ -24,19 +24,19 @@ library(RColorBrewer)
 # load in GEX data
 ```{r include = FALSE}
 
-dabtram.data <- Read10X(data.dir = '/2022_05_26_10x_DabTram_counts/outs/filtered_feature_bc_matrix')
-cocl2.data <- Read10X(data.dir = '/2022_05_26_10x_CoCl2_counts/outs/filtered_feature_bc_matrix')
-cis.data <- Read10X(data.dir = '/2022_05_26_10x_Cisplatin_counts/outs/filtered_feature_bc_matrix')
+dabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTram_counts/outs/filtered_feature_bc_matrix')
+cocl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CoCl2_counts/outs/filtered_feature_bc_matrix')
+cis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts2022_05_26_10x_Cisplatin_counts/outs/filtered_feature_bc_matrix')
 
-dabtramtodabtram.data <- Read10X(data.dir = '/2022_05_26_10x_DabTramtoDabTram_counts/outs/filtered_feature_bc_matrix')
-dabtramtococl2.data <- Read10X(data.dir = '/2022_05_26_10x_DabTramtoCoCl2_counts/outs/filtered_feature_bc_matrix')
-dabtramtocis.data <- Read10X(data.dir = '/2022_05_26_10x_DabTramtoCisplatin_counts/outs/filtered_feature_bc_matrix')
-cocl2todabtram.data <- Read10X(data.dir = '/2022_05_12_10x_CoCl2toDabTram_counts/outs/filtered_feature_bc_matrix')
-cocl2tococl2.data <- Read10X(data.dir = '/2022_05_26_10x_CoCl2toCoCl2_counts/outs/filtered_feature_bc_matrix')
-cocl2tocis.data <- Read10X(data.dir = '/2022_05_26_10x_CoCl2toCisplatin_counts/outs/filtered_feature_bc_matrix')
-cistodabtram.data <- Read10X(data.dir = '/2022_05_26_10x_CisplatintoDabTram_counts/outs/filtered_feature_bc_matrix')
-cistococl2.data <- Read10X(data.dir = '/2022_05_26_10x_CisplatintoCoCl2_counts/outs/filtered_feature_bc_matrix')
-cistocis.data <- Read10X(data.dir = '/2022_05_26_10x_CisplatintoCisplatin_counts/outs/filtered_feature_bc_matrix')
+dabtramtodabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTramtoDabTram_counts/outs/filtered_feature_bc_matrix')
+dabtramtococl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTramtoCoCl2_counts/outs/filtered_feature_bc_matrix')
+dabtramtocis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTramtoCisplatin_counts/outs/filtered_feature_bc_matrix')
+cocl2todabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_12_10x_CoCl2toDabTram_counts/outs/filtered_feature_bc_matrix')
+cocl2tococl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CoCl2toCoCl2_counts/outs/filtered_feature_bc_matrix')
+cocl2tocis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CoCl2toCisplatin_counts/outs/filtered_feature_bc_matrix')
+cistodabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CisplatintoDabTram_counts/outs/filtered_feature_bc_matrix')
+cistococl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CisplatintoCoCl2_counts/outs/filtered_feature_bc_matrix')
+cistocis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CisplatintoCisplatin_counts/outs/filtered_feature_bc_matrix')
 
 ```
 
