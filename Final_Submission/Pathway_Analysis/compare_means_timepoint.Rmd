@@ -1,0 +1,101 @@
+---
+title: "Pathway_Analysis_UCell_Through_Time"
+output: html_document
+date: "2023-09-20"
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/.shortcut-targets-by-id/1oE5MtumTfVN3grZH0AkMj2NoxkqZO12W/AJF009') #for robert's computer
+
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+# Initialize:
+```{r include = FALSE}
+rm(list = ls())
+library(ggplot2)
+library(dplyr)
+```
+
+# Make lists of pathways
+```{r include = FALSE}
+pathways <- list(cellular_respiration = c("2 iron, 2 sulfur cluster binding","ATPase activity, coupled to transmembrane movement of ions, rotational mechanism","ATPase binding","cytochrome-c oxidase activity","electron transfer activity","iron-sulfur cluster binding","NAD(P)H dehydrogenase (quinone) activity","NADH dehydrogenase (quinone) activity","NADH dehydrogenase (ubiquinone) activity","NADH dehydrogenase activity","oxidoreductase activity, acting on a heme group of donors","oxidoreductase activity, acting on a sulfur group of donors","oxidoreductase activity, acting on a sulfur group of donors, NAD(P) as acceptor","oxidoreductase activity, acting on NAD(P)H","oxidoreductase activity, acting on NAD(P)H, quinone or similar compound as acceptor","oxidoreductase activity, acting on peroxide as acceptor","oxidoreduction-driven active transmembrane transporter activity","proton channel activity","proton transmembrane transporter activity","proton-transporting ATP synthase activity, rotational mechanism","proton-transporting ATPase activity, rotational mechanism"),
+
+cell_cell_communication = c("chemokine receptor binding","frizzled binding","G protein activity","G protein-coupled receptor binding","growth factor binding","insulin-like growth factor I binding","nuclear androgen receptor binding","nuclear retinoic acid receptor binding","Wnt-protein binding"),
+
+extracellular_binding = c("cadherin binding","cadherin binding involved in cell-cell adhesion","collagen binding","extracellular matrix structural constituent","extracellular matrix structural constituent conferring tensile strength","fibronectin binding","glycosaminoglycan binding","heparan sulfate proteoglycan binding","heparin binding","proteoglycan binding"),
+
+transcription_translation = c("5'-3' RNA polymerase activity"
+,"basal RNA polymerase II transcription machinery binding","basal transcription machinery binding","DNA-binding transcription factor binding","DNA-directed 5'-3' RNA polymerase activity","eukaryotic initiation factor 4E binding","general transcription initiation factor binding","poly(A) binding","ribosomal small subunit binding","ribosome binding","RNA polymerase activity","RNA polymerase II general transcription initiation factor binding","RNA polymerase II-specific DNA-binding transcription factor binding","rRNA binding","transcription coactivator activity","transcription corepressor activity","translation elongation factor activity","translation factor activity, RNA binding","translation initiation factor activity","translation initiation factor binding","translation regulator activity","translation regulator activity, nucleic acid binding"),
+
+MHC = c("MHC class I protein binding","MHC class II protein complex binding","MHC protein binding","MHC protein complex binding"),
+
+ubiquitin = c("polyubiquitin modification-dependent protein binding", "ubiquitin conjugating enzyme activity","ubiquitin protein ligase binding","ubiquitin-like protein binding","ubiquitin-like protein conjugating enzyme activity","ubiquitin-like protein ligase binding","ubiquitin-specific protease binding"),
+
+enzyme = c("ATP hydrolysis activity", "ATPase-coupled ion transmembrane transporter activity", "carbon-oxygen lyase activity", "catalytic activity, acting on DNA", "catalytic activity, acting on RNA", "cis-trans isomerase activity", "disulfide oxidoreductase activity", "endopeptidase inhibitor activity", "endopeptidase regulator activity", "enzyme inhibitor activity", "GTPase activity", "GTPase binding", "isomerase activity", "ligase activity", "nucleoside triphosphate diphosphatase activity", "peptidase activator activity", "peptidase inhibitor activity", "peptidase regulator activity", "peroxidase activity", "phosphatase binding", "protease binding", "protein phosphatase binding", "protein-disulfide reductase (NAD(P)) activity", "protein-disulfide reductase activity", "small GTPase binding"))
+
+dir.create("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/compare_means_timepoint", showWarnings = F)
+```
+
+# Compare CoCl2 timepoints
+```{r include = FALSE}
+cocl2_means <- read.csv("/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009/2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_cocl2_2.csv")
+cocl2tococl2_means <- read.csv("/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009/2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_cocl2Tococl2_2.csv")
+
+pdf("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/compare_means_timepoint/cocl2_vs_cocl2tococl2.pdf", 10,10)
+for (i in names(pathways)){
+  plot_df <- data.frame(
+    paths = rep(cocl2_means$X[cocl2_means$X %in% pathways[[i]]],2),
+    means = c(rowMeans(cocl2_means[cocl2_means$X %in% pathways[[i]], 2:ncol(cocl2_means)]),rowMeans(cocl2tococl2_means[cocl2tococl2_means$X %in% pathways[[i]], 2:ncol(cocl2tococl2_means)])),
+    type = c(rep('CoCl2',length(pathways[[i]])),rep('CoCl2toCoCl2',length(pathways[[i]]))))
+  print(ggplot(plot_df,aes(x = type, y = means, group = paths, color = paths)) + geom_line() + geom_point() +
+          labs(title = paste("CoCl2 vs CoCl2 to CoCl2",i,sum(plot_df$means[plot_df$type == "CoCl2"]-plot_df$means[plot_df$type == "CoCl2toCoCl2"] > 0), "of", length(cocl2_means$X[cocl2_means$X %in% pathways[[i]]]), "pathways decrease"))+ ylab ('Average UCell score across clones per pathway')+
+  theme(legend.title = element_text( size=2), legend.text=element_text(size=2))) #change legend text font size)
+}
+dev.off()
+
+```
+
+# Compare DabTram timepoints
+```{r include = FALSE}
+dabtram_means <- read.csv("/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009/2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_dabtram_2.csv")
+dabtramtodabtram_means <- read.csv("/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009/2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_dabtramTodabtram_2.csv")
+
+pdf("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/compare_means_timepoint/dabtram_vs_dabtramtodabtram.pdf", 10,10)
+for (i in names(pathways)){
+  plot_df <- data.frame(
+    paths = rep(dabtram_means$X[dabtram_means$X %in% pathways[[i]]],2),
+    means = c(rowMeans(dabtram_means[dabtram_means$X %in% pathways[[i]], 2:ncol(dabtram_means)]),rowMeans(dabtramtodabtram_means[dabtramtodabtram_means$X %in% pathways[[i]], 2:ncol(dabtramtodabtram_means)])),
+    type = c(rep('DabTram',length(pathways[[i]])),rep('DabTramtoDabTram',length(pathways[[i]]))))
+  print(ggplot(plot_df,aes(x = type, y = means, group = paths, color = paths)) + geom_line() + geom_point() +
+          labs(title = paste("DabTram vs DabTram to DabTram",i,sum(plot_df$means[plot_df$type == "DabTram"]-plot_df$means[plot_df$type == "DabTramtoDabTram"] > 0), "of", length(dabtram_means$X[dabtram_means$X %in% pathways[[i]]]), "pathways decrease"))+ ylab ('Average UCell score across clones per pathway')+
+  theme(legend.title = element_text( size=2), legend.text=element_text(size=2))) #change legend text font size)
+}
+dev.off()
+
+```
+
+# Compare Cisplatin timepoints
+```{r include = FALSE}
+cisplatin_means <- read.csv("/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009/2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_cis_2.csv")
+cisplatintocisplatin_means <- read.csv("/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009/2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_cisTocis_2.csv")
+
+pdf("2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/compare_means_timepoint/cisplatin_vs_cisplatintocisplatin.pdf", 10,10)
+for (i in names(pathways)){
+  plot_df <- data.frame(
+    paths = rep(cisplatin_means$X[cisplatin_means$X %in% pathways[[i]]],2),
+    means = c(rowMeans(cisplatin_means[cisplatin_means$X %in% pathways[[i]], 2:(ncol(cisplatin_means)-1)]),rowMeans(cisplatintocisplatin_means[cisplatintocisplatin_means$X %in% pathways[[i]], 2:(ncol(cisplatintocisplatin_means)-1)])),
+    type = c(rep('Cisplatin',length(pathways[[i]])),rep('CisplatintoCisplatin',length(pathways[[i]]))))
+  print(ggplot(plot_df,aes(x = type, y = means, group = paths, color = paths)) + geom_line() + geom_point() +
+          labs(title = paste("Cisplatin vs Cisplatin to Cisplatin",i,sum(plot_df$means[plot_df$type == "Cisplatin"]-plot_df$means[plot_df$type == "CisplatintoCisplatin"] > 0), "of", length(cisplatin_means$X[cisplatin_means$X %in% pathways[[i]]]), "pathways decrease"))+ ylab ('Average UCell score across clones per pathway')+
+  theme(legend.title = element_text( size=2), legend.text=element_text(size=2))) #change legend text font size)
+}
+dev.off()
+
+```

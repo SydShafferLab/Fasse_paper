@@ -1,0 +1,131 @@
+---
+title: "2022_05_27_AJF009_Preprocess_gDNA"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/ is additional path for outputs
+
+```
+
+# Initialize
+```{r}
+rm(list = ls())
+
+library(tidyverse)
+```
+
+# Load in gDNA counts
+```{r}
+temp <- list.files(path='2022_05_19_Barcode_outputs/starcode_outputs', pattern = '*gDNA*', full.names = T)
+gDNA_files <- lapply(temp, read.delim, header = F)
+list_names <- list.files(path='2022_05_19_Barcode_outputs/starcode_outputs', pattern='*gDNA*')
+names(gDNA_files) <- list_names
+```
+
+# Load in barcode reference file
+```{r}
+reference <- read.delim('2022_05_19_Barcode_outputs/CellRanger_inputs/FeatureReference_filtered.csv', sep = ',')
+```
+
+# Remove extra files
+```{r}
+rm(temp, list_names)
+```
+
+# Add descriptive names to each column
+```{r}
+for (i in names(gDNA_files)){
+  names(gDNA_files[[i]]) <- c('sample','reads')
+}
+```
+
+# Basic barcode statistics
+```{r}
+# Establish how many total barcodes per condition, number of total reads per condition, number pf barcodes with more than 0 reads, number of barcodes with more than 2 reads, number of reads from barcodes with more than 2 reads, how many total reads are lost by filtering on barcodes with at least 2 reads
+
+gDNA_basic_stats <- data.frame()
+for (i in names(gDNA_files)){
+  temp_df <- data.frame(Cond = i, Num_BCs = nrow(gDNA_files[[i]]), Num_reads = sum(gDNA_files[[i]]$reads), Num_BCs_greater0 = nrow(gDNA_files[[i]][gDNA_files[[i]]$reads > 0,]), Num_BCs_greater2 = nrow(gDNA_files[[i]][gDNA_files[[i]]$reads > 2,]),Num_reads_greater2 = sum(gDNA_files[[i]][gDNA_files[[i]]$reads > 2,]$reads), reads_lost_greater2 = sum(gDNA_files[[i]]$reads)-sum(gDNA_files[[i]][gDNA_files[[i]]$reads > 2,]$reads), Num_reads_greater5 = sum(gDNA_files[[i]][gDNA_files[[i]]$reads > 5,]$reads), reads_lost_greater5 = sum(gDNA_files[[i]]$reads)-sum(gDNA_files[[i]][gDNA_files[[i]]$reads > 5,]$reads))
+  gDNA_basic_stats <- rbind(gDNA_basic_stats,temp_df)
+}
+
+rm(temp_df)
+```
+
+# Print barcode rank order plots
+```{r}
+
+for (i in names(gDNA_files)){
+  pdf(paste('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/plot_',i,'.pdf', sep = ''))
+  print(ggplot(data = gDNA_files[[i]][gDNA_files[[i]]$reads > 2,], aes(reorder(sample,-reads), log2(reads)))+geom_bar(stat='identity') +  
+    theme(axis.text.x=element_blank()) + labs(x = 'Rank ordered barcodes', y = 'Log(reads per barcode)', title = paste(i, 'n =',length(gDNA_files[[i]][gDNA_files[[i]]$reads > 2,]$reads))))
+  dev.off()
+}
+```
+
+# Assign correct lineage and condition to each fastq
+```{r}
+gDNA_anno <- list()
+names(gDNA_files)[names(gDNA_files) == 'sc_output_counts_AJF009_FirstSample1_gDNA_S13.txt'] <- 'sc_output_counts_AJF009_FirstSample_1_gDNA_S13.txt' #this is just fixing one file that had different _ for strsplit
+
+for (j in names(gDNA_files)){
+  temp <- gDNA_files[[j]]
+  temp$sequence <- substr(temp$sample, 17, nchar(temp$sample))
+  temp2 <- merge(temp, reference, by  = 'sequence')
+  temp3 <- data.frame(Lineage = temp2$name, BC_seq = temp2$sequence, Full_seq = temp2$sample, Reads = temp2$reads, Condition = strsplit(j,'_')[[1]][5])
+  gDNA_anno[[j]] <- temp3[order(-temp3$Reads),]
+}
+
+rm(temp, temp2, temp3)
+```
+
+#Collapse dataframes containing reads from same conditions
+```{r}
+
+# now have the conditions appended so can loop over them
+
+t <- data.table::rbindlist(gDNA_anno)
+gDNA_collapsed <- list()
+
+#combining all the reads from each lineage shared between multiple fastqs of the same condition
+for (i in unique(t$Condition)) {
+  t2 <- aggregate(t$Reads[t$Condition == i], by = list(Lineage = t$Lineage[t$Condition == i]), FUN = sum)
+  colnames(t2) <- c('Lineage', 'Reads')
+  gDNA_collapsed[[i]] <- t2[order(-t2$Reads),]
+}
+
+rm(t2)
+```
+
+#RPM function and print plots
+```{r}
+rpm_norm <- function(x) {
+  return(x/sum(x)*1000000)
+}
+
+# Add the RPM data to each gDNA ----
+for (j in names(gDNA_anno)){
+  gDNA_anno[[j]]$RPM <- rpm_norm(gDNA_anno[[j]]$Reads)
+}
+
+for (j in names(gDNA_files)){
+  gDNA_files[[j]]$RPM <- rpm_norm(gDNA_files[[j]]$reads)
+}
+
+for (j in names(gDNA_collapsed)){
+  gDNA_collapsed[[j]]$RPM <- rpm_norm(gDNA_collapsed[[j]]$Reads)
+}
+
+```
+
+# Export stats and normalized data
+```{r}
+save(gDNA_basic_stats, gDNA_files, gDNA_collapsed, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/preprocessed_gDNA.RData')
+save(gDNA_anno, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/full_preprocessed_gDNA.RData')
+write.csv(gDNA_basic_stats, '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/gDNA_basic_stats.csv')
+```

@@ -1,0 +1,665 @@
+---
+title: "2022_06_09 AJF009 build_merged_datasets"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+# Initialize ----
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+
+```
+
+# load in GEX data
+```{r include = FALSE}
+
+dabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTram_counts/outs/filtered_feature_bc_matrix')
+cocl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CoCl2_counts/outs/filtered_feature_bc_matrix')
+cis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts2022_05_26_10x_Cisplatin_counts/outs/filtered_feature_bc_matrix')
+
+dabtramtodabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTramtoDabTram_counts/outs/filtered_feature_bc_matrix')
+dabtramtococl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTramtoCoCl2_counts/outs/filtered_feature_bc_matrix')
+dabtramtocis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_DabTramtoCisplatin_counts/outs/filtered_feature_bc_matrix')
+cocl2todabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_12_10x_CoCl2toDabTram_counts/outs/filtered_feature_bc_matrix')
+cocl2tococl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CoCl2toCoCl2_counts/outs/filtered_feature_bc_matrix')
+cocl2tocis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CoCl2toCisplatin_counts/outs/filtered_feature_bc_matrix')
+cistodabtram.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CisplatintoDabTram_counts/outs/filtered_feature_bc_matrix')
+cistococl2.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CisplatintoCoCl2_counts/outs/filtered_feature_bc_matrix')
+cistocis.data <- Read10X(data.dir = '/2022_05_26_AJF009_counts/2022_05_26_10x_CisplatintoCisplatin_counts/outs/filtered_feature_bc_matrix')
+
+```
+
+
+# convert into Seurat objects
+```{r include = FALSE}
+dabtram <- CreateSeuratObject(counts = dabtram.data$`Gene Expression`)
+cocl2 <- CreateSeuratObject(counts = cocl2.data$`Gene Expression`)
+cis <- CreateSeuratObject(counts = cis.data$`Gene Expression`)
+dabtramtodabtram <- CreateSeuratObject(counts = dabtramtodabtram.data$`Gene Expression`)
+dabtramtococl2 <- CreateSeuratObject(counts = dabtramtococl2.data$`Gene Expression`)
+dabtramtocis <- CreateSeuratObject(counts = dabtramtocis.data$`Gene Expression`)
+cocl2todabtram <- CreateSeuratObject(counts = cocl2todabtram.data$`Gene Expression`)
+cocl2tococl2 <- CreateSeuratObject(counts = cocl2tococl2.data$`Gene Expression`)
+cocl2tocis <- CreateSeuratObject(counts = cocl2tocis.data$`Gene Expression`)
+cistodabtram <- CreateSeuratObject(counts = cistodabtram.data$`Gene Expression`)
+cistococl2 <- CreateSeuratObject(counts = cistococl2.data$`Gene Expression`)
+cistocis <- CreateSeuratObject(counts = cistocis.data$`Gene Expression`)
+
+```
+
+
+# Find the number of cells in each condition prior to filtering
+```{r}
+starting_num_cells <- c(dabtram = ncol(dabtram),
+                        cocl2 = ncol(cocl2),
+                        cis = ncol(cis),
+                        dabtramtodabtram = ncol(dabtramtodabtram),
+                        dabtramtococl2 = ncol(dabtramtococl2),
+                        dabtramtocis = ncol(dabtramtocis),
+                        cocl2todabtram = ncol(cocl2todabtram),
+                        cocl2tococl2 = ncol(cocl2tococl2),
+                        cocl2tocis = ncol(cocl2tocis),
+                        cistodabtram = ncol(cistodabtram),
+                        cistococl2 = ncol(cistococl2),
+                        cistocis = ncol(cistocis)
+                        )
+```
+
+# Add lineage data to the seurat object
+```{r}
+dabtram[['lineage']] <- CreateAssayObject(counts = dabtram.data$Custom, min.cells = 1)
+cocl2[['lineage']] <- CreateAssayObject(counts = cocl2.data$Custom, min.cells = 1)
+cis[['lineage']] <- CreateAssayObject(counts = cis.data$Custom, min.cells = 1)
+dabtramtodabtram[['lineage']] <- CreateAssayObject(counts = dabtramtodabtram.data$Custom, min.cells = 1)
+dabtramtococl2[['lineage']] <- CreateAssayObject(counts = dabtramtococl2.data$Custom, min.cells = 1)
+dabtramtocis[['lineage']] <- CreateAssayObject(counts = dabtramtocis.data$Custom, min.cells = 1)
+cocl2todabtram[['lineage']] <- CreateAssayObject(counts = cocl2todabtram.data$Custom, min.cells = 1)
+cocl2tococl2[['lineage']] <- CreateAssayObject(counts = cocl2tococl2.data$Custom, min.cells = 1)
+cocl2tocis[['lineage']] <- CreateAssayObject(counts = cocl2tocis.data$Custom, min.cells = 1)
+cistodabtram[['lineage']] <- CreateAssayObject(counts = cistodabtram.data$Custom, min.cells = 1)
+cistococl2[['lineage']] <- CreateAssayObject(counts = cistococl2.data$Custom, min.cells = 1)
+cistocis[['lineage']] <- CreateAssayObject(counts = cistocis.data$Custom, min.cells = 1)
+```
+
+# Determine ribosomal and mitochondrial gene counts for each condition
+```{r include = FALSE}
+dabtram[["percent.mt"]] <- PercentageFeatureSet(object = dabtram, pattern = "^MT-")
+dabtram[["percent.rb"]] <- PercentageFeatureSet(object = dabtram, pattern = "^RPS")
+
+cocl2[["percent.mt"]] <- PercentageFeatureSet(object = cocl2, pattern = "^MT-")
+cocl2[["percent.rb"]] <- PercentageFeatureSet(object = cocl2, pattern = "^RPS")
+
+cis[["percent.mt"]] <- PercentageFeatureSet(object = cis, pattern = "^MT-")
+cis[["percent.rb"]] <- PercentageFeatureSet(object = cis, pattern = "^RPS")
+
+dabtramtodabtram[["percent.mt"]] <- PercentageFeatureSet(object = dabtramtodabtram, pattern = "^MT-")
+dabtramtodabtram[["percent.rb"]] <- PercentageFeatureSet(object = dabtramtodabtram, pattern = "^RPS")
+
+dabtramtococl2[["percent.mt"]] <- PercentageFeatureSet(object = dabtramtococl2, pattern = "^MT-")
+dabtramtococl2[["percent.rb"]] <- PercentageFeatureSet(object = dabtramtococl2, pattern = "^RPS")
+
+dabtramtocis[["percent.mt"]] <- PercentageFeatureSet(object = dabtramtocis, pattern = "^MT-")
+dabtramtocis[["percent.rb"]] <- PercentageFeatureSet(object = dabtramtocis, pattern = "^RPS")
+
+cocl2todabtram[["percent.mt"]] <- PercentageFeatureSet(object = cocl2todabtram, pattern = "^MT-")
+cocl2todabtram[["percent.rb"]] <- PercentageFeatureSet(object = cocl2todabtram, pattern = "^RPS")
+
+cocl2tococl2[["percent.mt"]] <- PercentageFeatureSet(object = cocl2tococl2, pattern = "^MT-")
+cocl2tococl2[["percent.rb"]] <- PercentageFeatureSet(object = cocl2tococl2, pattern = "^RPS")
+
+cocl2tocis[["percent.mt"]] <- PercentageFeatureSet(object = cocl2tocis, pattern = "^MT-")
+cocl2tocis[["percent.rb"]] <- PercentageFeatureSet(object = cocl2tocis, pattern = "^RPS")
+
+cistodabtram[["percent.mt"]] <- PercentageFeatureSet(object = cistodabtram, pattern = "^MT-")
+cistodabtram[["percent.rb"]] <- PercentageFeatureSet(object = cistodabtram, pattern = "^RPS")
+
+cistococl2[["percent.mt"]] <- PercentageFeatureSet(object = cistococl2, pattern = "^MT-")
+cistococl2[["percent.rb"]] <- PercentageFeatureSet(object = cistococl2, pattern = "^RPS")
+
+cistocis[["percent.mt"]] <- PercentageFeatureSet(object = cistocis, pattern = "^MT-")
+cistocis[["percent.rb"]] <- PercentageFeatureSet(object = cistocis, pattern = "^RPS")
+```
+
+# Plot QC metrics
+```{r}
+VlnPlot(object = dabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = dabtram, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = dabtram, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cocl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cocl2, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cocl2, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cis, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cis, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = dabtramtodabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = dabtramtodabtram, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = dabtramtodabtram, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = dabtramtococl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = dabtramtococl2, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = dabtramtococl2, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = dabtramtocis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = dabtramtocis, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = dabtramtocis, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cocl2todabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cocl2todabtram, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cocl2todabtram, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cocl2tococl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cocl2tococl2, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cocl2tococl2, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cocl2tocis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cocl2tocis, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cocl2tocis, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cistodabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cistodabtram, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cistodabtram, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cistococl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cistococl2, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cistococl2, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+VlnPlot(object = cistocis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+FeatureScatter(object = cistocis, feature1 = "nCount_RNA", feature2 = "percent.mt") 
+FeatureScatter(object = cistocis, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+
+```
+
+# filter based on above parameters to remove low quality cells and outliers and replot, note percentage of cells kept after filtering
+```{r}
+dabtram_onc <- dabtram@assays$lineage@counts@Dim[2]
+dabtram <- subset(x = dabtram, subset = nFeature_RNA > 1000 & nCount_RNA < 50000 & percent.mt < 15)
+VlnPlot(object = dabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+dabtram_f1 <- dabtram@assays$lineage@counts@Dim[2]/dabtram_onc
+print(dabtram_f1*100)
+
+cocl2_onc <- cocl2@assays$lineage@counts@Dim[2]
+cocl2 <- subset(x = cocl2, subset = nFeature_RNA > 1000 & nCount_RNA < 30000 & percent.mt < 20)
+VlnPlot(object = cocl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cocl2_f1 <- cocl2@assays$lineage@counts@Dim[2]/cocl2_onc
+print(cocl2_f1*100)
+
+cis_onc <- cis@assays$lineage@counts@Dim[2]
+cis <- subset(x = cis, subset = nFeature_RNA > 500 & nCount_RNA < 30000 & percent.mt < 25) #
+VlnPlot(object = cis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cis_f1 <- cis@assays$lineage@counts@Dim[2]/cis_onc
+print(cis_f1*100)
+
+dabtramtodabtram_onc <- dabtramtodabtram@assays$lineage@counts@Dim[2]
+dabtramtodabtram <- subset(x = dabtramtodabtram, subset = nFeature_RNA > 1000 & nCount_RNA < 20000 & percent.mt < 15)
+VlnPlot(object = dabtramtodabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+dabtramtodabtram_f1 <- dabtramtodabtram@assays$lineage@counts@Dim[2]/dabtramtodabtram_onc
+print(dabtramtodabtram_f1*100)
+
+dabtramtococl2_onc <- dabtramtococl2@assays$lineage@counts@Dim[2]
+dabtramtococl2 <- subset(x = dabtramtococl2, subset = nFeature_RNA > 500 & nCount_RNA < 30000 & percent.mt < 20)
+VlnPlot(object = dabtramtococl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+dabtramtococl2_f1 <- dabtramtococl2@assays$lineage@counts@Dim[2]/dabtramtococl2_onc
+print(dabtramtococl2_f1*100)
+
+dabtramtocis_onc <- dabtramtocis@assays$lineage@counts@Dim[2]
+dabtramtocis <- subset(x = dabtramtocis, subset = nFeature_RNA > 500 & nCount_RNA < 20000 & percent.mt < 25)
+VlnPlot(object = dabtramtocis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+dabtramtocis_f1 <- dabtramtocis@assays$lineage@counts@Dim[2]/dabtramtocis_onc
+print(dabtramtocis_f1*100)
+
+cocl2todabtram_onc <- cocl2todabtram@assays$lineage@counts@Dim[2]
+cocl2todabtram <- subset(x = cocl2todabtram, subset = nFeature_RNA > 1000 & nCount_RNA < 60000 & percent.mt < 15)
+VlnPlot(object = cocl2todabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cocl2todabtram_f1 <- cocl2todabtram@assays$lineage@counts@Dim[2]/cocl2todabtram_onc
+print(cocl2todabtram_f1*100)
+
+cocl2tococl2_onc <- cocl2tococl2@assays$lineage@counts@Dim[2]
+cocl2tococl2 <- subset(x = cocl2tococl2, subset = nFeature_RNA > 500 & nCount_RNA < 30000 & percent.mt < 25)
+VlnPlot(object = cocl2tococl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cocl2tococl2_f1 <- cocl2tococl2@assays$lineage@counts@Dim[2]/cocl2tococl2_onc
+print(cocl2tococl2_f1*100)
+
+cocl2tocis_onc <- cocl2tocis@assays$lineage@counts@Dim[2]
+cocl2tocis <- subset(x = cocl2tocis, subset = nFeature_RNA > 500 & nCount_RNA < 20000 & percent.mt < 25)
+VlnPlot(object = cocl2tocis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cocl2tocis_f1 <- cocl2tocis@assays$lineage@counts@Dim[2]/cocl2tocis_onc
+print(cocl2tocis_f1*100)
+
+cistodabtram_onc <- cistodabtram@assays$lineage@counts@Dim[2]
+cistodabtram <- subset(x = cistodabtram, subset = nFeature_RNA > 500 & nCount_RNA < 35000 & percent.mt < 15) #
+VlnPlot(object = cistodabtram, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cistodabtram_f1 <- cistodabtram@assays$lineage@counts@Dim[2]/cistodabtram_onc
+print(cistodabtram_f1*100)
+
+cistococl2_onc <- cistococl2@assays$lineage@counts@Dim[2]
+cistococl2 <- subset(x = cistococl2, subset = nFeature_RNA > 500 & nCount_RNA < 30000 & percent.mt < 20) #
+VlnPlot(object = cistococl2, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cistococl2_f1 <- cistococl2@assays$lineage@counts@Dim[2]/cistococl2_onc
+print(cistococl2_f1*100)
+
+cistocis_onc <- cistocis@assays$lineage@counts@Dim[2]
+cistocis <- subset(x = cistocis, subset = nFeature_RNA > 1000 & nCount_RNA < 30000 & percent.mt < 20) #
+VlnPlot(object = cistocis, features = c("nFeature_RNA", "nCount_RNA", "percent.mt", "percent.rb"), ncol = 4)
+#percent of cells kept after this filter
+cistocis_f1 <- cistocis@assays$lineage@counts@Dim[2]/cistocis_onc
+print(cistocis_f1*100)
+```
+
+# Find number of cells per condition post filter
+```{r}
+
+postfilt_num_cells <- c(dabtram = ncol(dabtram),
+                        cocl2 = ncol(cocl2),
+                        cis = ncol(cis),
+                        dabtramtodabtram = ncol(dabtramtodabtram),
+                        dabtramtococl2 = ncol(dabtramtococl2),
+                        dabtramtocis = ncol(dabtramtocis),
+                        cocl2todabtram = ncol(cocl2todabtram),
+                        cocl2tococl2 = ncol(cocl2tococl2),
+                        cocl2tocis = ncol(cocl2tocis),
+                        cistodabtram = ncol(cistodabtram),
+                        cistococl2 = ncol(cistococl2),
+                        cistocis = ncol(cistocis))
+
+df <- data.frame(starting = starting_num_cells, post_filt = postfilt_num_cells, percent = postfilt_num_cells/starting_num_cells)
+write.csv(df, '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/cellsPreandPostFilt.csv')
+rm(df)
+
+```
+
+# Remove unnecesary files
+```{r}
+
+rm(list = c('dabtram.data',
+            'dabtram_f1',
+            'dabtram_onc',
+            'cocl2.data',
+            'cocl2_f1',
+            'cocl2_onc',
+            'cis.data',
+            'cis_f1',
+            'cis_onc',
+            'dabtramtodabtram.data',
+            'dabtramtodabtram_f1',
+            'dabtramtodabtram_onc',
+            'dabtramtococl2.data',
+            'dabtramtococl2_f1',
+            'dabtramtococl2_onc',
+            'dabtramtocis.data',
+            'dabtramtocis_f1',
+            'dabtramtocis_onc',
+            'cocl2todabtram.data',
+            'cocl2todabtram_f1',
+            'cocl2todabtram_onc',
+            'cocl2tococl2.data',
+            'cocl2tococl2_f1',
+            'cocl2tococl2_onc',
+            'cocl2tocis.data',
+            'cocl2tocis_f1',
+            'cocl2tocis_onc',
+            'cistodabtram.data',
+            'cistodabtram_f1',
+            'cistodabtram_onc',
+            'cistococl2.data',
+            'cistococl2_f1',
+            'cistococl2_onc',
+            'cistocis.data',
+            'cistocis_f1',
+            'cistocis_onc',
+            'postfilt_num_cells',
+            'starting_num_cells'))
+```
+
+# Allow R to use more memory
+```{r}
+options(future.globals.maxSize= 35 * 1024^2)
+```
+
+#Normalize and identify variable features
+```{r include = FALSE}
+
+dabtram <- dabtram %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cocl2 <- cocl2 %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cis <- cis %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+dabtramtodabtram <- dabtramtodabtram %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+dabtramtococl2 <- dabtramtococl2 %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+dabtramtocis <- dabtramtocis %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cocl2todabtram <- cocl2todabtram %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cocl2tococl2 <- cocl2tococl2 %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cocl2tocis <- cocl2tocis %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cistodabtram <- cistodabtram %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cistococl2 <- cistococl2 %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+cistocis <- cistocis %>% Seurat::NormalizeData(verbose = FALSE) %>% FindVariableFeatures(selection.method = "vst", nfeatures = 20000) %>%  ScaleData(verbose = FALSE) %>% RunPCA(verbose = FALSE)
+
+```
+
+# Add cell cycle scores
+```{r include = FALSE}
+dabtram <- CellCycleScoring(object = dabtram, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cocl2 <- CellCycleScoring(object = cocl2, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cis <- CellCycleScoring(object = cis, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+dabtramtodabtram <- CellCycleScoring(object = dabtramtodabtram, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+dabtramtococl2 <- CellCycleScoring(object = dabtramtococl2, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+dabtramtocis <- CellCycleScoring(object = dabtramtocis, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cocl2todabtram <- CellCycleScoring(object = cocl2todabtram, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cocl2tococl2 <- CellCycleScoring(object = cocl2tococl2, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cocl2tocis <- CellCycleScoring(object = cocl2tocis, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cistodabtram <- CellCycleScoring(object = cistodabtram, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cistococl2 <- CellCycleScoring(object = cistococl2, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+cistocis <- CellCycleScoring(object = cistocis, g2m.features = cc.genes$g2m.genes, s.features = cc.genes$s.genes)
+
+```
+
+# Run UMAP
+```{r include = FALSE}
+
+dabtram <- FindNeighbors(object = dabtram, dims = c(1:20))
+dabtram <- FindClusters(object = dabtram, resolution = .5)
+dabtram <- RunUMAP(object = dabtram, dims = c(1:20))
+
+cocl2 <- FindNeighbors(object = cocl2, dims = c(1:20))
+cocl2 <- FindClusters(object = cocl2, resolution = .5)
+cocl2 <- RunUMAP(object = cocl2, dims = c(1:20))
+
+cis <- FindNeighbors(object = cis, dims = c(1:20))
+cis <- FindClusters(object = cis, resolution = .5)
+cis <- RunUMAP(object = cis, dims = c(1:20))
+
+dabtramtodabtram <- FindNeighbors(object = dabtramtodabtram, dims = c(1:20))
+dabtramtodabtram <- FindClusters(object = dabtramtodabtram, resolution = .5)
+dabtramtodabtram <- RunUMAP(object = dabtramtodabtram, dims = c(1:20))
+
+dabtramtococl2 <- FindNeighbors(object = dabtramtococl2, dims = c(1:20))
+dabtramtococl2 <- FindClusters(object = dabtramtococl2, resolution = .5)
+dabtramtococl2 <- RunUMAP(object = dabtramtococl2, dims = c(1:20))
+
+dabtramtocis <- FindNeighbors(object = dabtramtocis, dims = c(1:20))
+dabtramtocis <- FindClusters(object = dabtramtocis, resolution = .5)
+dabtramtocis <- RunUMAP(object = dabtramtocis, dims = c(1:20))
+
+cocl2todabtram <- FindNeighbors(object = cocl2todabtram, dims = c(1:20))
+cocl2todabtram <- FindClusters(object = cocl2todabtram, resolution = .5)
+cocl2todabtram <- RunUMAP(object = cocl2todabtram, dims = c(1:20))
+
+cocl2tococl2 <- FindNeighbors(object = cocl2tococl2, dims = c(1:20))
+cocl2tococl2 <- FindClusters(object = cocl2tococl2, resolution = .5)
+cocl2tococl2 <- RunUMAP(object = cocl2tococl2, dims = c(1:20))
+
+cocl2tocis <- FindNeighbors(object = cocl2tocis, dims = c(1:20))
+cocl2tocis <- FindClusters(object = cocl2tocis, resolution = .5)
+cocl2tocis <- RunUMAP(object = cocl2tocis, dims = c(1:20))
+
+cistodabtram <- FindNeighbors(object = cistodabtram, dims = c(1:20))
+cistodabtram <- FindClusters(object = cistodabtram, resolution = .5)
+cistodabtram <- RunUMAP(object = cistodabtram, dims = c(1:20))
+
+cistococl2 <- FindNeighbors(object = cistococl2, dims = c(1:20))
+cistococl2 <- FindClusters(object = cistococl2, resolution = .5)
+cistococl2 <- RunUMAP(object = cistococl2, dims = c(1:20))
+
+cistocis <- FindNeighbors(object = cistocis, dims = c(1:20))
+cistocis <- FindClusters(object = cistocis, resolution = .5)
+cistocis <- RunUMAP(object = cistocis, dims = c(1:20))
+
+```
+
+# Plot UMAP clusters
+```{r include = FALSE}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTram_UMAP_clusters.pdf')
+DimPlot(dabtram, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters DabTram')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2_UMAP_clusters.pdf')
+DimPlot(cocl2, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters CoCl2')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/Cis_UMAP_clusters.pdf')
+DimPlot(cis, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters Cis')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTramtoDabTram_UMAP_clusters.pdf')
+DimPlot(dabtramtodabtram, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters DabTram to DabTram')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTramtoCoCl2_UMAP_clusters.pdf')
+DimPlot(dabtramtococl2, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters DabTram to CoCl2')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTramtoCis_UMAP_clusters.pdf')
+DimPlot(dabtramtocis, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters DabTram to Cis')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2toDabTram_UMAP_clusters.pdf')
+DimPlot(cocl2todabtram, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters CoCl2 to DabTram')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2toCoCl2_UMAP_clusters.pdf')
+DimPlot(cocl2tococl2, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters CoCl2 to CoCl2')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2toCis_UMAP_clusters.pdf')
+DimPlot(cocl2tocis, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters CoCl2 to Cis')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CistoDabTram_UMAP_clusters.pdf')
+DimPlot(cistodabtram, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters Cis to DabTram')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CistoCoCl2_UMAP_clusters.pdf')
+DimPlot(cistococl2, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters Cis to CoCl2')
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CistoCis_UMAP_clusters.pdf')
+DimPlot(cistocis, reduction = "umap",dims = c(1,2), group.by = 'seurat_clusters', pt.size = 1) + ggtitle('Seurat Clusters Cis to Cis')
+dev.off()
+
+```
+
+# Make sure assay is always RNA
+```{r include = FALSE}
+DefaultAssay(object = dabtram) <- "RNA"
+DefaultAssay(object = cocl2) <- "RNA"
+DefaultAssay(object = cis) <- "RNA"
+DefaultAssay(object = dabtramtodabtram) <- "RNA"
+DefaultAssay(object = dabtramtococl2) <- "RNA"
+DefaultAssay(object = dabtramtocis) <- "RNA"
+DefaultAssay(object = cocl2todabtram) <- "RNA"
+DefaultAssay(object = cocl2tococl2) <- "RNA"
+DefaultAssay(object = cocl2tocis) <- "RNA"
+DefaultAssay(object = cistodabtram) <- "RNA"
+DefaultAssay(object = cistococl2) <- "RNA"
+DefaultAssay(object = cistocis) <- "RNA"
+
+```
+
+# Plot marker genes and save as PDFs
+```{r include = FALSE}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTram_UMAP_markers.pdf')
+FeaturePlot(object = dabtram, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2_UMAP_markers.pdf')
+FeaturePlot(object = cocl2, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/Cis_UMAP_markers.pdf')
+FeaturePlot(object = cis, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTramtoDabTram_UMAP_markers.pdf')
+FeaturePlot(object = dabtramtodabtram, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTramtoCoCl2_UMAP_markers.pdf')
+FeaturePlot(object = dabtramtococl2, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/DabTramtoCis_UMAP_markers.pdf')
+FeaturePlot(object = dabtramtocis, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2toDabTram_UMAP_markers.pdf')
+FeaturePlot(object = cocl2todabtram, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2toCoCl2_UMAP_markers.pdf')
+FeaturePlot(object = cocl2tococl2, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CoCl2toCis_UMAP_markers.pdf')
+FeaturePlot(object = cocl2tocis, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CistoDabTram_UMAP_markers.pdf')
+FeaturePlot(object = cistodabtram, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CistoCoCl2_UMAP_markers.pdf')
+FeaturePlot(object = cistococl2, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/CistoCis_UMAP_markers.pdf')
+FeaturePlot(object = cistocis, reduction = 'umap',features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) 
+dev.off()
+
+```
+
+# Save individual objects prior to merging
+```{r include = FALSE}
+save(dabtram, cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/Objects_premerged.RData')
+```
+
+# Merge the data!! merge.data = T to maintain normalization of each object
+```{r include = FALSE}
+all_data <- merge(dabtram, y = c(cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis), add.cell.ids = c("dabtram", "cocl2", "cis", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis"), project = "All_Data", merge.data = T)
+```
+
+# Merge for smaller UMAPS, all first timepoint, all second timepoint, dabtram at each time point
+```{r include = FALSE}
+first_timepoint <- merge(dabtram, y = c(cocl2, cis), add.cell.ids = c("dabtram", "cocl2", "cis"), project = "first_timepoint", merge.data = T)
+
+second_timepoint <- merge(dabtramtodabtram, y = c(dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis), add.cell.ids = c("dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis"), project = "second_timepoint", merge.data = T)
+
+dabtram_both_times <- merge(dabtram, y = dabtramtodabtram, add.cell.ids = c("dabtram", "dabtramtodabtram"), project = "All_Data", merge.data = T)
+
+```
+
+# Save merged data, remove individual objects
+``` {r include = FALSE}
+save(all_data, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/Object_postmerge.RData')
+save(first_timepoint, second_timepoint, dabtram_both_times, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/timepoint_separated_postmerge.RData")
+rm(dabtram, cocl2, cis, dabtramtodabtram, dabtramtococl2, dabtramtocis, cocl2todabtram, cocl2tococl2, cocl2tocis, cistodabtram, cistococl2, cistocis, postfilt_num_cells, starting_num_cells) 
+```
+
+# Scale, run PCA and UMAP, save
+```{r include = FALSE}
+all_data <- FindVariableFeatures(all_data) %>% ScaleData() %>% RunPCA(verbose=FALSE) %>% RunUMAP(dims = 1:20, verbose = FALSE) %>% FindNeighbors(dims = 1:20, verbose = FALSE) %>%  FindClusters(resolution = 0.3)
+DimPlot(all_data)
+
+#0.3 resolution results in 12 clusters
+#rm(all_data)
+
+condition <- c()
+for (i in 1:length(all_data@assays$RNA@counts@Dimnames[2][[1]])){
+  condition <- rbind(condition, strsplit(all_data@assays$RNA@counts@Dimnames[2][[1]][[i]], '_')[[1]][1])
+}
+all_data$OG_condition <- condition
+save(all_data, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/all_data_merged.RData')
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/all_data_merged.pdf')
+print(DimPlot(all_data))
+print(DimPlot(all_data, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')))
+print(FeaturePlot(object = all_data, reduction = 'umap', features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))))
+dev.off()
+
+```
+
+# Scale, run PCA and UMAP, save
+```{r include = FALSE}
+first_timepoint <- FindVariableFeatures(first_timepoint) %>% ScaleData() %>% RunPCA(verbose=FALSE) %>% RunUMAP(dims = 1:20, verbose = FALSE) %>% FindNeighbors(dims = 1:20, verbose = FALSE) %>%  FindClusters(resolution = 0.4)
+DimPlot(first_timepoint)
+
+condition <- c()
+for (i in 1:length(first_timepoint@assays$RNA@counts@Dimnames[2][[1]])){
+  condition <- rbind(condition, strsplit(first_timepoint@assays$RNA@counts@Dimnames[2][[1]][[i]], '_')[[1]][1])
+}
+first_timepoint$OG_condition <- condition
+save(first_timepoint, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/first_timepoint_merged.RData')
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/first_timepoint_merged.pdf')
+print(DimPlot(first_timepoint))
+print(DimPlot(first_timepoint, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29')))
+print(FeaturePlot(object = first_timepoint, reduction = 'umap', features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))))
+dev.off()
+
+```
+
+# Scale, run PCA and UMAP, save
+```{r include = FALSE}
+second_timepoint <- FindVariableFeatures(second_timepoint) %>% ScaleData() %>% RunPCA(verbose=FALSE) %>% RunUMAP(dims = 1:20, verbose = FALSE) %>% FindNeighbors(dims = 1:20, verbose = FALSE) %>%  FindClusters(resolution = 0.4)
+DimPlot(second_timepoint)
+
+condition <- c()
+for (i in 1:length(second_timepoint@assays$RNA@counts@Dimnames[2][[1]])){
+  condition <- rbind(condition, strsplit(second_timepoint@assays$RNA@counts@Dimnames[2][[1]][[i]], '_')[[1]][1])
+}
+second_timepoint$OG_condition <- condition
+save(second_timepoint, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData')
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.pdf')
+print(DimPlot(second_timepoint))
+print(DimPlot(second_timepoint, label = T, group.by = 'OG_condition', cols = c('dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')))
+print(FeaturePlot(object = second_timepoint, reduction = 'umap', features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))))
+dev.off()
+
+```
+
+# Scale, run PCA and UMAP, save
+```{r include = FALSE}
+dabtram_both_times <- FindVariableFeatures(dabtram_both_times) %>% ScaleData() %>% RunPCA(verbose=FALSE) %>% RunUMAP(dims = 1:20, verbose = FALSE) %>% FindNeighbors(dims = 1:20, verbose = FALSE) %>%  FindClusters(resolution = 0.015)
+DimPlot(dabtram_both_times)
+
+#0.3 resolution results in 12 clusters
+#rm(all_data)
+
+condition <- c()
+for (i in 1:length(dabtram_both_times@assays$RNA@counts@Dimnames[2][[1]])){
+  condition <- rbind(condition, strsplit(dabtram_both_times@assays$RNA@counts@Dimnames[2][[1]][[i]], '_')[[1]][1])
+}
+dabtram_both_times$OG_condition <- condition
+save(dabtram_both_times, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/dabtram_both_times.RData')
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/dabtram_both_times.pdf')
+print(DimPlot(dabtram_both_times))
+print(DimPlot(dabtram_both_times, label = T, group.by = 'OG_condition', cols = c('dabtram' = '#623594', 'cocl2' = '#0F8241', 'cis' = '#C96D29', 'dabtramtodabtram' = '#561E59', 'dabtramtococl2' = '#A2248E', 'dabtramtocis' = '#9D85BE', 'cocl2todabtram' = '#10413B', 'cocl2tococl2' = '#6ABD45', 'cocl2tocis' = '#6DC49C', 'cistodabtram' = '#A23622', 'cistococl2' = '#F49129', 'cistocis' = '#FBD08C')))
+print(FeaturePlot(object = dabtram_both_times, reduction = 'umap', features = c("NGFR","EGFR","AXL","NT5E","FN1","SERPINE2","MITF","nFeature_RNA","nCount_RNA"), pt.size = 1, combine = T, order = TRUE) & scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu'))))
+dev.off()
+
+```
