@@ -1,0 +1,562 @@
+---
+title: "UCell_Variance_cis"
+author: "Robert"
+date: "2023-07-03"
+output: html_document
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/My Drive/AJF009') #for robert's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+
+#Initialize:
+```{r include = FALSE}
+rm(list = ls())
+
+library(Seurat)
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+
+
+library(dplyr)
+
+
+library(reshape2)
+
+
+library(UCell)
+
+library(ggplot2)
+library(ggridges)
+
+library(corrplot)
+
+library(GO.db)
+
+library(tidyr)
+
+library(pheatmap)
+
+
+
+```
+#Load data:
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
+
+
+#Load data to eliminate further barcodes based on cDNA:
+load("2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData") 
+
+
+#Change idents to conditions:
+Idents(all_data) <- all_data$OG_condition
+
+
+```
+
+
+#Get list of relevant lineages for cis, and get cis and cisto cis only:
+```{r include = FALSE}
+
+cis_and_cistocis_lineages <- intersect(fivecell_cDNA$Cis, fivecell_cDNA$CistoCis)
+
+
+cis_only <- subset(all_data, idents = "cis")
+cistocis_only <- subset(all_data, idents = "cistocis")
+
+Idents(cis_only) <- cis_only$Lineage
+Idents(cistocis_only) <- cistocis_only$Lineage
+
+
+cis_only_five_cells <- subset(cis_only, idents = cis_and_cistocis_lineages)
+cistocis_only_five_cells <- subset(cistocis_only, idents = cis_and_cistocis_lineages)
+
+```
+
+#Get all GO terms in table:
+```{r include = FALSE}
+
+# extract a named vector of all terms
+goterms <- Term(GOTERM)
+
+goterms_df <- data.frame(goterms)
+
+```
+
+#Get lists for each section:
+```{r include = FALSE}
+
+cellular_respiration_list <- c("2 iron, 2 sulfur cluster binding","ATPase activity, coupled to transmembrane movement of ions, rotational mechanism","ATPase binding","cytochrome-c oxidase activity","electron transfer activity","iron-sulfur cluster binding","NAD(P)H dehydrogenase (quinone) activity","NADH dehydrogenase (quinone) activity","NADH dehydrogenase (ubiquinone) activity","NADH dehydrogenase activity","oxidoreductase activity, acting on a heme group of donors","oxidoreductase activity, acting on a sulfur group of donors","oxidoreductase activity, acting on a sulfur group of donors, NAD(P) as acceptor","oxidoreductase activity, acting on NAD(P)H","oxidoreductase activity, acting on NAD(P)H, quinone or similar compound as acceptor","oxidoreductase activity, acting on peroxide as acceptor","oxidoreduction-driven active transmembrane transporter activity","proton channel activity","proton transmembrane transporter activity","proton-transporting ATP synthase activity, rotational mechanism","proton-transporting ATPase activity, rotational mechanism")
+
+cell_cell_communication_list <- c("chemokine receptor binding","frizzled binding","G protein activity","G protein-coupled receptor binding","growth factor binding","insulin-like growth factor I binding","nuclear androgen receptor binding","nuclear retinoic acid receptor binding","Wnt-protein binding")
+
+extracellular_binding_list <- c("cadherin binding","cadherin binding involved in cell-cell adhesion","collagen binding","extracellular matrix structural constituent","extracellular matrix structural constituent conferring tensile strength","fibronectin binding","glycosaminoglycan binding","heparan sulfate proteoglycan binding","heparin binding","proteoglycan binding")
+
+transcription_translation_list <- c("5'-3' RNA polymerase activity"
+,"basal RNA polymerase II transcription machinery binding","basal transcription machinery binding","DNA-binding transcription factor binding","DNA-directed 5'-3' RNA polymerase activity","eukaryotic initiation factor 4E binding","general transcription initiation factor binding","poly(A) binding","ribosomal small subunit binding","ribosome binding","RNA polymerase activity","RNA polymerase II general transcription initiation factor binding","RNA polymerase II-specific DNA-binding transcription factor binding","rRNA binding","transcription coactivator activity","transcription corepressor activity","translation elongation factor activity","translation factor activity, RNA binding","translation initiation factor activity","translation initiation factor binding","translation regulator activity","translation regulator activity, nucleic acid binding")
+
+MHC_list <- c("MHC class I protein binding","MHC class II protein complex binding","MHC protein binding","MHC protein complex binding")
+
+ubiquitin_list <- c("polyubiquitin modification-dependent protein binding", "ubiquitin conjugating enzyme activity","ubiquitin protein ligase binding","ubiquitin-like protein binding","ubiquitin-like protein conjugating enzyme activity","ubiquitin-like protein ligase binding","ubiquitin-specific protease binding")
+
+enzyme_list <- c("ATP hydrolysis activity", "ATPase-coupled ion transmembrane transporter activity", "carbon-oxygen lyase activity", "catalytic activity, acting on DNA", "catalytic activity, acting on RNA", "cis-trans isomerase activity", "disulfide oxidoreductase activity", "endopeptidase inhibitor activity", "endopeptidase regulator activity", "enzyme inhibitor activity", "GTPase activity", "GTPase binding", "isomerase activity", "ligase activity", "nucleoside triphosphate diphosphatase activity", "peptidase activator activity", "peptidase inhibitor activity", "peptidase regulator activity", "peroxidase activity", "phosphatase binding", "protease binding", "protein phosphatase binding", "protein-disulfide reductase (NAD(P)) activity", "protein-disulfide reductase activity", "small GTPase binding")
+
+#Combine lists for joint analysis:
+combined_GO_terms <- c(cellular_respiration_list,cell_cell_communication_list,extracellular_binding_list,transcription_translation_list,MHC_list,ubiquitin_list,enzyme_list)
+
+#Get GO IDs of descriptions for UCell:
+relevant_go_ids <- row.names(goterms_df)[match(combined_GO_terms, goterms_df$goterms)]
+
+list_of_GO_lists <- c("cellular_respiration_list", "cell_cell_communication_list", "extracellular_binding_list", "transcription_translation_list", "MHC_list", "ubiquitin_list", "enzyme_list")
+
+```
+
+
+
+
+
+```{r include = FALSE}
+
+#Create dataframe for adding coefficient of variation:
+df_cis <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(cis_and_cistocis_lineages)))
+colnames(df_cis) <- cis_and_cistocis_lineages
+row.names(df_cis) <- combined_GO_terms
+
+df_cis$`Across Lineages`<- NA
+
+
+df_cistocis <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(cis_and_cistocis_lineages)))
+colnames(df_cistocis) <- cis_and_cistocis_lineages
+row.names(df_cistocis) <- combined_GO_terms
+
+df_cistocis$`Across Lineages`<- NA
+
+#Create dataframes for means: #aardvark
+df_cis_mean <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(cis_and_cistocis_lineages)))
+colnames(df_cis_mean) <- cis_and_cistocis_lineages
+row.names(df_cis_mean) <- combined_GO_terms
+
+df_cistocis_mean <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(cis_and_cistocis_lineages)))
+colnames(df_cistocis_mean) <- cis_and_cistocis_lineages
+row.names(df_cistocis_mean) <- combined_GO_terms
+
+
+
+```
+
+#Run UCell and get coefficients of variation:
+
+```{r include = FALSE}
+for (i in 1:length(combined_GO_terms)){
+  
+  gene.data <- AnnotationDbi::select(org.Hs.eg.db, keytype = "GOALL", keys = relevant_go_ids[i], columns = "SYMBOL")
+
+  gene_list <- unique(gene.data$SYMBOL)
+  
+
+  cis_only_five_cells <- AddModuleScore_UCell(cis_only_five_cells, features = list(gene_list), name = i)
+  
+  cistocis_only_five_cells <- AddModuleScore_UCell(cistocis_only_five_cells, features = list(gene_list), name = i)
+  
+  entry_name <- paste("signature_1", i, sep = "")
+  
+  #Create list of GO_Term means (for each lineage):
+  list_of_GO_Term_means_cis <- c()
+  list_of_GO_Term_means_cistocis <- c()
+  
+  #Add coefficient of variation to dataframe by looping across lineages:
+  for (current_lineage in cis_and_cistocis_lineages){
+    
+    #Subset to just this lineage:
+    cis_only_five_cells_subset <- subset(cis_only_five_cells, idents = current_lineage)
+    
+    #Calculate coefficient of variation
+    cv_cis <- sd(cis_only_five_cells_subset[[entry_name]][, entry_name])/mean(cis_only_five_cells_subset[[entry_name]][, entry_name])
+    
+    #Add to the dataframe:
+    df_cis[combined_GO_terms[i], current_lineage] <- cv_cis
+    
+    #Add mean to list:
+    list_of_GO_Term_means_cis <- c(list_of_GO_Term_means_cis, mean(cis_only_five_cells_subset[[entry_name]][, entry_name]))
+    
+    #Subset to just this lineage:
+    cistocis_only_five_cells_subset <- subset(cistocis_only_five_cells, idents = current_lineage)
+    
+    #Calculate coefficient of variation
+    cv_cistocis <- sd(cistocis_only_five_cells_subset[[entry_name]][, entry_name])/mean(cistocis_only_five_cells_subset[[entry_name]][, entry_name])
+    
+    #Add to the dataframe:
+    df_cistocis[combined_GO_terms[i], current_lineage] <- cv_cistocis
+    
+    #Add mean to list:
+    list_of_GO_Term_means_cistocis <- c(list_of_GO_Term_means_cis, mean(cistocis_only_five_cells_subset[[entry_name]][, entry_name]))
+    
+    #Add means to mean dataframe #aardvark
+    df_cis_mean[combined_GO_terms[i], current_lineage] <- mean(cis_only_five_cells_subset[[entry_name]][, entry_name])
+    df_cistocis_mean[combined_GO_terms[i], current_lineage] <- mean(cistocis_only_five_cells_subset[[entry_name]][, entry_name])
+    
+  }
+  
+  #Add coefficient of variation across lineages to Across lineages entry:
+  df_cis[combined_GO_terms[i], "Across Lineages"] <- sd(list_of_GO_Term_means_cis)/mean(list_of_GO_Term_means_cis)
+  
+  df_cistocis[combined_GO_terms[i], "Across Lineages"] <- sd(list_of_GO_Term_means_cistocis)/mean(list_of_GO_Term_means_cistocis)
+  
+  #Remove list of UCell means from current GO_term
+  rm(list_of_GO_Term_means_cis)
+  rm(list_of_GO_Term_means_cistocis)
+  
+  print(i)
+}
+
+
+```
+
+#Save dataframes so they don't have to be repeated:
+```{r include = FALSE}
+
+write.csv(df_cis, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_cis_2.csv')
+
+write.csv(df_cistocis, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_cisTocis_2.csv')
+
+#aardvark:
+write.csv(df_cis_mean, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_cis_2.csv')
+
+write.csv(df_cistocis_mean, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_cisTocis_2.csv')
+
+
+```
+
+#Read dataframes so they don't have to be repeated:
+```{r include = FALSE}
+
+df_cis <- read.csv('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_cis_2.csv', row.names = 1, check.names = FALSE)
+
+df_cistocis <- read.csv( '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_cisTocis_2.csv', row.names = 1, check.names = FALSE)
+
+
+
+```
+
+#make dataframe pasting cell percentages (from single cell data):
+```{r include = FALSE}
+
+#Get number of cells per lineage, cis:
+cis_lineages <- table(all_data$Lineage[all_data$OG_condition == "cis"])
+
+
+#Get number of cells per lineage, cistocis:
+cistocis_lineages <- table(all_data$Lineage[all_data$OG_condition == "cistocis"])
+
+for(lineage in colnames(df_cis)){
+  if(lineage != "Across Lineages"){
+    colnames(df_cis)[colnames(df_cis) == lineage] <- round(cis_lineages[lineage]*100.0/sum(cis_lineages),2)
+  }
+}
+
+for(lineage in colnames(df_cistocis)){
+  if(lineage != "Across Lineages"){
+    colnames(df_cistocis)[colnames(df_cistocis) == lineage] <- round(cistocis_lineages[lineage]*100.0/sum(cistocis_lineages),2)
+  }
+}
+
+```
+
+#Set variables for plotting:
+```{r include = FALSE}
+
+heatmapRange <- 2.4
+myBreaks <- seq(from = 0, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = 0, to = heatmapRange, by = 0.2)
+
+
+```
+
+#Cellular respiration plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[cellular_respiration_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_cellular_respiration.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#Cellular respiration plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[cellular_respiration_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_cellular_respiration.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+#Cell-cell communication plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[cell_cell_communication_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_cell_cell_communication.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#Cell-cell communication plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[cell_cell_communication_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_cell_cell_communication.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+#extracellular_binding plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[extracellular_binding_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_extracellular_binding.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#extracellular_binding plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[extracellular_binding_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_extracellular_binding.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+#enzyme plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[enzyme_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_enzyme.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#enzyme plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[enzyme_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_enzyme.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+#transcription_translation plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[transcription_translation_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_transcription_translation.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#transcription_translation plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[transcription_translation_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_transcription_translation.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+
+#ubiquitin plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[ubiquitin_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_ubiquitin.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#ubiquitin plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[ubiquitin_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_ubiquitin.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+#MHC plot, cis:
+```{r include = FALSE}
+
+subset_df <- df_cis[MHC_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cis_2_MHC.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#MHC plot, cistocis:
+```{r include = FALSE}
+
+subset_df <- df_cistocis[MHC_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_cistocis_2_MHC.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+
+#Setup for plotting accross lineages at 0-1 scale:
+```{r include = FALSE}
+
+heatmapRange <- 0.6
+myBreaks <- seq(from = 0, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = 0, to = heatmapRange, by = 0.1)
+
+
+```
+
+#Plot accross lineages at 0-1 scale, by looping:
+```{r include = FALSE}
+
+for (GO_list in list_of_GO_lists){
+  
+  #Plot accross lineages at 0-1 scale (cis):
+  
+  subset_df <- df_cis[eval(parse(text = GO_list)), ]
+  
+  subset_df_across_lineages <- data.frame(subset_df$`Across Lineages`)
+  row.names(subset_df_across_lineages) <- row.names(subset_df)
+  
+  pdf(paste('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/Scaled_Across_Lineages/UCell_Variance_cis_2_Scaled_Across_Clones_',GO_list,'.pdf',sep = ""), family = "ArialMT")
+  
+  pheatmap(subset_df_across_lineages, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = T, show_colnames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+  
+  dev.off()
+  
+  #Plot accross lineages at 0-1 scale (cistocis):
+  
+  subset_df <- df_cistocis[eval(parse(text = GO_list)), ]
+  
+  subset_df_across_lineages <- data.frame(subset_df$`Across Lineages`)
+  row.names(subset_df_across_lineages) <- row.names(subset_df)
+  
+  pdf(paste('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/Scaled_Across_Lineages/UCell_Variance_cistocis_2_Scaled_Across_Clones_',GO_list,'.pdf',sep = ""), family = "ArialMT")
+  
+  pheatmap(subset_df_across_lineages, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = T, show_colnames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+  
+  dev.off()
+
+}
+
+```
+
+

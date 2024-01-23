@@ -1,0 +1,557 @@
+---
+title: "UCell_Variance_DabTram"
+author: "Robert"
+date: "2023-07-03"
+output: html_document
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/My Drive/AJF009') #for robert's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+
+#Initialize:
+```{r include = FALSE}
+rm(list = ls())
+
+library(Seurat)
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+
+
+library(dplyr)
+
+
+library(reshape2)
+
+
+library(UCell)
+
+library(ggplot2)
+library(ggridges)
+
+library(corrplot)
+
+library(GO.db)
+
+library(tidyr)
+
+library(pheatmap)
+
+
+
+```
+#Load data:
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
+
+
+#Load data to eliminate further barcodes based on cDNA:
+load("2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData") 
+
+
+#Change idents to conditions:
+Idents(all_data) <- all_data$OG_condition
+
+
+```
+
+
+#Get list of relevant lineages for DabTram, and get DabTram and DabTramto DabTram only:
+```{r include = FALSE}
+
+DabTram_and_DabTramtoDabTram_lineages <- intersect(fivecell_cDNA$DabTram, fivecell_cDNA$DabTramtoDabTram)
+
+
+DabTram_only <- subset(all_data, idents = "dabtram")
+DabTramtoDabTram_only <- subset(all_data, idents = "dabtramtodabtram")
+
+Idents(DabTram_only) <- DabTram_only$Lineage
+Idents(DabTramtoDabTram_only) <- DabTramtoDabTram_only$Lineage
+
+
+DabTram_only_five_cells <- subset(DabTram_only, idents = DabTram_and_DabTramtoDabTram_lineages)
+DabTramtoDabTram_only_five_cells <- subset(DabTramtoDabTram_only, idents = DabTram_and_DabTramtoDabTram_lineages)
+
+```
+
+#Get all GO terms in table:
+```{r include = FALSE}
+
+# extract a named vector of all terms
+goterms <- Term(GOTERM)
+
+goterms_df <- data.frame(goterms)
+
+```
+
+#Get lists for each section:
+```{r include = FALSE}
+
+cellular_respiration_list <- c("2 iron, 2 sulfur cluster binding","ATPase activity, coupled to transmembrane movement of ions, rotational mechanism","ATPase binding","cytochrome-c oxidase activity","electron transfer activity","iron-sulfur cluster binding","NAD(P)H dehydrogenase (quinone) activity","NADH dehydrogenase (quinone) activity","NADH dehydrogenase (ubiquinone) activity","NADH dehydrogenase activity","oxidoreductase activity, acting on a heme group of donors","oxidoreductase activity, acting on a sulfur group of donors","oxidoreductase activity, acting on a sulfur group of donors, NAD(P) as acceptor","oxidoreductase activity, acting on NAD(P)H","oxidoreductase activity, acting on NAD(P)H, quinone or similar compound as acceptor","oxidoreductase activity, acting on peroxide as acceptor","oxidoreduction-driven active transmembrane transporter activity","proton channel activity","proton transmembrane transporter activity","proton-transporting ATP synthase activity, rotational mechanism","proton-transporting ATPase activity, rotational mechanism")
+
+cell_cell_communication_list <- c("chemokine receptor binding","frizzled binding","G protein activity","G protein-coupled receptor binding","growth factor binding","insulin-like growth factor I binding","nuclear androgen receptor binding","nuclear retinoic acid receptor binding","Wnt-protein binding")
+
+extracellular_binding_list <- c("cadherin binding","cadherin binding involved in cell-cell adhesion","collagen binding","extracellular matrix structural constituent","extracellular matrix structural constituent conferring tensile strength","fibronectin binding","glycosaminoglycan binding","heparan sulfate proteoglycan binding","heparin binding","proteoglycan binding")
+
+transcription_translation_list <- c("5'-3' RNA polymerase activity"
+,"basal RNA polymerase II transcription machinery binding","basal transcription machinery binding","DNA-binding transcription factor binding","DNA-directed 5'-3' RNA polymerase activity","eukaryotic initiation factor 4E binding","general transcription initiation factor binding","poly(A) binding","ribosomal small subunit binding","ribosome binding","RNA polymerase activity","RNA polymerase II general transcription initiation factor binding","RNA polymerase II-specific DNA-binding transcription factor binding","rRNA binding","transcription coactivator activity","transcription corepressor activity","translation elongation factor activity","translation factor activity, RNA binding","translation initiation factor activity","translation initiation factor binding","translation regulator activity","translation regulator activity, nucleic acid binding")
+
+MHC_list <- c("MHC class I protein binding","MHC class II protein complex binding","MHC protein binding","MHC protein complex binding")
+
+ubiquitin_list <- c("polyubiquitin modification-dependent protein binding", "ubiquitin conjugating enzyme activity","ubiquitin protein ligase binding","ubiquitin-like protein binding","ubiquitin-like protein conjugating enzyme activity","ubiquitin-like protein ligase binding","ubiquitin-specific protease binding")
+
+enzyme_list <- c("ATP hydrolysis activity", "ATPase-coupled ion transmembrane transporter activity", "carbon-oxygen lyase activity", "catalytic activity, acting on DNA", "catalytic activity, acting on RNA", "cis-trans isomerase activity", "disulfide oxidoreductase activity", "endopeptidase inhibitor activity", "endopeptidase regulator activity", "enzyme inhibitor activity", "GTPase activity", "GTPase binding", "isomerase activity", "ligase activity", "nucleoside triphosphate diphosphatase activity", "peptidase activator activity", "peptidase inhibitor activity", "peptidase regulator activity", "peroxidase activity", "phosphatase binding", "protease binding", "protein phosphatase binding", "protein-disulfide reductase (NAD(P)) activity", "protein-disulfide reductase activity", "small GTPase binding")
+
+#Combine lists for joint analysis:
+combined_GO_terms <- c(cellular_respiration_list,cell_cell_communication_list,extracellular_binding_list,transcription_translation_list,MHC_list,ubiquitin_list,enzyme_list)
+
+#Get GO IDs of descriptions for UCell:
+relevant_go_ids <- row.names(goterms_df)[match(combined_GO_terms, goterms_df$goterms)]
+
+list_of_GO_lists <- c("cellular_respiration_list", "cell_cell_communication_list", "extracellular_binding_list", "transcription_translation_list", "MHC_list", "ubiquitin_list", "enzyme_list")
+
+
+```
+
+
+
+
+#Get UCell coefficients of variation:
+```{r include = FALSE}
+
+#Create dataframe for adding coefficient of variation:
+df_DabTram <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(DabTram_and_DabTramtoDabTram_lineages)))
+colnames(df_DabTram) <- DabTram_and_DabTramtoDabTram_lineages
+row.names(df_DabTram) <- combined_GO_terms
+
+df_DabTram$`Across Lineages`<- NA
+
+
+df_dabtramtodabtram <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(DabTram_and_DabTramtoDabTram_lineages)))
+colnames(df_dabtramtodabtram) <- DabTram_and_DabTramtoDabTram_lineages
+row.names(df_dabtramtodabtram) <- combined_GO_terms
+
+df_dabtramtodabtram$`Across Lineages`<- NA
+
+#Create dataframes for means: 
+df_dabtram_mean <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(DabTram_and_DabTramtoDabTram_lineages)))
+colnames(df_dabtram_mean) <- DabTram_and_DabTramtoDabTram_lineages
+row.names(df_dabtram_mean) <- combined_GO_terms
+
+df_dabtramtodabtram_mean <- data.frame(matrix(vector(), nrow = length(relevant_go_ids), ncol = length(DabTram_and_DabTramtoDabTram_lineages)))
+colnames(df_dabtramtodabtram_mean) <- DabTram_and_DabTramtoDabTram_lineages
+row.names(df_dabtramtodabtram_mean) <- combined_GO_terms
+
+
+```
+
+#Run UCell and get coefficients of variation:
+
+```{r include = FALSE}
+for (i in 1:length(combined_GO_terms)){
+  
+  gene.data <- AnnotationDbi::select(org.Hs.eg.db, keytype = "GOALL", keys = relevant_go_ids[i], columns = "SYMBOL")
+
+  gene_list <- unique(gene.data$SYMBOL)
+  
+
+  DabTram_only_five_cells <- AddModuleScore_UCell(DabTram_only_five_cells, features = list(gene_list), name = i)
+  
+  DabTramtoDabTram_only_five_cells <- AddModuleScore_UCell(DabTramtoDabTram_only_five_cells, features = list(gene_list), name = i)
+  
+  entry_name <- paste("signature_1", i, sep = "")
+  
+  #Create list of GO_Term means (for each lineage):
+  list_of_GO_Term_means_dabtram <- c()
+  list_of_GO_Term_means_dabtramtodabtram <- c()
+  
+  #Add coefficient of variation to dataframe by looping across lineages:
+  for (current_lineage in DabTram_and_DabTramtoDabTram_lineages){
+    
+    #Subset to just this lineage:
+    DabTram_only_five_cells_subset <- subset(DabTram_only_five_cells, idents = current_lineage)
+    
+    #Calculate coefficient of variation
+    cv_DabTram <- sd(DabTram_only_five_cells_subset[[entry_name]][, entry_name])/mean(DabTram_only_five_cells_subset[[entry_name]][, entry_name])
+    
+    #Add to the dataframe:
+    df_DabTram[combined_GO_terms[i], current_lineage] <- cv_DabTram
+    
+    #Add mean to list:
+    list_of_GO_Term_means_dabtram <- c(list_of_GO_Term_means_dabtram, mean(DabTram_only_five_cells_subset[[entry_name]][, entry_name]))
+    
+    #Subset to just this lineage:
+    DabTramtoDabTram_only_five_cells_subset <- subset(DabTramtoDabTram_only_five_cells, idents = current_lineage)
+    
+    #Calculate coefficient of variation
+    cv_DabTramtoDabTram <- sd(DabTramtoDabTram_only_five_cells_subset[[entry_name]][, entry_name])/mean(DabTramtoDabTram_only_five_cells_subset[[entry_name]][, entry_name])
+    
+    #Add to the dataframe:
+    df_dabtramtodabtram[combined_GO_terms[i], current_lineage] <- cv_DabTramtoDabTram
+    
+    #Add mean to list:
+    list_of_GO_Term_means_dabtramtodabtram <- c(list_of_GO_Term_means_dabtram, mean(DabTramtoDabTram_only_five_cells_subset[[entry_name]][, entry_name]))
+    
+    #Add means to mean dataframe #aardvark
+    df_dabtram_mean[combined_GO_terms[i], current_lineage] <- mean(DabTram_only_five_cells[[entry_name]][, entry_name])
+    df_dabtramtodabtram_mean[combined_GO_terms[i], current_lineage] <- mean(DabTramtoDabTram_only_five_cells[[entry_name]][, entry_name])
+    
+  }
+  
+  #Add coefficient of variation across lineages to Across lineages entry:
+  df_DabTram[combined_GO_terms[i], "Across Lineages"] <- sd(list_of_GO_Term_means_dabtram)/mean(list_of_GO_Term_means_dabtram)
+  
+  df_dabtramtodabtram[combined_GO_terms[i], "Across Lineages"] <- sd(list_of_GO_Term_means_dabtramtodabtram)/mean(list_of_GO_Term_means_dabtramtodabtram)
+  
+  #Remove list of UCell means from current GO_term
+  rm(list_of_GO_Term_means_dabtram)
+  rm(list_of_GO_Term_means_dabtramtodabtram)
+  
+  print(i)
+}
+
+
+```
+
+#Save dataframes so they don't have to be repeated:
+```{r include = FALSE}
+
+write.csv(df_DabTram, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_DabTram_2.csv')
+
+write.csv(df_dabtramtodabtram, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_DabTramToDabTram_2.csv')
+
+write.csv(df_dabtram_mean, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_dabtram_2.csv')
+
+write.csv(df_dabtramtodabtram_mean, '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Means_dabtramTodabtram_2.csv')
+
+```
+
+
+#Read dataframes so they don't have to be repeated:
+```{r include = FALSE}
+
+df_DabTram <- read.csv('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_DabTram_2.csv', row.names = 1, check.names = FALSE)
+
+df_dabtramtodabtram <- read.csv( '2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_Variance_DabTramToDabTram_2.csv', row.names = 1, check.names = FALSE)
+
+```
+
+
+#make dataframe pasting cell percentages (from single cell data):
+```{r include = FALSE}
+
+#Get number of cells per lineage, dabtram:
+dabtram_lineages <- table(all_data$Lineage[all_data$OG_condition == "dabtram"])
+
+
+#Get number of cells per lineage, dabtramtodabtram:
+dabtramtodabtram_lineages <- table(all_data$Lineage[all_data$OG_condition == "dabtramtodabtram"])
+
+for(lineage in colnames(df_DabTram)){
+  if(lineage != "Across Lineages"){
+    colnames(df_DabTram)[colnames(df_DabTram) == lineage] <- round(dabtram_lineages[lineage]*100.0/sum(dabtram_lineages),2)
+  }
+}
+
+for(lineage in colnames(df_dabtramtodabtram)){
+  if(lineage != "Across Lineages"){
+    colnames(df_dabtramtodabtram)[colnames(df_dabtramtodabtram) == lineage] <- round(dabtramtodabtram_lineages[lineage]*100.0/sum(dabtramtodabtram_lineages),2)
+  }
+}
+
+```
+
+#Set variables for plotting:
+```{r include = FALSE}
+
+heatmapRange <- 2.4
+myBreaks <- seq(from = 0, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = 0, to = heatmapRange, by = 0.2)
+
+
+```
+
+#Cellular respiration plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[cellular_respiration_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_cellular_respiration.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#Cellular respiration plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[cellular_respiration_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_cellular_respiration.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+#Cell-cell communication plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[cell_cell_communication_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_cell_cell_communication.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#Cell-cell communication plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[cell_cell_communication_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_cell_cell_communication.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+#extracellular_binding plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[extracellular_binding_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_extracellular_binding.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#extracellular_binding plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[extracellular_binding_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_extracellular_binding.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+#enzyme plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[enzyme_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_enzyme.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#enzyme plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[enzyme_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_enzyme.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+#transcription_translation plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[transcription_translation_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_transcription_translation.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#transcription_translation plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[transcription_translation_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_transcription_translation.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+
+#ubiquitin plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[ubiquitin_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_ubiquitin.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#ubiquitin plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[ubiquitin_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_ubiquitin.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+
+#MHC plot, dabtram:
+```{r include = FALSE}
+
+subset_df <- df_DabTram[MHC_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_DabTram_2_MHC.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+#MHC plot, dabtramtodabtram:
+```{r include = FALSE}
+
+subset_df <- df_dabtramtodabtram[MHC_list, ]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/UCell_Variance_dabtramtodabtram_2_MHC.pdf', family = "ArialMT")
+
+pheatmap(subset_df, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+
+dev.off()
+
+
+```
+
+
+
+
+
+#Setup for plotting accross lineages at 0-1 scale:
+```{r include = FALSE}
+
+heatmapRange <- 0.6
+myBreaks <- seq(from = 0, to = heatmapRange, by = 2.0*heatmapRange/1000)
+myLegendBreaks <- seq(from = 0, to = heatmapRange, by = 0.1)
+
+
+```
+
+#Plot accross lineages at 0-1 scale, by looping:
+```{r include = FALSE}
+
+for (GO_list in list_of_GO_lists){
+  
+  #Plot accross lineages at 0-1 scale (dabtram):
+  
+  subset_df <- df_DabTram[eval(parse(text = GO_list)), ]
+  
+  subset_df_across_lineages <- data.frame(subset_df$`Across Lineages`)
+  row.names(subset_df_across_lineages) <- row.names(subset_df)
+  
+  pdf(paste('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/Scaled_Across_Lineages/UCell_Variance_dabtram_2_Scaled_Across_Clones_',GO_list,'.pdf',sep = ""), family = "ArialMT")
+  
+  pheatmap(subset_df_across_lineages, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = T, show_colnames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+  
+  dev.off()
+  
+  #Plot accross lineages at 0-1 scale (dabtramtodabtram):
+  
+  subset_df <- df_dabtramtodabtram[eval(parse(text = GO_list)), ]
+  
+  subset_df_across_lineages <- data.frame(subset_df$`Across Lineages`)
+  row.names(subset_df_across_lineages) <- row.names(subset_df)
+  
+  pdf(paste('2022_01_14_analysis_scripts/2022_05_27_analysis/pathway_analysis/Is_Resistance_Additive/UCell_CV/Scaled_Across_Lineages/UCell_Variance_dabtramtodabtram_2_Scaled_Across_Clones_',GO_list,'.pdf',sep = ""), family = "ArialMT")
+  
+  pheatmap(subset_df_across_lineages, cluster_rows=FALSE, cluster_cols=FALSE, breaks = myBreaks, cellwidth = 6, cellheight = 3, legend_breaks = myLegendBreaks, fontsize = 6, column_title = NULL, show_rownames = T, show_colnames = F, colorRampPalette(c("white", "black"))(length(myBreaks)))
+  
+  dev.off()
+
+}
+
+```
+
