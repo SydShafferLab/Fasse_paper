@@ -1,0 +1,310 @@
+---
+title: "2022_06_15 Filtering cDNA"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/ is additional path for outputs
+
+```
+
+#This loads in the gDNA data, which is already filtered based on the condition50 restriction, and adds cDNA cells for each of these lineages
+
+```{r include = FALSE}
+# Initialize ----
+rm(list = ls())
+gc()
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(kit)
+library(venn)
+`%nin%` = Negate(`%in%`)
+```
+
+
+# Assign directory and load files
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object with final lineage assignments
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_gDNA/preprocessed_gDNA.RData') #gDNA data
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_gDNA/filtered_gDNA.RData') #lineage lists from gDNA analysis script
+
+```
+
+
+# For each condition, find # cells in cDNA vs RPM in gDNA
+```{r}
+dabtram_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'dabtram']))
+dabtram_lineages <- dabtram_lineages[dabtram_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(dabtram_lineages) <- c('Lineage','Num_Cells')
+DabTram_df <- merge(dabtram_lineages, gDNA_collapsed$DabTram, by = 'Lineage' ) #pull in gDNA data for any lineage with cDNA representation (at least 1 cell)
+ggplot(DabTram_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Dabtram gDNA RPM vs cDNA # cells")
+
+cocl2_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cocl2']))
+cocl2_lineages <- cocl2_lineages[cocl2_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cocl2_lineages) <- c('Lineage','Num_Cells')
+CoCl2_df <- merge(cocl2_lineages, gDNA_collapsed$CoCl2, by = 'Lineage' )
+ggplot(CoCl2_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cocl2 gDNA RPM vs cDNA # cells")
+
+cis_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cis']))
+cis_lineages <- cis_lineages[cis_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cis_lineages) <- c('Lineage','Num_Cells')
+Cis_df <- merge(cis_lineages, gDNA_collapsed$Cis, by = 'Lineage' )
+ggplot(Cis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis gDNA RPM vs cDNA # cells")
+
+dabtramtodabtram_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'dabtramtodabtram']))
+dabtramtodabtram_lineages <- dabtramtodabtram_lineages[dabtramtodabtram_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(dabtramtodabtram_lineages) <- c('Lineage','Num_Cells')
+DabTramtoDabTram_df <- merge(dabtramtodabtram_lineages, gDNA_collapsed$DabTramtoDabTram, by = 'Lineage' )
+ggplot(DabTramtoDabTram_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Dabtram to Dabtram gDNA RPM vs cDNA # cells")
+
+dabtramtococl2_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'dabtramtococl2']))
+dabtramtococl2_lineages <- dabtramtococl2_lineages[dabtramtococl2_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(dabtramtococl2_lineages) <- c('Lineage','Num_Cells')
+DabTramtoCoCl2_df <- merge(dabtramtococl2_lineages, gDNA_collapsed$DabTramtoCoCl2, by = 'Lineage' )
+ggplot(DabTramtoCoCl2_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Dabtram to Cocl2 gDNA RPM vs cDNA # cells")
+
+dabtramtocis_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'dabtramtocis']))
+dabtramtocis_lineages <- dabtramtocis_lineages[dabtramtocis_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(dabtramtocis_lineages) <- c('Lineage','Num_Cells')
+DabTramtoCis_df <- merge(dabtramtocis_lineages, gDNA_collapsed$DabTramtoCis, by = 'Lineage' )
+ggplot(DabTramtoCis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Dabtram to Cis gDNA RPM vs cDNA # cells")
+
+cocl2todabtram_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cocl2todabtram']))
+cocl2todabtram_lineages <- cocl2todabtram_lineages[cocl2todabtram_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cocl2todabtram_lineages) <- c('Lineage','Num_Cells')
+CoCl2toDabTram_df <- merge(cocl2todabtram_lineages, gDNA_collapsed$CoCl2toDabTram, by = 'Lineage' )
+ggplot(CoCl2toDabTram_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cocl2 to Dabtram gDNA RPM vs cDNA # cells")
+
+cocl2tococl2_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cocl2tococl2']))
+cocl2tococl2_lineages <- cocl2tococl2_lineages[cocl2tococl2_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cocl2tococl2_lineages) <- c('Lineage','Num_Cells')
+CoCl2toCoCl2_df <- merge(cocl2tococl2_lineages, gDNA_collapsed$CoCl2toCoCl2, by = 'Lineage' )
+ggplot(CoCl2toCoCl2_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cocl2 to Cocl2 gDNA RPM vs cDNA # cells")
+
+cocl2tocis_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cocl2tocis']))
+cocl2tocis_lineages <- cocl2tocis_lineages[cocl2tocis_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cocl2tocis_lineages) <- c('Lineage','Num_Cells')
+CoCl2toCis_df <- merge(cocl2tocis_lineages, gDNA_collapsed$CoCl2toCis, by = 'Lineage' )
+ggplot(CoCl2toCis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cocl2 to Cis gDNA RPM vs cDNA # cells")
+
+cistodabtram_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cistodabtram']))
+cistodabtram_lineages <- cistodabtram_lineages[cistodabtram_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cistodabtram_lineages) <- c('Lineage','Num_Cells')
+CistoDabTram_df <- merge(cistodabtram_lineages, gDNA_collapsed$CistoDabTram, by = 'Lineage' )
+ggplot(CistoDabTram_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis to Dabtram gDNA RPM vs cDNA # cells")
+
+cistococl2_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cistococl2']))
+cistococl2_lineages <- cistococl2_lineages[cistococl2_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cistococl2_lineages) <- c('Lineage','Num_Cells')
+CistoCoCl2_df <- merge(cistococl2_lineages, gDNA_collapsed$CistoCoCl2, by = 'Lineage' )
+ggplot(CistoCoCl2_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis to Cocl2 gDNA RPM vs cDNA # cells")
+
+cistocis_lineages <- data.frame(table(all_data$Lineage[all_data$OG_condition == 'cistocis']))
+cistocis_lineages <- cistocis_lineages[cistocis_lineages$Var1 %nin% c('No Barcode', 'Still multiple'),]
+colnames(cistocis_lineages) <- c('Lineage','Num_Cells')
+CistoCis_df <- merge(cistocis_lineages, gDNA_collapsed$CistoCis, by = 'Lineage' )
+ggplot(CistoCis_df, aes(x = RPM, y = Num_Cells)) + geom_point() + ggtitle("Cis to Cis gDNA RPM vs cDNA # cells")
+
+```
+
+
+#Combine cDNA and gDNA for each condition into a single object
+```{r}
+# this object includes any lineage with more than 1 cell in the cDNA
+gDNA_cDNA_collapsed <- list(Cis = Cis_df, CistoCis = CistoCis_df, CistoCoCl2 = CistoCoCl2_df, CistoDabTram = CistoDabTram_df, CoCl2 = CoCl2_df, CoCl2toCis = CoCl2toCis_df, CoCl2toCoCl2 = CoCl2toCoCl2_df, CoCl2toDabTram = CoCl2toDabTram_df, DabTram = DabTram_df, DabTramtoCis = DabTramtoCis_df, DabTramtoCoCl2 = DabTramtoCoCl2_df, DabTramtoDabTram = DabTramtoDabTram_df)
+
+for (i in names(gDNA_cDNA_collapsed)){
+  gDNA_cDNA_collapsed[[i]]$Lineage <- as.character(gDNA_cDNA_collapsed[[i]]$Lineage)
+}
+
+rm(dabtram_lineages, cocl2_lineages, cis_lineages, dabtramtodabtram_lineages, dabtramtococl2_lineages, dabtramtocis_lineages, cocl2todabtram_lineages, cocl2tococl2_lineages, cocl2tocis_lineages, cistodabtram_lineages, cistococl2_lineages, cistocis_lineages)
+
+```
+
+
+# Export CSV with # reads for 1, 2 cells per condition
+```{r include = FALSE}
+
+output_df <- data.frame( Condition = c('dabtram', 'cocl2', 'cis', 'dabtramtodabtram', 'dabtramtococl2', 'dabtramtocis', 'cocl2todabtram', 'cocl2tococl2', 'cocl2tocis', 'cistodabtram', 'cistococl2', 'cistocis'),
+                         cutoff_1cell = c(mean(DabTram_df$RPM[DabTram_df$Num_Cells == 1]),
+                                          mean(CoCl2_df$RPM[CoCl2_df$Num_Cells == 1]),
+                                          mean(Cis_df$RPM[Cis_df$Num_Cells == 1]),
+                                          mean(DabTramtoDabTram_df$RPM[DabTramtoDabTram_df$Num_Cells == 1]),
+                                          mean(DabTramtoCoCl2_df$RPM[DabTramtoCoCl2_df$Num_Cells == 1]),
+                                          mean(DabTramtoCis_df$RPM[DabTramtoCis_df$Num_Cells == 1]),
+                                          mean(CoCl2toDabTram_df$RPM[CoCl2toDabTram_df$Num_Cells == 1]),
+                                          mean(CoCl2toCoCl2_df$RPM[CoCl2toCoCl2_df$Num_Cells == 1]),
+                                          mean(CoCl2toCis_df$RPM[CoCl2toCis_df$Num_Cells == 1]),
+                                          mean(CistoDabTram_df$RPM[CistoDabTram_df$Num_Cells == 1]),
+                                          mean(CistoCoCl2_df$RPM[CistoCoCl2_df$Num_Cells == 1]),
+                                          mean(CistoCis_df$RPM[CistoCis_df$Num_Cells == 1])),
+                         cutoff_2cell = c(mean(DabTram_df$RPM[DabTram_df$Num_Cells == 2]),
+                                          mean(CoCl2_df$RPM[CoCl2_df$Num_Cells == 2]),
+                                          mean(Cis_df$RPM[Cis_df$Num_Cells == 2]),
+                                          mean(DabTramtoDabTram_df$RPM[DabTramtoDabTram_df$Num_Cells == 2]),
+                                          mean(DabTramtoCoCl2_df$RPM[DabTramtoCoCl2_df$Num_Cells == 2]),
+                                          mean(DabTramtoCis_df$RPM[DabTramtoCis_df$Num_Cells == 2]),
+                                          mean(CoCl2toDabTram_df$RPM[CoCl2toDabTram_df$Num_Cells == 2]),
+                                          mean(CoCl2toCoCl2_df$RPM[CoCl2toCoCl2_df$Num_Cells == 2]),
+                                          mean(CoCl2toCis_df$RPM[CoCl2toCis_df$Num_Cells == 2]),
+                                          mean(CistoDabTram_df$RPM[CistoDabTram_df$Num_Cells == 2]),
+                                          mean(CistoCoCl2_df$RPM[CistoCoCl2_df$Num_Cells == 2]),
+                                          mean(CistoCis_df$RPM[CistoCis_df$Num_Cells == 2])))
+
+rm(Cis_df, CistoCis_df, CistoCoCl2_df, CistoDabTram_df, CoCl2_df, CoCl2toCis_df, CoCl2toCoCl2_df, CoCl2toDabTram_df, DabTram_df, DabTramtoCis_df, DabTramtoCoCl2_df, DabTramtoDabTram_df)
+
+write.csv(output_df, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/Resistant_lineage_RPM_cutoffs.csv')
+
+rm(output_df)
+```
+
+
+# Venn of cDNA vs gDNA, both filtered from filtered_lins_list and unfiltered from gDNA_collapsed -- how many of these are same vs different lineages
+```{r}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/cDNA_versus_gDNA_lineages.pdf')
+for (i in names(filtered_lins_list)){
+  if ( i != 'FirstSample'){
+  gDNA_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = gDNA_collapsed[[i]]$Lineage[gDNA_collapsed[[i]]$Reads > 0])
+  print(gDNA_cDNA_unfilt_venn <- venn(gDNA_cDNA_unfilt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "both unfiltered")))
+  
+  gDNA_unfilt_cDNA_filt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Num_Cells > 1], gDNA = gDNA_collapsed[[i]]$Lineage[gDNA_collapsed[[i]]$Reads > 0])
+  print(gDNA_unfilt_cDNA_filt_venn <- venn(gDNA_unfilt_cDNA_filt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "cDNA filtered, gDNA unfiltered")))
+  
+  gDNA_filt_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = filtered_lins_list[[i]])
+  print(gDNA_filt_cDNA_unfilt_venn <- venn(gDNA_filt_cDNA_unfilt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "gDNA filtered, cDNA unfiltered")))
+  
+  gDNA_cDNA_filt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage[gDNA_cDNA_collapsed[[i]]$Num_Cells > 1], gDNA = filtered_lins_list[[i]])
+  print(gDNA_cDNA_filt_venn <- venn(gDNA_cDNA_filt, ggplot = TRUE) + annotate(geom="text", x=500, y=900, label = paste(i, "gDNA and cDNA filtered")))
+  }
+}
+dev.off()  
+
+rm(gDNA_cDNA_unfilt, gDNA_unfilt_cDNA_filt, gDNA_cDNA_filt, gDNA_cDNA_unfilt_venn, gDNA_unfilt_cDNA_filt_venn, gDNA_filt_cDNA_unfilt_venn, gDNA_cDNA_filt_venn)
+
+```
+
+
+# Finding the size num_cells of cDNA lineages that are excluded based on the gDNA filtered lins list
+```{r include = FALSE}
+#for each sample find the lineages that are in cDNA but excluded from gDNA filtered, add these all to a list
+cDNA_excluded <- list()
+cDNA_excluded_lins <- list()
+
+for (i in names(filtered_lins_list)){
+  if (i != 'FirstSample'){
+  gDNA_filt_cDNA_unfilt <- list(cDNA = gDNA_cDNA_collapsed[[i]]$Lineage, gDNA = filtered_lins_list[[i]])
+  cDNA_excluded_lins[[i]] <- attr((venn(gDNA_filt_cDNA_unfilt)), "intersections")$'cDNA'
+  cDNA_excluded[[i]] <- filter(gDNA_cDNA_collapsed[[i]], gDNA_cDNA_collapsed[[i]]$Lineage %in% cDNA_excluded_lins[[i]])
+  }
+}
+
+rm(cDNA_excluded_lins, gDNA_filt_cDNA_unfilt)
+```
+
+
+#plot this df for each lineage, each condition, both before and after filtering to see if we're losing big lineages
+```{r}
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/cDNA_lineage_size_filtering.pdf')
+for (i in names(cDNA_excluded)){
+  print(ggplot(data = cDNA_excluded[[i]], aes(x = Num_Cells)) + geom_bar() + labs(x = 'Number of Cells per lineage', title = paste(i, "cDNA lineages lost in filtering")))
+  print(ggplot(data = gDNA_cDNA_collapsed[[i]], aes(x = Num_Cells)) + geom_bar() + labs(x = 'Number of Cells per lineage ', title = paste(i, "cDNA lineages prior to filtering")))      
+}
+dev.off()
+
+```
+
+
+# Making lists of all cDNA lins that are more than 50 cells
+```{r}
+# in the filtered_lins_list we have lists of all the lineages passing filtering for each gDNA sample
+# now making a similar filtered_lins_list_cDNA for all lineages passing filtering for each cDNA sample
+# will add these lists together so that anything passing filtering in gDNA OR cDNA is kept as a resistant lineage
+
+#cDNA_collapsed num_cells greater than 50 for a condition and its subsequent timepoints
+
+cis_condition_lins <- unique(c(gDNA_cDNA_collapsed$Cis$Lineage[gDNA_cDNA_collapsed$Cis$Num_Cells > 50], 
+                            gDNA_cDNA_collapsed$CistoCis$Lineage[gDNA_cDNA_collapsed$CistoCis$Num_Cells > 50], 
+                            gDNA_cDNA_collapsed$CistoCoCl2$Lineage[gDNA_cDNA_collapsed$CistoCoCl2$Num_Cells > 50], 
+                            gDNA_cDNA_collapsed$CistoDabTram$Lineage[gDNA_cDNA_collapsed$CistoDabTram$Num_Cells > 50]))
+
+cocl2_condition_lins <- unique(c(gDNA_cDNA_collapsed$CoCl2$Lineage[gDNA_cDNA_collapsed$CoCl2$Num_Cells > 50], 
+                              gDNA_cDNA_collapsed$CoCl2toCis$Lineage[gDNA_cDNA_collapsed$CoCl2toCis$Num_Cells > 50], 
+                              gDNA_cDNA_collapsed$CoCl2toCoCl2$Lineage[gDNA_cDNA_collapsed$CoCl2toCoCl2$Num_Cells > 50], 
+                              gDNA_cDNA_collapsed$CoCl2toDabTram$Lineage[gDNA_cDNA_collapsed$CoCl2toDabTram$Num_Cells > 50]))
+
+dabtram_condition_lins <- unique(c(gDNA_cDNA_collapsed$DabTram$Lineage[gDNA_cDNA_collapsed$DabTram$Num_Cells > 50], 
+                                gDNA_cDNA_collapsed$DabTramtoCis$Lineage[gDNA_cDNA_collapsed$DabTramtoCis$Num_Cells > 50], 
+                                gDNA_cDNA_collapsed$DabTramtoCoCl2$Lineage[gDNA_cDNA_collapsed$DabTramtoCoCl2$Num_Cells > 50], 
+                                gDNA_cDNA_collapsed$DabTramtoDabTram$Lineage[gDNA_cDNA_collapsed$DabTramtoDabTram$Num_Cells > 50]))
+```
+
+
+#Now combining those cDNA-passing lineages with gDNA-passing lineages to make a final, combined list of resistant lineages
+```{r}
+# filter to condition lins list where reads are greater than 0 to exclude cDNA lins that don't any gDNA representation
+firstcondition50_cDNA <- list()
+
+for (i in c("Cis", "CistoCis", "CistoCoCl2", "CistoDabTram")){
+  firstcondition50_cDNA[[i]] <- filter(gDNA_cDNA_collapsed[[i]], gDNA_cDNA_collapsed[[i]]$Lineage %in% cis_condition_lins & gDNA_cDNA_collapsed[[i]]$Reads != 0)} 
+for (i in c("CoCl2", "CoCl2toCis", "CoCl2toCoCl2", "CoCl2toDabTram")){
+  firstcondition50_cDNA[[i]] <- filter(gDNA_cDNA_collapsed[[i]], gDNA_cDNA_collapsed[[i]]$Lineage %in% cocl2_condition_lins & gDNA_cDNA_collapsed[[i]]$Reads != 0)}
+for (i in c("DabTram", "DabTramtoCis", "DabTramtoCoCl2", "DabTramtoDabTram")){
+  firstcondition50_cDNA[[i]] <- filter(gDNA_cDNA_collapsed[[i]], gDNA_cDNA_collapsed[[i]]$Lineage %in% dabtram_condition_lins & gDNA_cDNA_collapsed[[i]]$Reads != 0)}
+
+filtered_lins_list_cDNA <- list()
+for (i in names(firstcondition50_cDNA)){
+  filtered_lins_list_cDNA[[i]] <- firstcondition50_cDNA[[i]]$Lineage}
+
+combined_lins_list <- list()
+for (i in names(filtered_lins_list_cDNA)){
+  combined_lins_list[[i]] <- unique(c(filtered_lins_list[[i]], filtered_lins_list_cDNA[[i]]))}
+```
+
+
+# now making a different list with only lineages that pass above filters and also have more than 5 cells in the cDNA for lineage gene expression analyses
+```{r}
+fivecell_cDNA <- list()
+
+# want to take every lin in combined_lins_list and keep if it has more than than 5 cells in gDNA_cDNA_collapsed for that condition
+
+for (i in names(combined_lins_list)){
+  fivecell_cDNA[[i]] <- filter(gDNA_cDNA_collapsed[[i]], gDNA_cDNA_collapsed[[i]]$Lineage %in% combined_lins_list[[i]] & gDNA_cDNA_collapsed[[i]]$Num_Cells > 4)
+  fivecell_cDNA[[i]] <- fivecell_cDNA[[i]]$Lineage
+}
+  
+```
+
+
+# looking for lineages that survive everything/many drugs
+```{r}
+overlapping_lins <- list()
+all_cis <- venn(list(Cis = combined_lins_list$Cis, CistoCis = combined_lins_list$CistoCis, CistoCoCl2 = combined_lins_list$CistoCoCl2, CistoDabTram = combined_lins_list$CistoDabTram))
+overlapping_lins[['all_cis']] <- attr(all_cis, "intersections")$'Cis:CistoCis:CistoCoCl2:CistoDabTram'
+
+all_cocl2 <- venn(list(CoCl2 = combined_lins_list$CoCl2, CoCl2toCis = combined_lins_list$CoCl2toCis, CoCl2toCoCl2 = combined_lins_list$CoCl2toCoCl2, CoCl2toDabTram = combined_lins_list$CoCl2toDabTram))
+overlapping_lins[['all_cocl2']] <- attr(all_cocl2, "intersections")$'CoCl2:CoCl2toCis:CoCl2toCoCl2:CoCl2toDabTram'
+
+all_dabtram <- venn(list(DabTram = combined_lins_list$DabTram, DabTramtoCis = combined_lins_list$DabTramtoCis, DabTramtoCoCl2 = combined_lins_list$DabTramtoCoCl2, DabTramtoDabTram = combined_lins_list$DabTramtoDabTram))
+overlapping_lins[['all_dabtram']] <- attr(all_dabtram, "intersections")$'DabTram:DabTramtoCis:DabTramtoCoCl2:DabTramtoDabTram'
+
+super <- venn(list(all_cis = overlapping_lins$all_cis, all_cocl2 = overlapping_lins$all_cocl2, all_dabtram = overlapping_lins$all_dabtram))
+overlapping_lins[['super']] <- attr(super, "intersections")$'all_cis:all_cocl2:all_dabtram'
+```
+
+
+# save relevant stuff
+```{r}
+save(gDNA_cDNA_collapsed, filtered_lins_list_cDNA, firstcondition50_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/filtered_cDNA.RData')
+save(combined_lins_list, overlapping_lins, fivecell_cDNA, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
+```
+

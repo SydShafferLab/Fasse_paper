@@ -1,0 +1,323 @@
+---
+title: "UMAPs_continued_treatment"
+output: html_document
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(pheatmap)
+library(viridis)
+library(xlsx)
+library(escape)
+library(dittoSeq)
+library(tidyverse)
+
+`%nin%` = Negate(`%in%`)
+```
+
+# Load data
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/second_timepoint_merged.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
+
+```
+
+# Markers within each first drug object to find subgroups (ie analogous to NGFR/EGFR)
+```{r include = FALSE}
+#load('2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/all_data_markers.RData')
+cis_markers <- FindAllMarkers(cis, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+cocl2_markers <- FindAllMarkers(cocl2, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+dabtram_markers <- FindAllMarkers(dabtram, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+all_data.markers <- FindAllMarkers(all_data, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25) 
+save(all_data.markers, cis_markers, cocl2_markers, dabtram_markers, file = 'all_data_markers.RData')
+```
+
+#makedabtram continued, force 2 clusters in umap, plot vs ngfr egfr, find markers of these 2
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+dabtram_continued <- subset(all_data, idents = c('dabtram', 'dabtramtodabtram')) # Subset down to the dabtram object
+dabtram_continued <- NormalizeData(dabtram_continued)
+dabtram_continued <- FindVariableFeatures(dabtram_continued, selection.method = 'vst', nFeatures = 20000)
+dabtram_continued <- ScaleData(dabtram_continued)
+dabtram_continued <- RunPCA(dabtram_continued)
+dabtram_continued <- FindNeighbors(dabtram_continued, dims = 1:15)
+dabtram_continued <- FindClusters(dabtram_continued, resolution = 0.015)
+dabtram_continued <- RunUMAP(dabtram_continued, dims = 1:15)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/dabtram_continued_umaps.pdf')
+DimPlot(dabtram_continued, group.by = 'OG_condition', pt.size = 2, cols = c('dabtram' = '#623594','dabtramtodabtram' = '#561E59'))
+DimPlot(dabtram_continued, pt.size = 2)
+FeaturePlot(dabtram_continued, features = c('NGFR'), pt.size = 2)+
+  scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu')))
+FeaturePlot(dabtram_continued, features = c('EGFR'), pt.size = 2)+
+  scale_colour_gradientn(colors = rev(brewer.pal(n = 11, name = 'RdBu')))
+dev.off()
+
+```
+
+#Assign cluster assignments per lineage, find average score per lineage - make plots in order
+```{r}
+#average cell assignments per lineage in dabtram_maintained
+
+#get lineage and cluster data from seurat object, switch cluster identifiers from 0,1 to -1,1 (egfr, ngfr)
+clusters_per_lin <- data.frame (Cluster = as.numeric(as.character(dabtram_continued$seurat_clusters)), Lineage = dabtram_continued$Lineage, condition = dabtram_continued$OG_condition)
+clusters_per_lin$Cluster[clusters_per_lin$Cluster == 0] <- -1
+clusters_per_lin_list <- list()
+
+# Need to get percent values of EGFR for the lineage after the first treatment
+for (i in fivecell_cDNA$DabTram){
+  currentlin <- filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtram')
+  Var1 <- c(-1,1)
+  Freq <- c(sum(filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtram')$Cluster == -1), # EGFR
+  sum(filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtram')$Cluster == 1))
+  clusters_per_lin_list[[i]] <- data.frame('Var1' = Var1, 'Freq' = Freq)
+  clusters_per_lin_list[[i]]$Score <- weighted.mean(as.numeric(as.character(clusters_per_lin_list[[i]]$Var1)), clusters_per_lin_list[[i]]$Freq)
+}
+
+# Build a dataframe for plotting based on % EGFR or NGFR per lineage after first treatment
+clusters_per_lin_df <- data.frame(matrix(ncol = 5, nrow = 0))
+colnames(clusters_per_lin_df) <- c('Lineage', 'Percent_cells', 'Num_cells', 'Score')
+for (i in names(clusters_per_lin_list)){
+    clusters_per_lin_df <- rbind(clusters_per_lin_df, data.frame('Lineage' = i, 'Percent_cells' = clusters_per_lin_list[[i]]$Freq[clusters_per_lin_list[[i]]$Var1 == 1]/sum(clusters_per_lin_list[[i]]$Freq), 'Num_cells' = sum(clusters_per_lin_list[[i]]$Freq[clusters_per_lin_list[[i]]$Var1 == 1]), 'Score' = clusters_per_lin_list[[i]]$Score[1], 'Cluster' = 'NGFR')) # Add NGFR row
+  clusters_per_lin_df <- rbind(clusters_per_lin_df, data.frame('Lineage' = i, 'Percent_cells' = clusters_per_lin_list[[i]]$Freq[clusters_per_lin_list[[i]]$Var1 == -1]/sum(clusters_per_lin_list[[i]]$Freq), 'Num_cells' = sum(clusters_per_lin_list[[i]]$Freq[clusters_per_lin_list[[i]]$Var1 == -1]), 'Score' = clusters_per_lin_list[[i]]$Score[1], 'Cluster' = 'EGFR')) # Add EGFR row
+}
+
+# Reorder so that EGFR dominant lineages are plot first
+clusters_per_lin_df <- clusters_per_lin_df[with(clusters_per_lin_df, order(-Score,Num_cells )),]
+clusters_per_lin_df$Lineage <- factor(clusters_per_lin_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
+
+# make list object for after second treatment
+clusters_per_lin_list_sec <- list()
+
+# Need to get percent values of EGFR for the lineage after the second treatment
+for (i in fivecell_cDNA$DabTram){
+  currentlin <- filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtramtodabtram')
+  Var1 <- c(-1,1)
+  Freq <- c(sum(filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtramtodabtram')$Cluster == -1), # EGFR
+  sum(filter(clusters_per_lin, clusters_per_lin$Lineage == i & clusters_per_lin$condition == 'dabtramtodabtram')$Cluster == 1))
+  clusters_per_lin_list_sec[[i]] <- data.frame('Var1' = Var1, 'Freq' = Freq)
+  clusters_per_lin_list_sec[[i]]$Score <- weighted.mean(as.numeric(as.character(clusters_per_lin_list_sec[[i]]$Var1)), clusters_per_lin_list_sec[[i]]$Freq)
+}
+
+# Build a dataframe for plotting based on % EGFR or NGFR per lineage after second treatment
+clusters_per_lin_df_sec <- data.frame(matrix(ncol = 5, nrow = 0))
+colnames(clusters_per_lin_df_sec) <- c('Lineage', 'Percent_cells', 'Num_cells', 'Score', 'Cluster')
+for (i in names(clusters_per_lin_list)){
+
+  if (sum(clusters_per_lin_list_sec[[i]]$Freq) < 5){
+    clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 1, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'Died')) # Add Lineage died row
+    clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'NGFR')) # Add NGFR row
+    clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = 0, 'Cluster' = 'EGFR')) # Add EGFR row
+  }else{ # Actually calculate percentages since the lineage survived/is more than 5 cells
+      clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = 0, 'Num_cells' = 0, 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'Died')) # Add Lineage died row
+      clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == 1]/sum(clusters_per_lin_list_sec[[i]]$Freq), 'Num_cells' = sum(clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == 1]), 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'NGFR')) # Add NGFR row
+      clusters_per_lin_df_sec <- rbind(clusters_per_lin_df_sec, data.frame('Lineage' = i, 'Percent_cells' = clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == -1]/sum(clusters_per_lin_list_sec[[i]]$Freq), 'Num_cells' = sum(clusters_per_lin_list_sec[[i]]$Freq[clusters_per_lin_list_sec[[i]]$Var1 == -1]), 'Score' = clusters_per_lin_list_sec[[i]]$Score[1], 'Cluster' = 'EGFR')) # Add EGFR row
+    }
+}
+
+# Reorder so that EGFR dominant lineages are plot first
+clusters_per_lin_df_sec$Lineage <- factor(clusters_per_lin_df_sec$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
+
+# Plot
+p1 <- ggplot(clusters_per_lin_df, aes(y = Percent_cells, x = Lineage, fill = Cluster)) + geom_bar(stat = 'identity', position = position_fill(reverse = T), color = '#D3D3D3') + scale_fill_manual(values = c("#000000","#FFFFFF")) + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+p2 <- ggplot(clusters_per_lin_df_sec, aes(y = Percent_cells, x = Lineage, fill = Cluster)) + geom_bar(stat = 'identity', position = position_fill(reverse = T), color = '#D3D3D3') + scale_fill_manual(values = c("#FF0000","#000000", '#FFFFFF')) + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/stacked_bar_EGFR_NGFR_Died.pdf')
+ggarrange(p1,p2, nrow = 2)
+dev.off()
+```
+
+# Plot the number of cells per lineage in second drug for lineages that survived in DabTram
+```{r}
+# Get the number of cells in the DabTram resistant lineages in the conditions that got DabTram first
+dabtramtodabtram_dt_resist_lins <- list()
+dabtramtococl2_dt_resist_lins <- list()
+dabtramtocis_dt_resist_lins <- list()
+
+for (i in fivecell_cDNA$DabTram){
+  dabtramtodabtram_dt_resist_lins[[i]] <- all_data$Lineage[all_data$Lineage == i & all_data$OG_condition == 'dabtramtodabtram']
+  dabtramtococl2_dt_resist_lins[[i]] <- all_data$Lineage[all_data$Lineage == i & all_data$OG_condition == 'dabtramtococl2']
+  dabtramtocis_dt_resist_lins[[i]] <- all_data$Lineage[all_data$Lineage == i & all_data$OG_condition == 'dabtramtocis']
+}
+scaleFUN <- function(x) sprintf("%.2f", x)
+
+# convert list to dataframe
+dabtramtodabtram_dt_resist_lins_df <- data.frame(num_cells = lengths(dabtramtodabtram_dt_resist_lins))
+dabtramtodabtram_dt_resist_lins_df$Lineage = rownames(dabtramtodabtram_dt_resist_lins_df)
+dabtramtodabtram_dt_resist_lins_df$Lineage <- factor(dabtramtodabtram_dt_resist_lins_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
+
+dabtramtococl2_dt_resist_lins_df <- data.frame(num_cells = lengths(dabtramtococl2_dt_resist_lins))
+dabtramtococl2_dt_resist_lins_df$Lineage = rownames(dabtramtococl2_dt_resist_lins_df)
+dabtramtococl2_dt_resist_lins_df$Lineage <- factor(dabtramtococl2_dt_resist_lins_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
+
+dabtramtocis_dt_resist_lins_df <- data.frame(num_cells = lengths(dabtramtocis_dt_resist_lins))
+dabtramtocis_dt_resist_lins_df$Lineage = rownames(dabtramtocis_dt_resist_lins_df)
+dabtramtocis_dt_resist_lins_df$Lineage <- factor(dabtramtocis_dt_resist_lins_df$Lineage, levels = rev(unique(clusters_per_lin_df$Lineage)))
+
+# Plot 
+p3 <- ggplot(dabtramtodabtram_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#561E59') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to DabTram') + scale_y_continuous(labels = scaleFUN)
+
+p4 <- ggplot(dabtramtococl2_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#A2248E') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to CoCl2') + scale_y_continuous(labels = scaleFUN)
+
+p5 <- ggplot(dabtramtocis_dt_resist_lins_df, aes(y = log(num_cells+1), x = Lineage)) + geom_col(fill = '#9D85BE') + theme_classic() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(title = 'DabTram to Cis') + scale_y_continuous(labels = scaleFUN)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/stacked_bar_EGFR_NGFR_Died_w_other_second_drugs.pdf', height = 14)
+ggarrange(p1+ theme(legend.position = 'bottom'),p2+ theme(legend.position = 'bottom'),p3,p4,p5, nrow = 5)
+dev.off()
+
+
+```
+
+#make cis continued
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cis
+cis_continued <- subset(all_data, idents = c('cis', 'cistocis')) # Subset down to the cis object
+cis_continued <- NormalizeData(cis_continued)
+cis_continued <- FindVariableFeatures(cis_continued, selection.method = 'vst', nFeatures = 20000)
+cis_continued <- ScaleData(cis_continued)
+cis_continued <- RunPCA(cis_continued)
+cis_continued <- FindNeighbors(cis_continued, dims = 1:15)
+cis_continued <- FindClusters(cis_continued, resolution = 0.5)
+cis_continued <- RunUMAP(cis_continued, dims = 1:15)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/cis_continued_umaps.pdf')
+DimPlot(cis_continued, group.by = 'OG_condition', pt.size = 2, cols = c('cis' = '#c96d29','cistocis' = '#fbd08c'))
+dev.off()
+
+```
+
+#make cocl2 continued
+```{r}
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+cocl2_continued <- subset(all_data, idents = c('cocl2', 'cocl2tococl2')) # Subset down to the cocl2 object
+cocl2_continued <- NormalizeData(cocl2_continued)
+cocl2_continued <- FindVariableFeatures(cocl2_continued, selection.method = 'vst', nFeatures = 20000)
+cocl2_continued <- ScaleData(cocl2_continued)
+cocl2_continued <- RunPCA(cocl2_continued)
+cocl2_continued <- FindNeighbors(cocl2_continued, dims = 1:15)
+cocl2_continued <- FindClusters(cocl2_continued, resolution = 0.5)
+cocl2_continued <- RunUMAP(cocl2_continued, dims = 1:15)
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/cocl2_continued_umaps.pdf')
+DimPlot(cocl2_continued, group.by = 'OG_condition', pt.size = 2, cols = c('cocl2' = '#0f8241','cocl2tococl2' = '#6abd45'))
+dev.off()
+
+```
+
+
+# do ssGSEA on EGFR-high, NGFR-high, and mixed clones
+```{r}
+
+Idents(all_data) <- all_data$OG_condition
+dabtram <- subset(all_data, idents = 'dabtram')
+
+# Get just the cells of interest from the lineages with more than 5 cells and normalize
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to cocl2
+dabtram <- subset(all_data, idents = c('dabtram'))
+Idents(dabtram) <- dabtram$Lineage
+dt_sub <- subset(dabtram, idents = fivecell_cDNA$DabTram)
+dt_sub <- NormalizeData(dt_sub)
+dt_sub <- FindVariableFeatures(dt_sub, selection.method = 'vst', nFeatures = 20000)
+dt_sub <- ScaleData(dt_sub)
+dt_sub <- RunPCA(dt_sub)
+dt_sub <- FindNeighbors(dt_sub, dims = 1:15)
+dt_sub <- FindClusters(dt_sub, resolution = 0.5)
+dt_sub <- RunUMAP(dt_sub, dims = 1:15)
+
+# Load in data from: doi: 10.1016/j.ccell.2018.03.017 and format as lists
+Tsoi_data <- read.xlsx('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/NIHMS955175-supplement-4.xlsx',1, header = T)
+colnames(Tsoi_data) <- Tsoi_data[1,]
+Tsoi_data <- Tsoi_data[-1,-3]
+Tsoi_list <- Tsoi_data %>% group_by(Signature) %>% summarize(Gene = list(Gene)) %>% deframe()
+
+# Add metadata for EGFR high, NGFR high, and mixed clones
+cluster_meta <- list()
+for (i in fivecell_cDNA$DabTram){
+  if (clusters_per_lin_df$Score[clusters_per_lin_df$Lineage == i & clusters_per_lin_df$Cluster == 'NGFR'] == 1){
+    cluster_meta[[i]] <- 'NGFR-high'
+  }else if (clusters_per_lin_df$Score[clusters_per_lin_df$Lineage == i & clusters_per_lin_df$Cluster == 'EGFR'] == -1){
+    cluster_meta[[i]] <- 'EGFR-high'
+  }else if (clusters_per_lin_df$Score[clusters_per_lin_df$Lineage == i & clusters_per_lin_df$Cluster == 'NGFR'] != 1 & clusters_per_lin_df$Score[clusters_per_lin_df$Lineage == i & clusters_per_lin_df$Cluster == 'EGFR'] != -1 ){
+    cluster_meta[[i]] <- 'Mixed'
+  }
+}
+cluster_meta <- unlist(cluster_meta)
+dt_sub$cluster <- cluster_meta[dt_sub$Lineage]
+
+# Perform enrichment
+enriched <- enrichIt(obj = dt_sub,
+                     gene.sets = Tsoi_list,
+                     cores = 4,
+                     min.size = 5,
+                     method = 'UCell')
+dt_sub <- AddMetaData(dt_sub, enriched)
+
+# Plot the data
+colors <- colorRampPalette(c("#0D0887FF","#7E03A8FF","#CC4678FF","#F89441FF","#F0F921FF"))
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/GSEA_and_scoring.pdf')
+dittoHeatmap(dt_sub, genes = NULL, metas = names(enriched), 
+             annot.by = "cluster", 
+             fontsize = 7, 
+             cluster_cols = TRUE,
+             heatmap.colors = colors(50))
+
+multi_dittoPlot(dt_sub, vars = names(enriched), 
+                group.by = "cluster", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)))
+
+multi_dittoPlot(dt_sub, vars = c('Melanocytic','Neural.crest.like','Transitory','Undifferentiated'), 
+                group.by = "cluster", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)), ncol = 2)
+
+multi_dittoPlot(dt_sub, vars = c('Melanocytic'), 
+                group.by = "cluster", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)), ncol = 1, nrow = 1)
+
+multi_dittoPlot(dt_sub, vars = c('Neural.crest.like'), 
+                group.by = "cluster", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)), ncol = 1, nrow = 1)
+
+multi_dittoPlot(dt_sub, vars = c('Transitory'), 
+                group.by = "cluster", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)), ncol = 1, nrow = 1)
+
+multi_dittoPlot(dt_sub, vars = c('Undifferentiated'), 
+                group.by = "cluster", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)), ncol = 1, nrow = 1)
+
+## Seurat object example
+Idents(dt_sub) <- dt_sub$cluster
+ES2 <- data.frame(dt_sub[[]], Idents(dt_sub))
+colnames(ES2)[ncol(ES2)] <- "cluster"
+dev.off()
+
+output <- getSignificance(ES2, # https://rdrr.io/github/ncborcherding/escape/man/getSignificance.html
+                          group = "cluster", 
+                          gene.sets = names(enriched),
+                          fit = "ANOVA")
+
+write.xlsx(output, file = '2022_01_14_analysis_scripts/2022_05_27_analysis/Continued_Treatment/GSEA_and_scoring.xlsx')
+```

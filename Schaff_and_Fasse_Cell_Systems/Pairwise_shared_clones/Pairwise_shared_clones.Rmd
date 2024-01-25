@@ -1,0 +1,389 @@
+---
+title: "Pairwise_shared_clones"
+output: html_document
+date: "2023-06-30"
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineage_expression/ is additional path for outputs
+
+```
+
+#Initialize
+```{r include = FALSE}
+rm(list = ls())
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(pheatmap)
+library(viridis)
+library(xlsx)
+library(venn)
+
+`%nin%` = Negate(`%in%`)
+
+colors = c(dabtram = '#623594',
+           cocl2 = '#0F8241',
+           cis = '#C96D29',
+           dabtramtodabtram = '#561E59',
+           dabtramtococl2 = '#A2248E',
+           dabtramtocis = '#9D85BE',
+           cocl2todabtram = '#10413B',
+           cocl2tococl2 = '#6ABD45',
+           cocl2tocis = '#6DC49C',
+           cistodabtram = '#A23622',
+           cistococl2 = '#F49129',
+           cistocis = '#FBD08C')
+```
+
+# Load data
+```{r}
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData')
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Filtering_cDNA/resistant_lineage_lists.RData')
+
+```
+
+# Make the objects that include the initial treatment and the subseqeunt treatments in that arm
+```{r}
+# Make the active Ident the original condition
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+
+# dabtram arm
+dabtram_arm <- subset(all_data, idents = c('dabtram', 'dabtramtodabtram', 'dabtramtocis','dabtramtococl2')) # Subset down to the dabtram object
+dabtram_arm <- NormalizeData(dabtram_arm)
+dabtram_arm <- FindVariableFeatures(dabtram_arm, selection.method = 'vst', nFeatures = 20000)
+dabtram_arm <- ScaleData(dabtram_arm)
+dabtram_arm <- RunPCA(dabtram_arm)
+dabtram_arm <- FindNeighbors(dabtram_arm, dims = 1:15)
+dabtram_arm <- FindClusters(dabtram_arm, resolution = 0.015)
+dabtram_arm <- RunUMAP(dabtram_arm, dims = 1:15)
+
+# dabtram
+dabtram <- subset(all_data, idents = c('dabtram')) # Subset down to the dabtram object
+dabtram <- NormalizeData(dabtram)
+dabtram <- FindVariableFeatures(dabtram, selection.method = 'vst', nFeatures = 20000)
+dabtram <- ScaleData(dabtram)
+dabtram <- RunPCA(dabtram)
+dabtram <- FindNeighbors(dabtram, dims = 1:15)
+dabtram <- FindClusters(dabtram, resolution = 0.015)
+dabtram <- RunUMAP(dabtram, dims = 1:15)
+DimPlot(dabtram)
+
+# cocl2 arm
+cocl2_arm <- subset(all_data, idents = c('cocl2', 'cocl2tococl2', 'cocl2tocis','cocl2todabtram')) # Subset down to the cocl2 object
+cocl2_arm <- NormalizeData(cocl2_arm)
+cocl2_arm <- FindVariableFeatures(cocl2_arm, selection.method = 'vst', nFeatures = 20000)
+cocl2_arm <- ScaleData(cocl2_arm)
+cocl2_arm <- RunPCA(cocl2_arm)
+cocl2_arm <- FindNeighbors(cocl2_arm, dims = 1:15)
+cocl2_arm <- FindClusters(cocl2_arm, resolution = 0.015)
+cocl2_arm <- RunUMAP(cocl2_arm, dims = 1:15)
+
+# cocl2
+cocl2 <- subset(all_data, idents = c('cocl2')) # Subset down to the cocl2 object
+cocl2 <- NormalizeData(cocl2)
+cocl2 <- FindVariableFeatures(cocl2, selection.method = 'vst', nFeatures = 20000)
+cocl2 <- ScaleData(cocl2)
+cocl2 <- RunPCA(cocl2)
+cocl2 <- FindNeighbors(cocl2, dims = 1:15)
+cocl2 <- FindClusters(cocl2, resolution = 0.015)
+cocl2 <- RunUMAP(cocl2, dims = 1:15)
+DimPlot(cocl2)
+
+# cis arm
+cis_arm <- subset(all_data, idents = c('cis', 'cistodabtram', 'cistocis','cistococl2')) # Subset down to the cis object
+cis_arm <- NormalizeData(cis_arm)
+cis_arm <- FindVariableFeatures(cis_arm, selection.method = 'vst', nFeatures = 20000)
+cis_arm <- ScaleData(cis_arm)
+cis_arm <- RunPCA(cis_arm)
+cis_arm <- FindNeighbors(cis_arm, dims = 1:15)
+cis_arm <- FindClusters(cis_arm, resolution = 0.015)
+cis_arm <- RunUMAP(cis_arm, dims = 1:15)
+
+# cis
+cis <- subset(all_data, idents = c('cis')) # Subset down to the cis object
+cis <- NormalizeData(cis)
+cis <- FindVariableFeatures(cis, selection.method = 'vst', nFeatures = 20000)
+cis <- ScaleData(cis)
+cis <- RunPCA(cis)
+cis <- FindNeighbors(cis, dims = 1:15)
+cis <- FindClusters(cis, resolution = 0.015)
+cis <- RunUMAP(cis, dims = 1:15)
+DimPlot(cis)
+
+# Find the overlapping lineages for each arm of the study
+cis_venn <- venn(list(cistocis = fivecell_cDNA$CistoCis, cistococl2 = fivecell_cDNA$CistoCoCl2, cistodabtram = fivecell_cDNA$CistoDabTram))
+dabtram_venn <- venn(list(dabtramtocis = fivecell_cDNA$DabTramtoCis, dabtramtococl2 = fivecell_cDNA$DabTramtoCoCl2, dabtramtodabtram = fivecell_cDNA$DabTramtoDabTram))
+cocl2_venn <- venn(list(cocl2tocis = fivecell_cDNA$CoCl2toCis, cocl2tococl2 = fivecell_cDNA$CoCl2toCoCl2, cocl2todabtram = fivecell_cDNA$CoCl2toDabTram))
+
+# Pull out the venn diagram data
+cis_venn_data <- attr(cis_venn, 'intersections')
+dabtram_venn_data <- attr(dabtram_venn, 'intersections')
+cocl2_venn_data <- attr(cocl2_venn, 'intersections')
+
+# Remove lineages that are unique to a condition
+cis_venn_data <- cis_venn_data[grep(':', names(cis_venn_data))]
+dabtram_venn_data <- dabtram_venn_data[grep(':', names(dabtram_venn_data))]
+cocl2_venn_data <- cocl2_venn_data[grep(':', names(cocl2_venn_data))]
+
+#Cisplatin
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/cis_arms_UMAPs.pdf',7,7)
+DimPlot(cis_arm, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(cistocis = fivecell_cDNA$CistoCis, cistococl2 = fivecell_cDNA$CistoCoCl2, cistodabtram = fivecell_cDNA$CistoDabTram))
+
+for (i in unlist(cis_venn_data)){
+
+  print(DimPlot(cis_arm, cells.highlight =list(colnames(cis_arm)[cis_arm$Lineage == i]),
+                cols.highlight = 'black') +  ggtitle(paste('Cis',names(unlist(cis_venn_data))[unlist(cis_venn_data) == i],i)) )
+  
+  temp <- data.frame(cond = c('cis','cistodabtram','cistococl2','cistocis'),
+                     num_cells = c(length(colnames(cis_arm)[cis_arm$Lineage == i & cis_arm$OG_condition == 'cis']),
+                       length(colnames(cis_arm)[cis_arm$Lineage == i & cis_arm$OG_condition == 'cistodabtram']),
+                                   length(colnames(cis_arm)[cis_arm$Lineage == i & cis_arm$OG_condition == 'cistococl2']),
+                                   length(colnames(cis_arm)[cis_arm$Lineage == i & cis_arm$OG_condition == 'cistocis'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('Cis',names(unlist(cis_venn_data))[unlist(cis_venn_data) == i],i)))
+  
+}
+dev.off()
+
+# CoCl2
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/cocl2_arms_UMAPs.pdf',7,7)
+DimPlot(cocl2_arm, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(cocl2tocis = fivecell_cDNA$CoCl2toCis, cocl2tococl2 = fivecell_cDNA$CoCl2toCoCl2, cocl2todabtram = fivecell_cDNA$CoCl2toDabTram))
+
+
+for (i in unlist(cocl2_venn_data)){
+  print(DimPlot(cocl2_arm, cells.highlight = list(colnames(cocl2_arm)[cocl2_arm$Lineage == i]),
+                cols.highlight = c('black')) +  ggtitle(paste('CoCl2',names(unlist(cocl2_venn_data))[unlist(cocl2_venn_data) == i],i)))
+  
+  temp <- data.frame(cond = c('cocl2','cocl2todabtram','cocl2tococl2','cocl2tocis'),
+                     num_cells = c(length(colnames(cocl2_arm)[cocl2_arm$Lineage == i & cocl2_arm$OG_condition == 'cocl2']),
+                                   length(colnames(cocl2_arm)[cocl2_arm$Lineage == i & cocl2_arm$OG_condition == 'cocl2todabtram']),
+                                   length(colnames(cocl2_arm)[cocl2_arm$Lineage == i & cocl2_arm$OG_condition == 'cocl2tococl2']),
+                                   length(colnames(cocl2_arm)[cocl2_arm$Lineage == i & cocl2_arm$OG_condition == 'cocl2tocis'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('CoCl2',names(unlist(cocl2_venn_data))[unlist(cocl2_venn_data) == i],i)))
+}
+dev.off()
+
+cocl2$Overlaps <- rep(NA, length(cocl2$orig.ident))
+for (i in names(cocl2_venn_data)){
+  cocl2$Overlaps[cocl2$Lineage %in% cocl2_venn_data[[i]]] <- i
+}
+Idents(cocl2) <- cocl2$Overlaps
+
+#DabTram
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/dabtram_arms_UMAPs.pdf',7,7)
+DimPlot(dabtram_arm, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(dabtramtocis = fivecell_cDNA$DabTramtoCis, dabtramtococl2 = fivecell_cDNA$DabTramtoCoCl2, dabtramtodabtram = fivecell_cDNA$DabTramtoDabTram))
+
+for (i in unlist(dabtram_venn_data)){
+  print(DimPlot(dabtram_arm, cells.highlight = list(colnames(dabtram_arm)[dabtram_arm$Lineage == i]),
+                cols.highlight = c('black')) +  ggtitle(paste('DabTram',names(unlist(dabtram_venn_data))[unlist(dabtram_venn_data) == i],i)))
+  
+  temp <- data.frame(cond = c('dabtram','dabtramtodabtram','dabtramtococl2','dabtramtocis'),
+                     num_cells = c(length(colnames(dabtram_arm)[dabtram_arm$Lineage == i & dabtram_arm$OG_condition == 'dabtram']),
+                                   length(colnames(dabtram_arm)[dabtram_arm$Lineage == i & dabtram_arm$OG_condition == 'dabtramtodabtram']),
+                                   length(colnames(dabtram_arm)[dabtram_arm$Lineage == i & dabtram_arm$OG_condition == 'dabtramtococl2']),
+                                   length(colnames(dabtram_arm)[dabtram_arm$Lineage == i & dabtram_arm$OG_condition == 'dabtramtocis'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('DabTram',names(unlist(dabtram_venn_data))[unlist(dabtram_venn_data) == i],i)))
+}
+dev.off()
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/overlaps_onfirsttreat.pdf',7,7)
+
+# Pull out the venn diagram data
+venn(list(cistocis = fivecell_cDNA$CistoCis, cistococl2 = fivecell_cDNA$CistoCoCl2, cistodabtram = fivecell_cDNA$CistoDabTram))
+DimPlot(cis, cells.highlight = list("cistocis:cistococl2" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2`], "cistococl2:cistodabtram" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistococl2:cistodabtram`], "cistocis:cistococl2:cistodabtram" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis:cistococl2:cistodabtram`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+DimPlot(cis, cells.highlight = list("cistocis" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistocis`], "cistococl2" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistococl2`], "cistodabtram" = colnames(cis)[cis$Lineage %in% cis_venn_data$`cistodabtram`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+
+venn(list(cocl2tocis = fivecell_cDNA$CoCl2toCis, cocl2tococl2 = fivecell_cDNA$CoCl2toCoCl2, cocl2todabtram = fivecell_cDNA$CoCl2toDabTram))
+DimPlot(cocl2, cells.highlight = list("cocl2tococl2:cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tococl2:cocl2todabtram`], "cocl2tocis:cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2todabtram`], "cocl2tocis:cocl2tococl2" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2`], "cocl2tocis:cocl2tococl2:cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis:cocl2tococl2:cocl2todabtram`]), cols.highlight = c('red','blue','green','orange'), pt.size = 1, sizes.highlight = 2)
+DimPlot(cocl2, cells.highlight = list("cocl2tococl2" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tococl2`], "cocl2tocis" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2tocis`], "cocl2todabtram" = colnames(cocl2)[cocl2$Lineage %in% cocl2_venn_data$`cocl2todabtram`]), cols.highlight = c('red','blue','green','orange'), pt.size = 1, sizes.highlight = 2)
+
+venn(list(dabtramtocis = fivecell_cDNA$DabTramtoCis, dabtramtococl2 = fivecell_cDNA$DabTramtoCoCl2, dabtramtodabtram = fivecell_cDNA$DabTramtoDabTram))
+DimPlot(dabtram, cells.highlight = list("dabtramtococl2:dabtramtodabtram" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtococl2:dabtramtodabtram`], "dabtramtocis:dabtramtococl2" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2`], "dabtramtocis:dabtramtococl2:dabtramtodabtram" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis:dabtramtococl2:dabtramtodabtram`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+DimPlot(dabtram, cells.highlight = list("dabtramtodabtram" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtodabtram`], "dabtramtococl2" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtococl2`], "dabtramtocis" = colnames(dabtram)[dabtram$Lineage %in% dabtram_venn_data$`dabtramtocis`]), cols.highlight = c('red','blue','green'), pt.size = 1, sizes.highlight = 2)
+
+dev.off()
+
+```
+
+# Run the same analysis for after the initial treatment
+```{r}
+
+# Make the active Ident the original condition
+Idents(all_data) <- all_data$OG_condition # Change the idents to the OG condition for subsetting to dabtram
+
+# initial treatments
+init <- subset(all_data, idents = c('dabtram', 'cis', 'cocl2')) # Subset down to the dabtram object
+init <- NormalizeData(init)
+init <- FindVariableFeatures(init, selection.method = 'vst', nFeatures = 20000)
+init <- ScaleData(init)
+init <- RunPCA(init)
+init <- FindNeighbors(init, dims = 1:15)
+init <- FindClusters(init, resolution = 0.015)
+init <- RunUMAP(init, dims = 1:15)
+
+# Find the overlapping lineages for each arm of the study
+init_venn <- venn(list(dabtram = fivecell_cDNA$DabTram, cocl2 = fivecell_cDNA$CoCl2, cis = fivecell_cDNA$Cis))
+
+# Pull out the venn diagram data
+init_venn_data <- attr(init_venn, 'intersections')
+
+# Remove lineages that are unique to a condition
+init_venn_data <- init_venn_data[grep(':', names(init_venn_data))]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/init_UMAP.pdf',7,7)
+DimPlot(init, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(dabtram = fivecell_cDNA$DabTram, cocl2 = fivecell_cDNA$CoCl2, cis = fivecell_cDNA$Cis))
+
+for (i in unlist(init_venn_data)){
+  print(DimPlot(init, cells.highlight = list(colnames(init)[init$Lineage == i]),
+                cols.highlight = c('black')) +  ggtitle(paste('DabTram',names(unlist(dabtram_venn_data))[unlist(dabtram_venn_data) == i],i)))
+  
+  temp <- data.frame(cond = c('dabtram','cocl2','ocis'),
+                     num_cells = c(length(colnames(init)[init$Lineage == i & init$OG_condition == 'dabtram']),
+                                   length(colnames(init)[init$Lineage == i & init$OG_condition == 'cocl2']),
+                                   length(colnames(init)[init$Lineage == i & init$OG_condition == 'cis'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('DabTram',names(unlist(dabtram_venn_data))[unlist(dabtram_venn_data) == i],i)))
+  
+}
+dev.off()
+```
+
+# Now look at difference between order of treatments - dabtram and cocl2
+```{r}
+Idents(all_data) <- all_data$OG_condition
+
+# Make an object of both orders of DabTram and CoCl2 treatment
+dabtram_and_cocl2 <- subset(all_data, idents = c('dabtramtococl2', 'cocl2todabtram')) # Subset down to the dabtram object
+dabtram_and_cocl2 <- NormalizeData(dabtram_and_cocl2)
+dabtram_and_cocl2 <- FindVariableFeatures(dabtram_and_cocl2, selection.method = 'vst', nFeatures = 20000)
+dabtram_and_cocl2 <- ScaleData(dabtram_and_cocl2)
+dabtram_and_cocl2 <- RunPCA(dabtram_and_cocl2)
+dabtram_and_cocl2 <- FindNeighbors(dabtram_and_cocl2, dims = 1:15)
+dabtram_and_cocl2 <- FindClusters(dabtram_and_cocl2, resolution = 0.015)
+dabtram_and_cocl2 <- RunUMAP(dabtram_and_cocl2, dims = 1:15)
+
+# Find the clones that survived in both orders
+dabtram_and_cocl2_venn <- venn(list(dabtramtococl2 = fivecell_cDNA$DabTramtoCoCl2, cocl2todabtram = fivecell_cDNA$CoCl2toDabTram))
+
+# Pull out the venn diagram data
+dabtram_and_cocl2_venn_data <- attr(dabtram_and_cocl2_venn, 'intersections')
+
+# Remove lineages that are unique to a condition
+dabtram_and_cocl2_venn_data <- dabtram_and_cocl2_venn_data[grep(':', names(dabtram_and_cocl2_venn_data))]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/dabtram_and_cocl2_UMAP.pdf',7,7)
+DimPlot(dabtram_and_cocl2, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(dabtramtococl2 = fivecell_cDNA$DabTramtoCoCl2, cocl2todabtram = fivecell_cDNA$CoCl2toDabTram))
+
+for (i in unlist(dabtram_and_cocl2_venn_data)){
+  print(DimPlot(dabtram_and_cocl2, cells.highlight = list(colnames(dabtram_and_cocl2)[dabtram_and_cocl2$Lineage == i]),
+                cols.highlight = c('black')) +  ggtitle(paste('DabTram and CoCl2',names(unlist(dabtram_and_cocl2_venn_data))[unlist(dabtram_and_cocl2_venn_data) == i],i)))
+  
+  temp <- data.frame(cond = c('dabtramtococl2','cocl2todabtram'),
+                     num_cells = c(length(colnames(dabtram_and_cocl2)[dabtram_and_cocl2$Lineage == i & dabtram_and_cocl2$OG_condition == 'dabtramtococl2']),
+                                   length(colnames(dabtram_and_cocl2)[dabtram_and_cocl2$Lineage == i & dabtram_and_cocl2$OG_condition == 'cocl2todabtram'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('DabTram and CoCl2',names(unlist(dabtram_and_cocl2_venn_data))[unlist(dabtram_and_cocl2_venn_data) == i],i)))
+  
+}
+dev.off()
+
+```
+
+
+# Now look at difference between order of treatments - dabtram and cis
+```{r}
+Idents(all_data) <- all_data$OG_condition
+
+# Make an object of both orders of DabTram and CoCl2 treatment
+dabtram_and_cis <- subset(all_data, idents = c('dabtramtocis', 'cistodabtram')) # Subset down to the dabtram object
+dabtram_and_cis <- NormalizeData(dabtram_and_cis)
+dabtram_and_cis <- FindVariableFeatures(dabtram_and_cis, selection.method = 'vst', nFeatures = 20000)
+dabtram_and_cis <- ScaleData(dabtram_and_cis)
+dabtram_and_cis <- RunPCA(dabtram_and_cis)
+dabtram_and_cis <- FindNeighbors(dabtram_and_cis, dims = 1:15)
+dabtram_and_cis <- FindClusters(dabtram_and_cis, resolution = 0.015)
+dabtram_and_cis <- RunUMAP(dabtram_and_cis, dims = 1:15)
+
+# Find the clones that survived in both orders
+dabtram_and_cis_venn <- venn(list(dabtramtocis = fivecell_cDNA$DabTramtoCis, cistodabtram = fivecell_cDNA$CistoDabTram))
+
+# Pull out the venn diagram data
+dabtram_and_cis_venn_data <- attr(dabtram_and_cis_venn, 'intersections')
+
+# Remove lineages that are unique to a condition
+dabtram_and_cis_venn_data <- dabtram_and_cis_venn_data[grep(':', names(dabtram_and_cis_venn_data))]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/dabtram_and_cis_UMAP.pdf',7,7)
+DimPlot(dabtram_and_cis, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(dabtramtocis = fivecell_cDNA$DabTramtoCis, cistodabtram = fivecell_cDNA$CistoDabTram))
+
+for (i in unlist(dabtram_and_cis_venn_data)){
+  print(DimPlot(dabtram_and_cis, cells.highlight = list(colnames(dabtram_and_cis)[dabtram_and_cis$Lineage == i]),
+                cols.highlight = c('black')) +  ggtitle(paste('DabTram and Cis',names(unlist(dabtram_and_cis_venn_data))[unlist(dabtram_and_cis_venn_data) == i],i)))
+  
+  temp <- data.frame(cond = c('dabtramtocis','cistodabtram'),
+                     num_cells = c(length(colnames(dabtram_and_cis)[dabtram_and_cis$Lineage == i & dabtram_and_cis$OG_condition == 'dabtramtocis']),
+                                   length(colnames(dabtram_and_cis)[dabtram_and_cis$Lineage == i & dabtram_and_cis$OG_condition == 'cistodabtram'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('DabTram and Cis',names(unlist(dabtram_and_cis_venn_data))[unlist(dabtram_and_cis_venn_data) == i],i)))
+  
+}
+dev.off()
+
+```
+
+# Now look at difference between order of treatments - cocl2 and cis
+```{r}
+Idents(all_data) <- all_data$OG_condition
+
+# Make an object of both orders of DabTram and CoCl2 treatment
+cocl2_and_cis <- subset(all_data, idents = c('cocl2tocis', 'cistococl2')) # Subset down to the dabtram object
+cocl2_and_cis <- NormalizeData(cocl2_and_cis)
+cocl2_and_cis <- FindVariableFeatures(cocl2_and_cis, selection.method = 'vst', nFeatures = 20000)
+cocl2_and_cis <- ScaleData(cocl2_and_cis)
+cocl2_and_cis <- RunPCA(cocl2_and_cis)
+cocl2_and_cis <- FindNeighbors(cocl2_and_cis, dims = 1:15)
+cocl2_and_cis <- FindClusters(cocl2_and_cis, resolution = 0.015)
+cocl2_and_cis <- RunUMAP(cocl2_and_cis, dims = 1:15)
+
+# Find the clones that survived in both orders
+cocl2_and_cis_venn <- venn(list(cocl2tocis = fivecell_cDNA$CoCl2toCis, cistococl2 = fivecell_cDNA$CistoCoCl2))
+
+# Pull out the venn diagram data
+cocl2_and_cis_venn_data <- attr(cocl2_and_cis_venn, 'intersections')
+
+# Remove lineages that are unique to a condition
+cocl2_and_cis_venn_data <- cocl2_and_cis_venn_data[grep(':', names(cocl2_and_cis_venn_data))]
+
+pdf('2022_01_14_analysis_scripts/2022_05_27_analysis/Pairwise_shared_clones/cocl2_and_cis_UMAP.pdf',7,7)
+DimPlot(cocl2_and_cis, group.by = 'OG_condition', pt.size = 1, cols = colors)
+
+venn(list(cocl2tocis = fivecell_cDNA$CoCl2toCis, cistococl2 = fivecell_cDNA$CistoCoCl2))
+
+for (i in unlist(cocl2_and_cis_venn_data)){
+  print(DimPlot(cocl2_and_cis, cells.highlight = list(colnames(cocl2_and_cis)[cocl2_and_cis$Lineage == i]),
+                cols.highlight = c('black')) +  ggtitle(paste('CoCl2 and Cis',names(unlist(dabtram_venn_data))[unlist(dabtram_venn_data) == i],i)))
+  
+  temp <- data.frame(cond = c('cocl2tocis','cistococl2'),
+                     num_cells = c(length(colnames(cocl2_and_cis)[cocl2_and_cis$Lineage == i & cocl2_and_cis$OG_condition == 'cocl2tocis']),
+                                   length(colnames(cocl2_and_cis)[cocl2_and_cis$Lineage == i & cocl2_and_cis$OG_condition == 'cistococl2'])))
+  print(ggplot(temp, aes(x = cond, y = num_cells, fill = cond)) + geom_col() + scale_fill_manual(values = colors)+ ggtitle(paste('CoCl2 and Cis',names(unlist(cocl2_and_cis_venn_data))[unlist(cocl2_and_cis_venn_data) == i],i)))
+  
+}
+dev.off()
+
+```

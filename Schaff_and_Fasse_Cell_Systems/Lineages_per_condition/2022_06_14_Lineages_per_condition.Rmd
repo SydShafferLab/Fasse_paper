@@ -1,0 +1,91 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Lineages_per_condition/ is additional path for outputs
+
+```
+
+# Initialize
+```{r include = FALSE}
+rm(list = ls())
+gc()
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(RColorBrewer)
+library(kit)
+`%nin%` = Negate(`%in%`)
+
+```
+
+# Assign directory and load files
+```{r include = FALSE}
+
+load('2022_01_14_analysis_scripts/2022_05_27_analysis/Assign_dominant_barcodes/all_data_final_lineages.RData') #seurat object
+
+```
+
+# Find which lineages are present in each condition, # cells, # lins in each condition
+```{r}
+dabtramtodabtram_inds <- grep('dabtramtodabtram', names(all_data$Lineage))
+dabtramtodabtram_table <- table(all_data$Lineage[dabtramtodabtram_inds])
+dabtramtodabtram_lins_num <- length(dabtramtodabtram_table) - 2
+
+dabtramtococl2_inds <- grep('dabtramtococl2', names(all_data$Lineage))
+dabtramtococl2_table <- table(all_data$Lineage[dabtramtococl2_inds])
+dabtramtococl2_lins_num <- length(dabtramtococl2_table) - 2
+
+dabtramtocis_inds <- grep('dabtramtocis', names(all_data$Lineage))
+dabtramtocis_table <- table(all_data$Lineage[dabtramtocis_inds])
+dabtramtocis_lins_num <- length(dabtramtocis_table) - 2
+
+cocl2todabtram_inds <- grep('cocl2todabtram', names(all_data$Lineage))
+cocl2todabtram_table <- table(all_data$Lineage[cocl2todabtram_inds])
+cocl2todabtram_lins_num <- length(cocl2todabtram_table) - 2
+
+cocl2tococl2_inds <- grep('cocl2tococl2', names(all_data$Lineage))
+cocl2tococl2_table <- table(all_data$Lineage[cocl2tococl2_inds])
+cocl2tococl2_cells_num <- length(cocl2tococl2_inds)
+
+cocl2tocis_inds <- grep('cocl2tocis', names(all_data$Lineage))
+cocl2tocis_table <- table(all_data$Lineage[cocl2tocis_inds])
+
+cistodabtram_inds <- grep('cistodabtram', names(all_data$Lineage))
+cistodabtram_table <- table(all_data$Lineage[cistodabtram_inds])
+
+cistococl2_inds <- grep('cistococl2', names(all_data$Lineage))
+cistococl2_table <- table(all_data$Lineage[cistococl2_inds])
+
+cistocis_inds <- grep('cistocis', names(all_data$Lineage))
+cistocis_table <- table(all_data$Lineage[cistocis_inds])
+
+dabtram_inds <- grep('dabtram', names(all_data$Lineage))
+dabtram_inds <- dabtram_inds[dabtram_inds %nin% c(dabtramtodabtram_inds, dabtramtococl2_inds, dabtramtocis_inds, cocl2todabtram_inds, cistodabtram_inds)]
+dabtram_table <- table(all_data$Lineage[dabtram_inds])
+
+cocl2_inds <- grep('cocl2', names(all_data$Lineage))
+cocl2_inds <- cocl2_inds[cocl2_inds %nin% c(dabtramtococl2_inds, cocl2todabtram_inds, cocl2tococl2_inds, cocl2tocis_inds, cistococl2_inds)]
+cocl2_table <- table(all_data$Lineage[cocl2_inds])
+
+cis_inds <- grep('cis', names(all_data$Lineage))
+cis_inds <- cis_inds[cis_inds %nin% c(dabtramtocis_inds, cocl2tocis_inds, cistodabtram_inds, cistococl2_inds, cistocis_inds)]
+cis_table <- table(all_data$Lineage[cis_inds])
+
+cell_nums <- list(length(dabtram_inds), length(cocl2_inds), length(cis_inds), length(dabtramtodabtram_inds), length(dabtramtococl2_inds), length(dabtramtocis_inds), length(cocl2todabtram_inds), length(cocl2tococl2_inds), length(cocl2tocis_inds), length(cistodabtram_inds), length(cistococl2_inds), length(cistocis_inds))
+names(cell_nums) <- c("dabtram", "cocl2", "cis", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis")
+
+lin_nums <- list(length(dabtram_table)-2, length(cocl2_table)-2, length(cis_table)-2, length(dabtramtodabtram_table)-2, length(dabtramtococl2_table)-2, length(dabtramtocis_table)-2, length(cocl2todabtram_table)-2, length(cocl2tococl2_table)-2, length(cocl2tocis_table)-2, length(cistodabtram_table)-2, length(cistococl2_table)-2, length(cistocis_table)-2)
+names(lin_nums) <- c("dabtram", "cocl2", "cis", "dabtramtodabtram", "dabtramtococl2", "dabtramtocis", "cocl2todabtram", "cocl2tococl2", "cocl2tocis", "cistodabtram", "cistococl2", "cistocis")
+
+lin_and_cell_nums <- Map(c, lin_nums, cell_nums)
+
+write.csv(lin_and_cell_nums, file = "2022_01_14_analysis_scripts/2022_05_27_analysis/Lineages_per_condition/Lineages_and_cells_per.csv")
+```
+

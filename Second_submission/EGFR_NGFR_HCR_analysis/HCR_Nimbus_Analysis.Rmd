@@ -1,0 +1,52 @@
+---
+title: "Nimbus_Output_Analysis"
+output: html_document
+date: "2023-11-10"
+---
+
+#Set working directory to appropriate folder for inputs and outputs on Google Drive
+```{r, setup, include=FALSE}
+#knitr::opts_knit$set(root.dir = '/Volumes/GoogleDrive/My Drive/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for aria's computer
+
+knitr::opts_knit$set(root.dir = '/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/.shortcut-targets-by-id/1zSqx3IzXMwt6clUjwyqmlOf4G1K53lvy/Fasse_Shared/AJF_Drive_copy/Experiments/AJF009') # for dylan's computer
+
+#knitr::opts_knit$set(root.dir = '/Users/robertvandervelde/Library/CloudStorage/GoogleDrive-robertvandervelde@sydshafferlab.com/.shortcut-targets-by-id/1oE5MtumTfVN3grZH0AkMj2NoxkqZO12W/AJF009') #for robert's computer
+
+
+#2022_01_14_analysis_scripts/2022_05_27_analysis/Preprocess_GEX/ is additional path for outputs
+```
+
+# Initialize:
+```{r include = FALSE}
+rm(list = ls())
+library(ggplot2)
+library(dplyr)
+
+colors <- c(' [ Colony Ambiguous ]' = '#D4D4D4',
+            ' [ Colony EGFR ]' = '#C96BAA',
+            ' [ Colony NGFR ]' = '#3BB54A',
+            ' [ Colony Mixed ]' = '#FFFF00')
+```
+
+# Load in the data
+```{r, include = FALSE}
+setwd('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/Nimbus_Outputs')
+files <- list.files(pattern = '*annotation_export.csv', recursive=T, full.names = T)
+data <- lapply(files, read.csv, header = T)
+names(data)<- files
+```
+
+# plot the data
+```{r}
+pdf('/Users/dylanschaff/Library/CloudStorage/GoogleDrive-dyschaff@sydshafferlab.com/My Drive/Schaff_Shared/Cloud/Experiment_IDs/DLS071/Nimbus_Outputs/output.pdf')
+for(i in names(data)){
+  t <- data[[i]]
+  t <- t[c(6,8,9)]
+  colnames(t) <- c('Tags','Area','Total_DAPI')
+  t$Colony_num <- c(1:nrow(t))
+  print(ggplot(t, aes(x = reorder(Colony_num, -Total_DAPI), y = log10(Total_DAPI), fill = Tags)) + 
+    geom_col() + scale_fill_manual(values = colors)+
+  coord_cartesian(ylim = c(7, 10.5)) + labs(title = paste(i,'Num Colonies:',nrow(t))))
+}
+dev.off()
+```
